@@ -1,3 +1,10 @@
+## [1.25.2](https://github.com/frmatthew/exsurge/compare/v1.25.1...v1.25.2) (2026-07-08)
+
+
+### Bug Fixes
+
+* Fix typing ([7c7223a](https://github.com/frmatthew/exsurge/commit/7c7223a0359d2ab870fbe904987ad5cbb8c884e4))
+
 ## [1.25.1](https://github.com/frmatthew/exsurge/compare/v1.25.0...v1.25.1) (2026-07-08)
 
 
