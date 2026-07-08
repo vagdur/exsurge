@@ -76,7 +76,8 @@ class NeumeBuilder {
     var needsLine =
       withLineTo &&
       this.lastNote !== null &&
-      (this.lineIsHanging ||
+      (this.ctxt.glyphMultiplier < 1 ||
+        this.lineIsHanging ||
         (this.lastNote.glyphVisualizer &&
           this.lastNote.glyphVisualizer.align === "right") ||
         Math.abs(this.lastNote.staffPosition - note.staffPosition) > 1);
@@ -191,7 +192,7 @@ class NeumeBuilder {
       lowerGlyph = GlyphCode.PunctumQuadratum;
       upperGlyph = GlyphCode.PunctumQuadratumDesLiquescent;
     } else {
-      const diff = upperNote.staffPosition - lowerNote.staffPosition;
+      const diff = upperNote.staffPosition - lowerNote.staffPosition + (this.ctxt.glyphMultiplier <= 0.85 ? 1 : 0);
       // standard shape
       lowerGlyph = diff > 1 ? GlyphCode.PodatusLower : GlyphCode.PodatusLowerShort;
       upperGlyph = diff > 1 ? GlyphCode.PodatusUpper : GlyphCode.PodatusUpperShort;
@@ -329,7 +330,8 @@ class NeumeBuilder {
   withPorrectusSwash(start, end) {
     var needsLine =
       this.lastNote !== null &&
-      (this.lineIsHanging ||
+      (this.ctxt.glyphMultiplier < 1 ||
+        this.lineIsHanging ||
         (this.lastNote.glyphVisualizer &&
           this.lastNote.glyphVisualizer.align === "right") ||
         Math.abs(this.lastNote.staffPosition - start.staffPosition) > 1);

@@ -285,14 +285,14 @@ declare module "exsurge" {
     ): void;
     setRubricColor(color: string): void;
     setMergeAnnotationWithTextLeft(merge: boolean): void;
-    setScaleDefs(scaleDefs: boolean);
+    setScaleDefs(scaleDefs: boolean): void;
     createStyleCss(): string;
     createStyleNode(): HTMLOrSVGElement;
     createStyleReact(): any;
     createStyle(): string;
     updateHyphenWidth(): void;
     setStaffHeight(staffHeight: number): void;
-    setGlyphScaling(glyphScaling: number): void;
+    setStaffHeight(staffHeight: number, glyphMultiplier?: number): void;
     calculateHeightFromStaffPosition(staffPosition: number): number;
     insertFontsInDoc(): void;
     findNextNeume(): ChantNotationElement;

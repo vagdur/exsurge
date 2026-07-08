@@ -764,9 +764,10 @@ export class ChantContext {
   }
 
   setGlyphScaling(glyphScaling, glyphMultiplier = 1) {
+    this.glyphMultiplier = glyphMultiplier;
     this.glyphScaling = glyphScaling * glyphMultiplier;
 
-    this.staffInterval = this.glyphPunctumWidth * this.glyphScaling;
+    this.staffInterval = this.glyphPunctumWidth * glyphScaling;
 
     // setup the line weights for the various elements.
     this.staffLineWeight = Math.ceil((5 * this.staffInterval) / 8) / 5;
@@ -1300,10 +1301,19 @@ export class GlyphVisualizer extends ChantLayoutElement {
   draw(ctxt) {
     var canvasCtxt = ctxt.canvasCtxt;
 
+    const porrectusResult = /^Porrectus([1-9])$/.exec(this.glyphCode);
+    const porrectusNoteDiff = porrectusResult ? Number(porrectusResult[1]) : 0;
+    
     var x = this.bounds.x + this.origin.x;
     var y = this.bounds.y + this.origin.y;
+    var scaleX = ctxt.glyphScaling;
+    var scaleY = ctxt.glyphScaling;
+    if (porrectusNoteDiff) {
+      scaleY /= ctxt.glyphMultiplier;
+      y /= scaleY;
+    }
     canvasCtxt.translate(x, y);
-    canvasCtxt.scale(ctxt.glyphScaling, ctxt.glyphScaling);
+    canvasCtxt.scale(scaleX, scaleY);
 
     for (var i = 0; i < this.glyph.paths.length; i++) {
       var path = this.glyph.paths[i];
@@ -1312,13 +1322,15 @@ export class GlyphVisualizer extends ChantLayoutElement {
       canvasCtxt.fill(new Path2D(path.data));
     }
 
-    canvasCtxt.scale(1.0 / ctxt.glyphScaling, 1.0 / ctxt.glyphScaling);
+    canvasCtxt.scale(1 / scaleX, 1 / scaleY);
     canvasCtxt.translate(-x, -y);
   }
 
   getSvgAttributes(ctxt, source) {
     let className = "";
-    if (/^Porrectus\d$/.test(this.glyphCode)) {
+    const porrectusResult = /^Porrectus([1-9])$/.exec(this.glyphCode);
+    const porrectusNoteDiff = porrectusResult ? Number(porrectusResult[1]) : 0;
+    if (porrectusNoteDiff) {
       let notes = source.neume.notes,
         noteIndex = notes.indexOf(source),
         nextNote = notes[noteIndex + 1];
@@ -1346,7 +1358,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
         result.id = ctxt.noteIdPrefix + (source.noteIndex + 1);
         if (source.neume) {
           const glyphCode = source.glyphVisualizer.glyphCode;
-          if (/^Porrectus/.test(glyphCode)) {
+          if (porrectusNoteDiff) {
             result.class += ' porrectus porrectus-start';
           } else if (glyphCode === 'None') {
             result.class += ' porrectus porrectus-end';
@@ -1357,10 +1369,19 @@ export class GlyphVisualizer extends ChantLayoutElement {
     if (ctxt.scaleDefs === true) {
       result.x = this.bounds.x + this.origin.x;
       result.y = this.bounds.y + this.origin.y;
+      if (porrectusNoteDiff) {
+        // result.transform = "scale(" + (porrectusNoteDiff / (porrectusNoteDiff + 1)) + ")";
+        const scaleGlyph = 1 / ctxt.glyphMultiplier;
+        result.transform = "scale(1," + scaleGlyph + ")";
+        result.y /= scaleGlyph;
+      }
     } else {
+      const scaleGlyph = porrectusNoteDiff
+        ? ctxt.glyphScaling / ctxt.glyphMultiplier
+        : ctxt.glyphScaling;
       result.x = (this.bounds.x + this.origin.x) / ctxt.glyphScaling;
-      result.y = (this.bounds.y + this.origin.y) / ctxt.glyphScaling;
-      result.transform = "scale(" + ctxt.glyphScaling + ")";
+      result.y = (this.bounds.y + this.origin.y) / scaleGlyph;
+      result.transform = "scale(" + ctxt.glyphScaling + "," + scaleGlyph + ")";
     }
     return result;
   }
