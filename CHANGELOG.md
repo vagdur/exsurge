@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/frmatthew/exsurge/compare/v1.24.2...v1.25.0) (2026-07-08)
+
+
+### Features
+
+* Add glyphMultiplier option to setStaffHeight and setGlyphScaling ([9fb9865](https://github.com/frmatthew/exsurge/commit/9fb9865ec28fd4b0da9e79cfb7b2898023f35c3d))
+
 ## [1.24.2](https://github.com/frmatthew/exsurge/compare/v1.24.1...v1.24.2) (2026-06-07)
 
 
