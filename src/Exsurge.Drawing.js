@@ -759,12 +759,12 @@ export class ChantContext {
     this.minLyricWordSpacing = multiplier * this.hyphenWidth;
   }
 
-  setStaffHeight(staffHeight) {
-    this.setGlyphScaling(staffHeight / 600);
+  setStaffHeight(staffHeight, glyphMultiplier = 1) {
+    this.setGlyphScaling(staffHeight / 600, glyphMultiplier);
   }
 
-  setGlyphScaling(glyphScaling) {
-    this.glyphScaling = glyphScaling;
+  setGlyphScaling(glyphScaling, glyphMultiplier = 1) {
+    this.glyphScaling = glyphScaling * glyphMultiplier;
 
     this.staffInterval = this.glyphPunctumWidth * this.glyphScaling;
 
