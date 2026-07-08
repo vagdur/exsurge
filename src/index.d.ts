@@ -291,7 +291,6 @@ declare module "exsurge" {
     createStyleReact(): any;
     createStyle(): string;
     updateHyphenWidth(): void;
-    setStaffHeight(staffHeight: number): void;
     setStaffHeight(staffHeight: number, glyphMultiplier?: number): void;
     calculateHeightFromStaffPosition(staffPosition: number): number;
     insertFontsInDoc(): void;
