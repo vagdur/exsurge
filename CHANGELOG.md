@@ -1,3 +1,10 @@
+## [1.25.1](https://github.com/frmatthew/exsurge/compare/v1.25.0...v1.25.1) (2026-07-08)
+
+
+### Features
+
+* Add support for decoupling glyph scaling from staff scaling ([f7bef17](https://github.com/frmatthew/exsurge/commit/f7bef177c3b31e3d03a9a4bc007625427cedfe04))
+
 # [1.25.0](https://github.com/frmatthew/exsurge/compare/v1.24.2...v1.25.0) (2026-07-08)
 
 
