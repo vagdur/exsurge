@@ -8,7 +8,15 @@ exsurge is a JavaScript library that renders Gregorian chant in square note nota
 
 **Lineage — three repos, and this is the third.** `frmatthew/exsurge` is the original (Fr. Matthew Spencer, dormant since April 2017, 191 commits). `bbloomf/exsurge` is Benjamin Bloomfield's fork of it — the de facto mainline, 703 of its 832 commits his, 101 tagged releases, and where essentially all current functionality lives. **This repo is `vagdur/exsurge`, a new fork of Bloomfield's fork**, branched at tag `v1.25.2` (commit `0c39f61`).
 
-Three remotes are configured, and one of the names is a trap: `origin` → `vagdur/exsurge` (this fork), `bbloomf` → `bbloomf/exsurge` (the mainline this is based on; fetch from here to pick up Bloomfield's ongoing work), and `upstream` → `frmatthew/exsurge` — the dormant *original*, two hops up, **not** the parent fork. Don't assume `upstream` means what it usually means. Bloomfield's topic branches live under `bbloomf/*`; `origin/*` has only `master`, since the fork was created with the default branch only.
+Three remotes are configured but they point at only two repos: `origin` → `vagdur/exsurge` (this fork), and **both** `bbloomf` and `upstream` → `bbloomf/exsurge` (the mainline this is based on; fetch from either to pick up Bloomfield's ongoing work). There is no remote for the dormant original `frmatthew/exsurge` at all, so `upstream` here means the *parent fork*, not the root of the lineage. Bloomfield's topic branches live under `bbloomf/*`; `origin/*` has only `master`, since the fork was created with the default branch only.
+
+**Pass `--repo vagdur/exsurge` to every `gh` command.** GitHub records `vagdur/exsurge` as a fork of `bbloomf/exsurge`, and no default repo is configured, so bare `gh` commands resolve against *Bloomfield's* repo instead of this one. The failure is confusing rather than obvious: `gh pr create` rejects a perfectly good branch with `No commits between master and <branch>`, and `gh pr list` / `gh pr view` quietly report on Bloomfield's PRs, so a PR that exists here looks like it does not.
+
+```bash
+gh pr create --repo vagdur/exsurge --base master --head <branch>
+```
+
+Running `gh repo set-default vagdur/exsurge` once would record the choice in git config and make the bare commands work, but it has not been done — don't assume it has.
 
 If the working tree is at or near `0c39f61` with no local commits, this fork has not diverged yet and Bloomfield's repo is still the behavioural source of truth.
 

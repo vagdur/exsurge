@@ -99,3 +99,10 @@ export * from './Exsurge.Chant.Neumes.js'
 export * from './Exsurge.Gabc.js'
 export * from './Exsurge.Titles.js'
 export * from './greextraGlyphs.js'
+
+// playback comes last: these modules import from Exsurge.Chant.js, which is
+// already part of a cycle with Exsurge.Gabc.js, so they need it fully
+// evaluated before they run
+export * from './Exsurge.Playback.Timeline.js'
+export * from './Exsurge.Playback.Instruments.js'
+export * from './Exsurge.Playback.js'
