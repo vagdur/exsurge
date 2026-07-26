@@ -9,7 +9,27 @@ declare module "exsurge" {
   type Rect = unknown;
   type ExsurgeLanguage = unknown;
   type ChantNotationElement = unknown;
-  
+
+  /** Steps are semitone offsets within an octave. Index 8 is intentionally unused. */
+  export const Step: {
+    Do: 0; Du: 1; Re: 2; Me: 3; Mi: 4; Fa: 5;
+    Fu: 6; So: 7; La: 9; Te: 10; Ti: 11;
+  };
+
+  export class Pitch {
+    constructor(step: number, octave?: number);
+    step: number;
+    octave: number;
+    toInt(): number;
+    transpose(step: number): Pitch;
+    isHigherThan(pitch: Pitch): boolean;
+    isLowerThan(pitch: Pitch): boolean;
+    equals(pitch: Pitch): boolean;
+    static stepToStaffOffset(step: number): number;
+    static staffOffsetToStep(offset: number): number;
+  }
+
+
   export interface Titles {
     score: ChantScore;
     setSupertitle(ctxt: ChantContext, supertitle: string): Supertitle;
@@ -397,6 +417,236 @@ declare module "exsurge" {
     RBarSmallSlant: string;
     VBarSmallSlant: string;
   }
+
+  //
+  // Playback
+  //
+
+  /** Frequency anchor: Pitch(Step.Do, 2).toInt(), i.e. 24. */
+  export const DoReferenceInt: number;
+
+  export type DividerKind =
+    | "virgula"
+    | "quarterBar"
+    | "halfBar"
+    | "fullBar"
+    | "doubleBar"
+    | "dominicanBar";
+
+  export interface PlaybackEvent {
+    kind: "note" | "rest";
+    note: Note | null;
+    /** dense over sounding notes; null for rests */
+    noteIndex: number | null;
+    elementIndex: number;
+    /** Pitch.toInt(), or null for a note that has no pitch and stays silent */
+    pitchInt: number | null;
+    dividerKind: DividerKind | null;
+    /** gain multiplier; never affects duration */
+    velocity: number;
+    startPulse: number;
+    pulses: number;
+  }
+
+  export interface PlaybackTimeline {
+    events: PlaybackEvent[];
+    totalPulses: number;
+    /** noteIndex -> index into events */
+    eventIndexByNoteIndex: number[];
+  }
+
+  export interface PlaybackDurationTable {
+    base: number;
+    /** ADDITIVE: pulses added per mora dot */
+    perMora: number;
+    episema: number;
+    ictus: number;
+    quilisma: number;
+    beforeQuilisma: number;
+    liquescentSmall: number;
+    liquescentLarge: number;
+    initioDebilis: number;
+    stropha: number;
+    oriscus: number;
+    finalNote: number;
+    beforeDivider: { [K in DividerKind]: number };
+  }
+
+  export const PlaybackDurations: PlaybackDurationTable;
+  export const PlaybackRests: { [K in DividerKind]: number };
+  export const PlaybackVelocities: {
+    base: number;
+    ictus: number;
+    accent: number;
+    quilisma: number;
+    liquescentSmall: number;
+    initioDebilis: number;
+  };
+
+  export function classifyDivider(divider: unknown): DividerKind | null;
+
+  export function pitchIntToFrequency(
+    pitchInt: number,
+    tuning: number,
+    transpose?: number
+  ): number;
+
+  export function pitchToFrequency(
+    pitch: Pitch | null,
+    tuning: number,
+    transpose?: number
+  ): number | null;
+
+  export function secondsPerPulse(
+    speedPercent: number,
+    basePulseSeconds?: number
+  ): number;
+
+  export function createPlaybackEvents(
+    score: ChantScore,
+    options?: Partial<ChantPlayerOptions>
+  ): PlaybackTimeline;
+
+  export interface Voice {
+    /** audio time after which this voice is certainly silent */
+    endTime: number;
+    release(when: number): void;
+    dispose(): void;
+  }
+
+  export interface Instrument {
+    name: string;
+    createVoice(
+      audioContext: BaseAudioContext,
+      destination: AudioNode,
+      frequency: number,
+      when: number,
+      velocity: number
+    ): Voice;
+  }
+
+  export class PianoInstrument implements Instrument {
+    name: string;
+    createVoice(
+      audioContext: BaseAudioContext,
+      destination: AudioNode,
+      frequency: number,
+      when: number,
+      velocity: number
+    ): Voice;
+  }
+
+  export const Instruments: {
+    piano: PianoInstrument;
+    [name: string]: Instrument;
+  };
+
+  export function resolveInstrument(spec: string | Instrument): Instrument;
+
+  export interface ChantPlayerOptions {
+    /** percentage of the base speed; higher is faster */
+    speed: number;
+    /** seconds per pulse at speed 100 */
+    basePulseSeconds: number;
+    /**
+     * Frequency of Do, i.e. of Pitch(Step.Do, 2) -- the Do the clef names.
+     * Note that on an f-clef the note on the clef line is Fa, so it sounds a
+     * perfect fourth above this.
+     */
+    tuning: number;
+    /** extra semitones, applied after tuning */
+    transpose: number;
+    instrument: string | Instrument;
+    volume: number;
+    loop: boolean;
+    maxVoices: number;
+    highlightClass: string;
+    highlightColor: string;
+    injectStyle: boolean;
+    /** false keeps the last note lit through bar rests */
+    clearHighlightOnRest: boolean;
+    playOnBackgroundClick: boolean;
+    /** supply your own and the player will never close it */
+    audioContext: BaseAudioContext | null;
+    lookaheadSeconds: number;
+    tickIntervalMs: number;
+    durations: Partial<PlaybackDurationTable> | null;
+    restWeights: Partial<{ [K in DividerKind]: number }> | null;
+    velocities: Partial<typeof PlaybackVelocities> | null;
+    onStart: ((player: ChantPlayer) => void) | null;
+    onStop:
+      | ((player: ChantPlayer, reason: "user" | "end" | "destroy") => void)
+      | null;
+    onEnd: ((player: ChantPlayer) => void) | null;
+    onNoteChange:
+      | ((
+          noteIndex: number | null,
+          event: PlaybackEvent | null,
+          player: ChantPlayer
+        ) => void)
+      | null;
+    onError: ((error: Error, player: ChantPlayer) => void) | null;
+  }
+
+  export const PlaybackDefaults: ChantPlayerOptions;
+
+  export class ChantPlayer {
+    constructor(
+      score: ChantScore,
+      svgNode?: SVGElement | SVGElement[] | null,
+      options?: Partial<ChantPlayerOptions>
+    );
+
+    score: ChantScore;
+    options: ChantPlayerOptions;
+    timeline: PlaybackTimeline;
+    audioContext: BaseAudioContext | null;
+
+    readonly state: "stopped" | "playing";
+    readonly currentNoteIndex: number | null;
+    readonly events: PlaybackEvent[];
+    readonly noteCount: number;
+    readonly svgNode: SVGElement | null;
+
+    attach(svgNode: SVGElement | SVGElement[]): void;
+    detach(): void;
+    /** rebuild the timeline after the gabc changed; stops playback first */
+    refresh(): void;
+    destroy(): void;
+
+    /** call from a user gesture the first time */
+    play(fromNoteIndex?: number): void;
+    stop(): void;
+    toggleAt(noteIndex: number): void;
+    /** create and resume the AudioContext from a user gesture */
+    unlock(): boolean;
+
+    setSpeed(percent: number): void;
+    setTuning(hz: number): void;
+    setTranspose(semitones: number): void;
+    setInstrument(spec: string | Instrument): void;
+    setVolume(v: number): void;
+    setOptions(partial: Partial<ChantPlayerOptions>): void;
+
+    /** the timeline resolved into seconds and hertz at the current settings */
+    getTimeline(): Array<{
+      noteIndex: number | null;
+      frequency: number | null;
+      startTime: number;
+      duration: number;
+    }>;
+  }
+
+  export function createPlayableChant(
+    ctxt: ChantContext,
+    gabcSource: string,
+    container: HTMLElement,
+    options?: Partial<ChantPlayerOptions> & {
+      useDropCap?: boolean;
+      autoResize?: boolean;
+    },
+    onReady?: (player: ChantPlayer) => void
+  ): void;
 }
 
 // export const TextTypesByClass = {};

@@ -115,6 +115,50 @@ score.layoutChantLines(ctxt, 1000, () => {
 
 Note that tree nodes carry back-references to the model objects that produced them, so they are not directly `JSON.stringify`-able; walk the `name`/`props`/`children` fields when serializing.
 
+### Playback
+
+A rendered score can be made playable. `createPlayableChant` does the whole pipeline — parse, lay out, render, and wire up a player:
+
+```javascript
+exsurge.createPlayableChant(ctxt, gabc, document.getElementById("chant"), {
+  speed: 100,      // percent of the base speed; higher is faster
+  tuning: 261.63,  // Hz of Do — see below
+  instrument: "piano"
+}, player => {
+  mySpeedSlider.oninput = () => player.setSpeed(Number(mySpeedSlider.value));
+});
+```
+
+Clicking a note plays from that note onward, highlighting whichever note is sounding; clicking again stops. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example.
+
+To attach to a score you rendered yourself, construct the player directly:
+
+```javascript
+const player = new exsurge.ChantPlayer(score, score.createSvgNode(ctxt), options);
+```
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `speed` | `100` | percentage of `basePulseSeconds`; higher is faster |
+| `basePulseSeconds` | `0.4` | seconds per pulse at `speed: 100` (150 pulses/min) |
+| `tuning` | `261.6255653` | frequency of Do, in hertz |
+| `transpose` | `0` | extra semitones, applied after `tuning` |
+| `instrument` | `"piano"` | a key in `exsurge.Instruments`, or your own object |
+| `volume` | `1.0` | scales the master gain |
+| `loop` | `false` | restart at the end instead of stopping |
+| `highlightClass` / `highlightColor` | `"playing"` / `"#cc0000"` | how the sounding note is marked |
+| `injectStyle` | `true` | inject scoped css for the highlight; set `false` to supply your own |
+| `audioContext` | `null` | share an existing context; the player then never closes it |
+| `onStart` / `onStop` / `onEnd` / `onNoteChange` / `onError` | `null` | callbacks |
+
+**Tuning.** Every gabc clef is built at octave 2 whatever staff line it sits on, so `tuning` is the frequency of the Do that the clef itself names — literally "what pitch is C played at". A `c4` chant then spans roughly C3–C4 at the default; a `c1` chant sits nearly an octave higher, which is the clef doing its job. Use `transpose` to move a piece into a comfortable range. Note that on an **f-clef** the note sitting *on the clef line* is Fa, so it sounds a perfect fourth above `tuning`. Mid-score clef changes and accidentals are handled automatically, because gabc bakes the active clef into each note's pitch at parse time.
+
+**Rhythm.** Chant notates no durations, so playback has to interpret. The default is an equal pulse with the usual Solesmes nuances: a mora dot adds a pulse, a horizontal episema lengthens slightly, an ictus accents without lengthening, a quilisma is light and broadens the note before it, liquescents are clipped, and bar lines produce rests scaled by type. All of it lives in three exported tables — `PlaybackDurations`, `PlaybackRests` and `PlaybackVelocities` — and any of them can be overridden per player via the `durations`, `restWeights` and `velocities` options.
+
+**Browsers only start audio inside a user gesture.** Clicking a note satisfies that by itself. If you drive playback from your own button, call `player.unlock()` from the click handler first.
+
+`createPlaybackEvents(score, options)` is exported separately and is pure — no DOM, no Web Audio — if you want the timeline without the playback.
+
 ### Fonts
 
 Special characters (℣, ℟, and similar) are rendered in a font family named `Exsurge Characters`. Ship `assets/fonts/ExsurgeChar.otf` with your application and declare a matching `@font-face`, or those glyphs will fall back to whatever the browser picks.
@@ -135,6 +179,9 @@ Everything is in `src/`, re-exported flat from `src/index.js` onto a single name
 | `Exsurge.Glyphs.js` | generated SVG path data per glyph |
 | `Exsurge.Text.js` | syllabification (Latin, English, Spanish) |
 | `Exsurge.Core.js` | geometry and unit primitives |
+| `Exsurge.Playback.js` | `ChantPlayer`, `createPlayableChant` |
+| `Exsurge.Playback.Timeline.js` | note → pulse extraction and the rhythm tables (pure) |
+| `Exsurge.Playback.Instruments.js` | Web Audio instruments (`PianoInstrument`) |
 
 TypeScript declarations are hand-maintained in `src/index.d.ts`.
 
@@ -154,11 +201,21 @@ The toolchain is deliberately old — webpack 1, Babel 6 (`es2015` preset), and 
 npm test
 ```
 
-Mocha specs live in `test/`. Two things to know: the script runs mocha with `-w`, so it stays in watch mode rather than exiting, and the specs load `dist/exsurge.min.js` rather than `src/`, so **build before testing** or you will be testing a stale bundle. To run a subset once:
+Mocha specs live in `test/`. Two things to know: the script runs mocha with `-w`, so it stays in watch mode rather than exiting, and the specs load `dist/exsurge.min.js` rather than `src/`, so **build before testing** or you will be testing a stale bundle. Use `npm run test:once` for a single run that exits, which is what you want in CI. To run a subset once:
 
 ```
 npx mocha --compilers js:babel-core/register ./test/index.js --grep "Latin"
 ```
+
+### Browser sandboxes
+
+`test/index.html` (layout and editing) and `test/playback.html` (playback, with settings controls) import `../src/index.js` as native ES modules, so **they need no build at all** — just a server, since module imports do not work over `file://`:
+
+```
+npx http-server -p 8080 -c-1 .
+```
+
+Then open `http://localhost:8080/test/playback.html`.
 
 ### Releasing
 
