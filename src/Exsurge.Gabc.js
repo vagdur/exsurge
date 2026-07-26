@@ -413,7 +413,7 @@ export class Gabc {
                 let note = curNotation.notes[l];
                 note.sourceIndex += sourceIndexDiff;
                 note.pitch = ctxt.activeClef.staffPositionToPitch(
-                  note.staffPosition
+                  this.getIntegerStaffPosition(note)
                 );
                 if (note.braceEnd && note.braceEnd.automatic)
                   delete note.braceEnd;
@@ -1104,7 +1104,9 @@ export class Gabc {
               noteArray[0].staffPosition,
               accidentalType
             );
-            accidental.pitch = ctxt.activeClef.staffPositionToPitch(noteArray[0].staffPosition);
+            accidental.pitch = ctxt.activeClef.staffPositionToPitch(
+              this.getIntegerStaffPosition(noteArray[0])
+            );
             accidental.sourceIndex = sourceIndex;
             accidental.sourceLength = sourceLength;
             accidental.trailingSpace = TrailingSpaceForAccidental;
@@ -1600,7 +1602,7 @@ export class Gabc {
     if (data[0] === data[0].toUpperCase()) note.shape = NoteShape.Inclinatum;
 
     this.setStaffPositionAndOffset(note, data);
-    note.pitch = clef.staffPositionToPitch(note.staffPosition - note.staffPositionOffset);
+    note.pitch = clef.staffPositionToPitch(this.getIntegerStaffPosition(note));
 
     var mark;
 
@@ -2059,5 +2061,28 @@ export class Gabc {
     const staffPosition = this.gabcHeightToExsurgeHeight(gabcAtom[0]);
     note.staffPositionOffset = this.getStaffPositionOffset(staffPosition, gabcAtom[1]);
     note.staffPosition = staffPosition + note.staffPositionOffset;
+  }
+
+  /**
+   * Recovers the integer staff position of a note, which is what determines
+   * its pitch.
+   *
+   * note.staffPosition *includes* note.staffPositionOffset, the fractional
+   * one third or two thirds nudge that the gabc 0 and 9 modifiers apply for
+   * engraving reasons. Pitch belongs to the line or space the note actually
+   * sits on, so that nudge has to come back off before asking a clef for a
+   * pitch -- and the result has to be rounded, because the round trip
+   * through binary floating point does not always land back on the integer
+   * (g9 comes back as 3.9999999999999996).
+   *
+   * Getting this wrong is not a rounding error in the output: a non-integer
+   * reaches Pitch.staffOffsetToStep, which uses it to index an array and so
+   * returns undefined, leaving the note with a NaN pitch.
+   *
+   * @param {*} note to read staffPosition and staffPositionOffset from
+   * @returns integer staff position
+   */
+  static getIntegerStaffPosition(note) {
+    return Math.round(note.staffPosition - (note.staffPositionOffset || 0));
   }
 }

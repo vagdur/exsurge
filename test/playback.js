@@ -390,6 +390,108 @@ describe('Playback: instruments', function() {
 });
 
 
+describe('Gabc: staff position offsets and pitch', function() {
+
+  // The gabc 0 and 9 modifiers nudge a note a third of a staff position for
+  // engraving, and that nudge is folded into note.staffPosition. Pitch belongs
+  // to the line or space the note really sits on, so it has to come back off
+  // -- and be rounded, since the float round trip does not always land on the
+  // integer. Any leftover fraction indexes an array in staffOffsetToStep and
+  // silently produces a NaN pitch.
+
+  var SHIFTED = "(c4) a(f) b(g9) c(h0) d(e9) e(d0) f(i9) g(j0) h(f) (::)";
+
+  function parse(gabc) {
+    var ctxt = new Exsurge.ChantContext();
+    var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
+    return { ctxt: ctxt, score: new Exsurge.ChantScore(ctxt, mappings, false) };
+  }
+
+  function pitchIntsOf(score) {
+    return score.notes
+      .filter(function(n) { return n instanceof Exsurge.Note; })
+      .map(function(n) { return n.pitch.toInt(); });
+  }
+
+  it('recovers the integer staff position despite float drift', function() {
+    // g9 is the case that does not round trip exactly: 4 + 1/3 - 1/3 lands on
+    // 3.9999999999999996
+    var note = { staffPosition: 4 + 1 / 3, staffPositionOffset: 1 / 3 };
+    (note.staffPosition - note.staffPositionOffset).should.not.equal(4);
+    Exsurge.Gabc.getIntegerStaffPosition(note).should.equal(4);
+  });
+
+  it('tolerates a note that has no offset at all', function() {
+    Exsurge.Gabc.getIntegerStaffPosition({ staffPosition: 3 }).should.equal(3);
+  });
+
+  it('gives every nudged note a real pitch when parsing', function() {
+    var pitches = pitchIntsOf(parse(SHIFTED).score);
+
+    pitches.length.should.equal(8);
+    for (var i = 0; i < pitches.length; i++)
+      isNaN(pitches[i]).should.equal(false, 'note ' + i + ' has a NaN pitch');
+
+    // the nudge is purely visual, so a nudged note sounds exactly as its
+    // unnudged neighbour on the same line would
+    pitches[0].should.equal(pitches[7]); // both plain f
+  });
+
+  it('gives the same pitches after an in-place source update', function() {
+    var fresh = pitchIntsOf(parse(SHIFTED).score);
+
+    var edited = parse(SHIFTED);
+    Exsurge.Gabc.updateMappingsFromSource(
+      edited.ctxt,
+      edited.score.mappings,
+      SHIFTED
+    );
+    edited.score.updateNotations(edited.ctxt);
+
+    pitchIntsOf(edited.score).should.eql(fresh);
+  });
+
+  it('keeps nudged notes audible', function() {
+    var timeline = Exsurge.createPlaybackEvents(parse(SHIFTED).score);
+
+    var sounding = timeline.events.filter(function(e) {
+      return e.kind === 'note';
+    });
+    sounding.length.should.equal(8);
+
+    for (var i = 0; i < sounding.length; i++) {
+      var hz = Exsurge.pitchIntToFrequency(sounding[i].pitchInt, MIDDLE_C);
+      isNaN(hz).should.equal(false, 'note ' + i + ' would be scheduled at NaN Hz');
+      hz.should.be.above(0);
+    }
+  });
+
+  // Accidentals cannot currently be nudged -- the modifier slot holds the
+  // x/y/# that makes it an accidental in the first place, so the 0/9 never
+  // reaches getStaffPositionOffset and the offset stays 0. The accidental
+  // path goes through getIntegerStaffPosition anyway, so that the invariant
+  // 'ask a clef for a pitch using an integer' holds everywhere rather than
+  // in two places out of three. This guards that.
+  it('gives an accidental a real pitch', function() {
+    ['(c4) a(f) b(gx) c(g) (::)', '(c4) a(f) b(gx9) c(g) (::)'].forEach(
+      function(src) {
+        var accidentals = parse(src).score.notations.filter(function(n) {
+          return n.isAccidental;
+        });
+
+        accidentals.length.should.be.above(0, src);
+        accidentals[0].staffPosition.should.equal(
+          Math.round(accidentals[0].staffPosition),
+          src + ' should reach the clef with a whole staff position'
+        );
+        isNaN(accidentals[0].pitch.toInt()).should.equal(false, src);
+      }
+    );
+  });
+
+});
+
+
 describe('Playback: real gabc', function() {
 
   var score = null;
