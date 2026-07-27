@@ -11,6 +11,8 @@
     "dev": "webpack --progress --colors --watch --mode=dev",
     "test": "mocha --compilers js:babel-core/register --colors -w ./test/*.js",
     "test:once": "mocha --compilers js:babel-core/register --colors ./test/*.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "preversion": "npm run build",
     "version": "npm run changelog && git add CHANGELOG.md dist/",
     "postversion": "git push && git push --tags",
@@ -30,6 +32,7 @@
     "eslint": "^1.10.3",
     "eslint-loader": "^1.9.0",
     "mocha": "^2.4.5",
+    "prettier": "3.9.6",
     "webpack": "^1.15.0",
     "yargs": "^4.8.1"
   },
