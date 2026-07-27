@@ -61,27 +61,21 @@ export default [
       "no-useless-concat": "error",
       "no-void": "error",
 
-      // The old config switched this off, so it had never run against this
-      // source. It reports nothing, which is why it goes straight to error.
+      // Both were switched off in the old config and had never run against
+      // this source.
       "no-undef": "error",
-
-      // Also switched off before. 40 findings, all unused function
-      // parameters; cleared and promoted to error in the next commit.
-      "no-unused-vars": ["warn", { args: "after-used", caughtErrors: "none" }]
-    }
-  },
-
-  {
-    // Rules that arrive with js.configs.recommended and have never run against
-    // this source either. Downgraded to warn only so that this commit leaves
-    // `npm run lint` green and reviewable; the next commit fixes every one of
-    // them and removes this block.
-    files: ["src/**/*.js"],
-    rules: {
-      "no-useless-assignment": "warn",
-      "no-prototype-builtins": "warn",
-      "no-useless-escape": "warn",
-      "no-misleading-character-class": "warn"
+      "no-unused-vars": [
+        "error",
+        {
+          args: "after-used",
+          caughtErrors: "none",
+          // A leading underscore marks a parameter that is deliberately
+          // unused: it is part of a signature the caller or an overriding
+          // subclass relies on, so it is documented rather than deleted.
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_"
+        }
+      ]
     }
   },
 

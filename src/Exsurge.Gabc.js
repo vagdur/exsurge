@@ -23,20 +23,11 @@
 // THE SOFTWARE.
 //
 
-import {
-  Units,
-  Pitch,
-  Point,
-  Rect,
-  Margins,
-  Size,
-  Step
-} from "./Exsurge.Core.js";
+import { Step } from "./Exsurge.Core.js";
 import {
   MarkingPositionHint,
   LyricType,
   Lyric,
-  LyricArray,
   AboveLinesText,
   ChoralSign,
   TranslationText,
@@ -49,8 +40,6 @@ import {
   NoteShape,
   NoteShapeModifiers,
   ChantMapping,
-  ChantScore,
-  ChantDocument,
   Clef,
   DoClef,
   FaClef,
@@ -68,7 +57,7 @@ var __syllablesRegex = /(?=\S)((?:<v>[\s\S]*?<\/v>|[^(])*)(?:\(?([^)]*)\)?)?/g;
 var __altTranslationRegex = /<alt>(.*?)<\/alt>|\[(alt:)?(.*?)\]/g;
 
 var __notationsRegex =
-  /z0|z|Z|(::|(?::|[,;][1-8]?|`)_?)|(?:[cfg]|cb|treble-?|xp-?)[1-5]|\/+| |\!|-?[a-nA-N][oOwWvVrRsxy#~\+><_\.'0123459|]*(?:\[[^\]]*\]?)*|\{([^}]+)\}?/g;
+  /z0|z|Z|(::|(?::|[,;][1-8]?|`)_?)|(?:[cfg]|cb|treble-?|xp-?)[1-5]|\/+| |!|-?[a-nA-N][oOwWvVrRsxy#~+><_.'0123459|]*(?:\[[^\]]*\]?)*|\{([^}]+)\}?/g;
 var __notationsRegex_group_bar = 1;
 var __notationsRegex_group_insideBraces = 2;
 
@@ -126,7 +115,7 @@ export class GabcHeader {
             this[match[1]] = match[2];
           }
           if (key !== match[1]) this[key] = this[match[1]];
-        } else if ((match = regexHeaderComment.exec(line))) {
+        } else if (regexHeaderComment.exec(line)) {
           if (line !== "%%") {
             match = regexHeaderLine.exec(line.slice(1));
             if (match) {
@@ -167,11 +156,15 @@ export class GabcHeader {
       }
     }
     for (let key in this.cValues) {
-      if (key.length === 0 || !this.cValues.hasOwnProperty(key)) continue;
+      if (
+        key.length === 0 ||
+        !Object.prototype.hasOwnProperty.call(this.cValues, key)
+      )
+        continue;
       result.push("%" + key + ": " + this.cValues[key] + ";");
     }
     for (let i in this.comments) {
-      if (!this.comments.hasOwnProperty(i)) continue;
+      if (!Object.prototype.hasOwnProperty.call(this.comments, i)) continue;
       try {
         result.splice(i, 0, this.comments[i]);
       } catch (e) {
@@ -325,7 +318,7 @@ export class Gabc {
       k,
       l,
       sourceIndex = 0,
-      wordLength = 0,
+      wordLength,
       mapping,
       elementIndex = 0;
 
@@ -620,7 +613,9 @@ export class Gabc {
         break;
       }
 
-      var m = __altTranslationRegex.exec();
+      // the regex is global, so reset it before the loop below walks it
+      __altTranslationRegex.lastIndex = 0;
+      let m;
       let indexOffset = 0;
       while ((m = __altTranslationRegex.exec(lyricText))) {
         let index = m.index;
@@ -765,7 +760,10 @@ export class Gabc {
             // map indices back to the lyricText with the V tags:
             let accum = 0;
             for (let index in vtags) {
-              if (vtags.hasOwnProperty(index) && indexWithoutVTags >= index) {
+              if (
+                Object.prototype.hasOwnProperty.call(vtags, index) &&
+                indexWithoutVTags >= index
+              ) {
                 accum += vtags[index];
               } else {
                 break;
@@ -885,7 +883,7 @@ export class Gabc {
     if (!data) return [new TextOnly(sourceIndex, 0)];
 
     var baseSourceIndex = sourceIndex;
-    var sourceLength = 0;
+    var sourceLength;
     var notations = [];
     var notes = [];
     var trailingSpace = DefaultTrailingSpace;
@@ -1233,7 +1231,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.Punctum();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (currNote, _prevNote) {
         if (currNote.shape === NoteShape.Virga) return virgaState;
         else if (currNote.shape === NoteShape.Stropha) return apostrophaState;
         else if (currNote.shape === NoteShape.Oriscus) return oriscusState;
@@ -1249,7 +1247,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.Punctum();
       },
-      handle: function (currNote, prevNote, notesRemaining) {
+      handle: function (currNote, prevNote, _notesRemaining) {
         if (currNote.shape || prevNote.liquescent === LiquescentType.Small) {
           var neume = new Neumes.Punctum();
           var state = createNeume(neume, false);
@@ -1376,7 +1374,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.Climacus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (currNote, _prevNote) {
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.Climacus(), false);
         else return state;
@@ -1401,7 +1399,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.PesSubpunctis();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (currNote, _prevNote) {
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.PesSubpunctis(), false);
         else return state;
@@ -1423,7 +1421,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.SalicusFlexus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (_currNote, _prevNote) {
         return createNeume(new Neumes.SalicusFlexus(), false);
       }
     };
@@ -1454,7 +1452,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.ScandicusFlexus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (_currNote, _prevNote) {
         return createNeume(new Neumes.ScandicusFlexus(), false);
       }
     };
@@ -1522,7 +1520,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.Tristropha();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (_currNote, _prevNote) {
         // we only create a tristropha when the note run ends after three
         // and the neume() function of this state is called. Otherwise
         // we always interpret the third note to belong to the next sequence
@@ -1645,8 +1643,6 @@ export class Gabc {
       switch (c) {
         // rhythmic markings
         case ".":
-          mark = null;
-
           // gabc supports putting up to two morae on each note, by repeating the
           // period. here, we check to see if we've already created a mora for the
           // note, and if so, we simply force the second one to have an Above
@@ -2009,7 +2005,7 @@ export class Gabc {
     gabcNotations = gabcNotations
       // .trim()
       // .replace(/\s/g, " ")
-      .replace(/\)\s(?=[^\)]*(?:\(|$))/g, ")\n");
+      .replace(/\)\s(?=[^)]*(?:\(|$))/g, ")\n");
     return gabcNotations.split(/\n/g);
   }
 

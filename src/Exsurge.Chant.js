@@ -33,8 +33,7 @@ import {
   GlyphCode,
   GlyphVisualizer,
   QuickSvg,
-  TextLeftRight,
-  TextSpan
+  TextLeftRight
 } from "./Exsurge.Drawing.js";
 import { Gabc } from "./Exsurge.Gabc.js";
 import { Titles } from "./Exsurge.Titles.js";
@@ -183,7 +182,7 @@ export class Clef extends ChantNotationElement {
     this.activeAccidental = this.defaultAccidental;
   }
 
-  pitchToStaffPosition(pitch) {}
+  pitchToStaffPosition(_pitch) {}
 
   performLayout(ctxt) {
     ctxt.activeClef = this;
@@ -438,7 +437,7 @@ export class ChantLineBreak extends ChantNotationElement {
     this.justify = justify;
   }
 
-  performLayout(ctxt) {
+  performLayout(_ctxt) {
     // reset the bounds before doing a layout
     this.bounds = new Rect(0, 0, 0, 0);
   }
@@ -929,7 +928,8 @@ export class ChantScore {
 
     // create defs section
     for (var def in ctxt.defs)
-      if (ctxt.defs.hasOwnProperty(def)) fragment += ctxt.defs[def];
+      if (Object.prototype.hasOwnProperty.call(ctxt.defs, def))
+        fragment += ctxt.defs[def];
     fragment += ctxt.createStyle();
 
     fragment = QuickSvg.createFragment("defs", {}, fragment);
@@ -982,7 +982,8 @@ export class ChantScore {
 
     // create defs section
     for (var def in ctxt.defs)
-      if (ctxt.defs.hasOwnProperty(def)) fragmentDefs += ctxt.defs[def];
+      if (Object.prototype.hasOwnProperty.call(ctxt.defs, def))
+        fragmentDefs += ctxt.defs[def];
     fragmentDefs += ctxt.createStyle();
 
     fragmentDefs = QuickSvg.createFragment("defs", {}, fragmentDefs);

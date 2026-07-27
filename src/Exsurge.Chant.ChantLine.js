@@ -113,7 +113,7 @@ export class ChantLine extends ChantLayoutElement {
         ? this.notationsStartIndex + this.numNotationsOnLine
         : this.extraTextOnlyIndex;
     var lastIndex = this.notationsStartIndex + this.numNotationsOnLine;
-    var notation = null;
+    var notation;
 
     this.notationBounds.union(this.startingClef.bounds);
 
@@ -235,7 +235,7 @@ export class ChantLine extends ChantLayoutElement {
           this.extraTextOnlyHeight = this.lyricLineHeight;
         }
       } else {
-        let lastLyrics = null;
+        let lastLyrics;
         let xOffset = 0;
         offset = (this.numLyricLines - 1) * this.lyricLineHeight;
         offset += this.numTranslationLines * this.translationLineHeight;
@@ -434,7 +434,7 @@ export class ChantLine extends ChantLayoutElement {
 
   getInnerNodes(
     ctxt,
-    top = 0,
+    _top = 0,
     functionNames = { quickSvg: "createNode", elements: "createSvgNode" }
   ) {
     var inner = [];
@@ -723,7 +723,7 @@ export class ChantLine extends ChantLayoutElement {
     // todo: reset / clear the children we have in case they have data
     var notations = this.score.notations,
       beginningLyrics = null,
-      prev = null,
+      prev,
       prevNeume = null,
       prevLyrics = [];
     var condensableSpaces = [];
@@ -964,8 +964,7 @@ export class ChantLine extends ChantLayoutElement {
           }
           // go back to the first in this string of consecutive TextOnly elements.
           this.extraTextOnlyIndex = textOnlyStartIndex;
-          extraTextOnlyLyricIndex = this.extraTextOnlyLyricIndex =
-            LyricArray.indexOfLyric(curr.lyrics);
+          this.extraTextOnlyLyricIndex = LyricArray.indexOfLyric(curr.lyrics);
           this.lastLyricsBeforeTextOnly = lastLyricsBeforeTextOnly;
           this.lastLyrics = [];
           i = textOnlyStartIndex - 1;
@@ -1100,7 +1099,7 @@ export class ChantLine extends ChantLayoutElement {
         if (this.numNotationsOnLine === 0) this.numNotationsOnLine = 1;
 
         // determine the neumes we can space apart, if we do end up justifying
-        curr = this.findNeumesToJustify(prevLyrics);
+        this.findNeumesToJustify(prevLyrics);
 
         this.lastLyrics = prevLyrics;
         if (this.maxNumNotationsOnLine) {
@@ -1343,7 +1342,7 @@ export class ChantLine extends ChantLayoutElement {
       curr = this.score.notations[i];
 
       if (curr && curr.isDivider) {
-        var j = 1;
+        var j;
         var prev = this.score.notations[i - 1];
         var next =
           i + 1 === lastIndex ? this.custos : this.score.notations[i + 1];
@@ -1396,8 +1395,8 @@ export class ChantLine extends ChantLayoutElement {
   findNeumesToJustify(prevLyrics) {
     this.toJustify = [];
     var prev,
-      curr = null,
-      next = null,
+      curr,
+      next,
       nextOrCurr = null,
       lastIndex = this.notationsStartIndex + this.numNotationsOnLine;
     for (var i = this.notationsStartIndex; i < lastIndex; i++) {
@@ -1912,7 +1911,8 @@ export class ChantLine extends ChantLayoutElement {
     rightNotationBoundary,
     condensableSpaces = []
   ) {
-    if (!condensableSpaces.hasOwnProperty("sum")) condensableSpaces.sum = 0;
+    if (!Object.prototype.hasOwnProperty.call(condensableSpaces, "sum"))
+      condensableSpaces.sum = 0;
     var i,
       space = { notation: curr },
       fixedX = false;
@@ -2044,7 +2044,7 @@ export class ChantLine extends ChantLayoutElement {
         if (!curr.lyrics[i].originalText) continue;
         var prevLyricRight = 0;
         let condensableSpacesSincePrevLyric = [];
-        let condensableSpaceSincePrevLyric = null;
+        let condensableSpaceSincePrevLyric;
         if (i < prevLyrics.length && prevLyrics[i]) {
           prevLyricRight = prevLyrics[i].getRight();
           let notationI = condensableSpaces

@@ -147,19 +147,19 @@ export class Titles extends ChantLayoutElement {
       : null;
   }
 
-  hasSupertitle(ctxt, supertitle) {
+  hasSupertitle(_ctxt, _supertitle) {
     return !!this.supertitle;
   }
-  hasTitle(ctxt, title) {
+  hasTitle(_ctxt, _title) {
     return !!this.title;
   }
-  hasSubtitle(ctxt, subtitle) {
+  hasSubtitle(_ctxt, _subtitle) {
     return !!this.subtitle;
   }
-  hasTextLeft(ctxt, textLeft) {
+  hasTextLeft(_ctxt, _textLeft) {
     return !!this.textLeft;
   }
-  hasTextRight(ctxt, textRight) {
+  hasTextRight(_ctxt, _textRight) {
     return !!this.textRight;
   }
 

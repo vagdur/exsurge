@@ -136,7 +136,7 @@ export const TextTypes = {
   choralSign: {
     display: "Choral Sign",
     size: (ctxt) => ctxt.staffInterval * 1.5,
-    containedInScore: (score) => false,
+    containedInScore: (_score) => false,
     getFromScore: (score, elem) =>
       score.notes[elem.note.elementIndex].choralSign
   },
@@ -358,7 +358,7 @@ export var QuickSvg = {
     }
     for (var attr in attributes) {
       if (
-        attributes.hasOwnProperty(attr) &&
+        Object.prototype.hasOwnProperty.call(attributes, attr) &&
         typeof attributes[attr] !== "undefined"
       ) {
         var val = attributes[attr];
@@ -420,7 +420,7 @@ export var QuickSvg = {
 
     for (var attr in attributes) {
       if (
-        attributes.hasOwnProperty(attr) &&
+        Object.prototype.hasOwnProperty.call(attributes, attr) &&
         typeof attributes[attr] !== "undefined"
       )
         fragment += attr + '="' + attributes[attr] + '" ';
@@ -665,11 +665,10 @@ export class ChantContext {
    * @returns {import('opentype.js').Font | import('fontkit').Font | undefined}
    */
   getFontForProperties(properties = {}, fontFamily) {
-    let key = this.getFontFilenameForProperties(properties),
-      keyWithFontFamily = this.getFontFilenameForProperties(
-        properties,
-        fontFamily
-      );
+    let keyWithFontFamily = this.getFontFilenameForProperties(
+      properties,
+      fontFamily
+    );
     return (
       this.fontDictionary &&
       (this.fontDictionary[keyWithFontFamily] ||
@@ -857,17 +856,17 @@ export class ChantLayoutElement {
   }
 
   // draws the element on an html5 canvas
-  draw(ctxt) {
+  draw(_ctxt) {
     throw "ChantLayout Elements must implement draw(ctxt)";
   }
 
   // returns svg element
-  createSvgNode(ctxt) {
+  createSvgNode(_ctxt) {
     throw "ChantLayout Elements must implement createSvgNode(ctxt)";
   }
 
   // returns svg code for the element, used for printing support
-  createSvgFragment(ctxt) {
+  createSvgFragment(_ctxt) {
     throw "ChantLayout Elements must implement createSvgFragment(ctxt)";
   }
 }
@@ -1254,7 +1253,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
       let glyph = (this.glyph = Glyphs[glyphCode]);
 
       // if this glyph hasn't been used yet, then load it up in the defs section for sharing
-      if (!ctxt.defs.hasOwnProperty(glyphCode)) {
+      if (!Object.prototype.hasOwnProperty.call(ctxt.defs, glyphCode)) {
         var getDefProps = () => {
           var options = {
             id: glyphCode,
@@ -1337,7 +1336,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
   }
 
   getSvgAttributes(ctxt, source) {
-    let className = "";
+    let className;
     const porrectusResult = /^Porrectus([1-9])$/.exec(this.glyphCode);
     const porrectusNoteDiff = porrectusResult ? Number(porrectusResult[1]) : 0;
     if (porrectusNoteDiff) {
@@ -1921,7 +1920,7 @@ export class TextElement extends ChantLayoutElement {
             iOffset = 3; // length of '<v>'
           }
           let [, grecross, greextra, accent, diphthong] = vMatch;
-          let char = "";
+          let char;
           if (diphthong) {
             char = makeLigature(diphthong);
             if (accent) char = addAccent(char);
@@ -2290,8 +2289,7 @@ export class TextElement extends ChantLayoutElement {
       } else {
         if (firstLineMaxWidth < 0) firstLineMaxWidth = maxWidth;
         this.firstLineMaxWidth = firstLineMaxWidth;
-        var lastWidth = 0,
-          lastMatch = null,
+        var lastMatch = null,
           regex = /\s+|$/g,
           max = firstLineMaxWidth,
           match;
@@ -2348,10 +2346,8 @@ export class TextElement extends ChantLayoutElement {
               this.measureSubstring(ctxt) <= maxWidth
             )
               break;
-            width = 0;
-            match = lastMatch = null;
+            match = null;
           }
-          lastWidth = width;
           lastMatch = match;
         }
       }

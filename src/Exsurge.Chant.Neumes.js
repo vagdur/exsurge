@@ -126,7 +126,7 @@ class NeumeBuilder {
 
   // a special form of noteAdd that creates a virga
   // uses a punctum cuadratum and a line rather than the virga glyphs
-  virgaAt(note, withLineTo = true) {
+  virgaAt(note, _withLineTo = true) {
     // add the punctum for the virga
     this.noteAt(note, GlyphCode.PunctumQuadratum);
 
@@ -255,7 +255,7 @@ class NeumeBuilder {
 
   // lays out a sequence of notes that are inclinata (e.g., climacus, pes subpunctis)
   withInclinata(notes) {
-    var staffPosition = notes[0].staffPosition,
+    var staffPosition,
       prevStaffPosition = notes[0].staffPosition;
 
     // it is important to advance by the width of the inclinatum glyph itself
@@ -1113,7 +1113,7 @@ export class Punctum extends Neume {
     super.performLayout(ctxt);
 
     var note = this.notes[0];
-    var glyph = GlyphCode.PunctumQuadratum;
+    var glyph;
 
     // determine the glyph to use
     if (note.liquescent !== LiquescentType.None) {

@@ -78,8 +78,7 @@ export class HorizontalEpisema extends ChantLayoutElement {
   performLayout(ctxt) {
     // following logic helps to keep the episemata away from staff lines if they get too close
 
-    var y = 0,
-      step;
+    var y, step;
     var minDistanceAway = ctxt.staffInterval * 0.25; // min distance from neume
     var glyphCode = this.note.glyphVisualizer.glyphCode;
     var ledgerLine = this.note.neume.ledgerLines[0] || {};

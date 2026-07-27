@@ -285,7 +285,7 @@ export class Accidental extends ChantNotationElement {
   // creation of the glyph visualizer is refactored out or performLayout
   // so that clefs can use the same logic for their accidental glyph
   createGlyphVisualizer(ctxt) {
-    var glyphCode = GlyphCode.Flat;
+    var glyphCode;
 
     switch (this.accidentalType) {
       case AccidentalType.Natural:
