@@ -20,13 +20,13 @@ Fr. Spencer wrote the original and stopped committing in July 2016; that reposit
 
 GitHub records the two-hop chain explicitly: this repository's `parent` is `bbloomf/exsurge` and its `source` — the root of the fork tree — is `frmatthew/exsurge`. If you are reading a copy of this file somewhere else, that pair is the quickest way to tell which of the three you actually have.
 
-> **Remotes.** One name here is a trap: `upstream` points at `frmatthew/exsurge`, the dormant *original* two hops up — **not** at the fork this one is based on. That naming was inherited from the clone and is easy to misread. The three remotes are:
+> **Remotes.** There are three of them but only two repositories: `bbloomf` and `upstream` are two names for the same URL. `upstream` here means the *parent fork*, not the root of the lineage — there is no remote for the dormant original at all.
 >
 > | Remote | Points at | Use |
 > | --- | --- | --- |
 > | `origin` | `vagdur/exsurge` | this fork; push here |
 > | `bbloomf` | `bbloomf/exsurge` | mainline; pull ongoing work from here |
-> | `upstream` | `frmatthew/exsurge` | the dormant original; historical interest only |
+> | `upstream` | `bbloomf/exsurge` | the same repository under a second name |
 >
 > To pick up Bloomfield's later work: `git fetch bbloomf && git merge bbloomf/master`. Note that this fork was created with the default branch only, so his topic branches exist under `bbloomf/*` rather than `origin/*`.
 
