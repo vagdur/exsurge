@@ -39,14 +39,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/frmatthew/exsurge.git"
+    "url": "git+https://github.com/vagdur/exsurge.git"
   },
   "author": "Fr. Matthew Spencer, O.S.J. <mspencer@osjusa.org> (http://marello.org)",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/frmatthew/exsurge/issues"
+  "engines": {
+    "node": ">=20.19"
   },
-  "homepage": "https://github.com/frmatthew/exsurge#readme",
+  "bugs": {
+    "url": "https://github.com/vagdur/exsurge/issues"
+  },
+  "homepage": "https://github.com/vagdur/exsurge#readme",
   "keywords": [
     "gregorian",
     "chant",
