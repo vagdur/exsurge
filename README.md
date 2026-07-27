@@ -49,7 +49,9 @@ npm install github:bbloomf/exsurge     # the fork this one is based on
 
 The built bundle `dist/exsurge.min.js` is committed to the repository, so a git install needs no build step. It is UMD, so it works as a CommonJS/AMD module or as a browser global named `exsurge`.
 
-Be aware that `package.json` declares both `main` (`dist/exsurge.min.js`) and `module` (`src/index.js`). Bundlers that honour `module` will pull in the raw, untranspiled ES2015 source rather than the built bundle, so make sure `node_modules/exsurge/src` is within your transpilation scope — or import `dist/exsurge.min.js` explicitly. TypeScript declarations ship at `src/index.d.ts`.
+`package.json` declares `main` (`dist/exsurge.min.js`, UMD), `module` (`dist/exsurge.mjs`, ES modules) and `types` (`src/exsurge.d.ts`). Both bundles are committed, so a bundler honouring `module` gets a real build rather than raw source — earlier versions pointed `module` at `src/index.js`, which required `node_modules/exsurge/src` to be inside your own transpilation scope.
+
+The bundle is not transpiled to ES5. `src/` is shipped as authored: ES2015 syntax, and ES2019 library calls such as `Array.prototype.flatMap`. The effective browser floor is roughly 2019.
 
 To work on the library itself:
 
@@ -185,28 +187,42 @@ Everything is in `src/`, re-exported flat from `src/index.js` onto a single name
 | `Exsurge.Playback.Timeline.js` | note → pulse extraction and the rhythm tables (pure) |
 | `Exsurge.Playback.Instruments.js` | Web Audio instruments (`PianoInstrument`) |
 
-TypeScript declarations are hand-maintained in `src/index.d.ts`.
+TypeScript declarations are hand-maintained in `src/exsurge.d.ts`. They are checked by `npm run typecheck`, but they still cover only a fraction of the 135 runtime exports — an undeclared export is an omission, not a signal that it is private.
 
 ## Development
 
 ```
-npm run dev        # webpack watch, rebuilds dist/exsurge.js on save
-npm run build-dev  # one-off unminified build
-npm run build      # minified dist/exsurge.min.js
+npm run dev          # rollup watch, rebuilds on save
+npm run build-dev    # one-off build, minified bundle included
+npm run build        # same, and fails on any rollup warning
+npm run lint         # eslint
+npm run format       # prettier --write
+npm run typecheck    # tsc over src/ and over the declarations
 ```
 
-The toolchain is deliberately old — webpack 1, Babel 6 (`es2015` preset), and ESLint 1 run as a webpack loader. Source stays within what Babel 6 accepts: array spread and default parameters are fine, but there is no object spread, optional chaining, or async/await anywhere in `src/`.
+The toolchain is Rollup, ESLint 10 (flat config), Prettier and TypeScript in `checkJs` mode. There is no transpilation step: `src/` is bundled as authored.
+
+`npm run build` writes three files. `dist/exsurge.min.js` (UMD, minified) and `dist/exsurge.mjs` (ES modules) are **committed**, because consumers install this package from git rather than npm. `dist/exsurge.js` is the unminified UMD build and is gitignored. If you change anything in `src/`, rebuild and commit `dist/` in the same commit — CI checks that the committed bundle matches a fresh build.
+
+One constraint the build enforces deliberately: `rollup.config.mjs` has **no** `@rollup/plugin-node-resolve`, so every relative import in `src/` must keep its explicit `.js` extension. That is what the browser sandboxes below depend on, and leaving the plugin out turns a missing extension into a build failure rather than a demo that breaks after deploy.
+
+Eight files carry `// @ts-nocheck` with a note saying how many findings and why; run `grep -rl "@ts-nocheck" src/ test/` to see the list. `tsconfig.json` spells out the strictness flags that are still off, in the order they are worth turning on.
 
 ### Tests
 
 ```
-npm test
+npm test          # runs once and exits
+npm run test:watch
 ```
 
-Mocha specs live in `test/`. Two things to know: the script runs mocha with `-w`, so it stays in watch mode rather than exiting, and the specs load `dist/exsurge.min.js` rather than `src/`, so **build before testing** or you will be testing a stale bundle. Use `npm run test:once` for a single run that exits, which is what you want in CI. To run a subset once:
+Vitest specs live in `test/`, named `*.test.js`. They import `../src/index.js` directly, so a source change is visible without rebuilding.
+
+The exception is `test/dist.test.js`, which loads the committed `dist/exsurge.min.js` through `createRequire` on purpose. It is the tripwire for any module-scope DOM access — if some module ever touches `document`, `window` or `AudioContext` while being loaded, requiring the bundle in a DOM-free node process breaks and nothing else in the suite would notice. Vitest runs with `environment: "node"` for the same reason; switching it to jsdom would silently disarm that.
+
+To run a subset:
 
 ```
-npx mocha --compilers js:babel-core/register ./test/index.js --grep "Latin"
+npx vitest run test/core.test.js -t "Latin"
 ```
 
 ### Browser sandboxes
