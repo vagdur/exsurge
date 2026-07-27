@@ -2,6 +2,8 @@
 
 A JavaScript library for rendering Gregorian chant in square note notation. It takes [gabc](http://gregorio-project.github.io/gabc/) as input and produces SVG (or canvas) output that you can drop into a page, an editor, or a print pipeline.
 
+**Live demos:** [playback](https://vagdur.github.io/exsurge/test/playback.html) (a rendered score you can click to hear) and the [rendering sandbox](https://vagdur.github.io/exsurge/test/index.html) (paste gabc, watch it lay out). Both are the `test/` pages served straight from `master` by GitHub Pages, importing `src/` as native ES modules — so they show this repository's current source, not a built bundle.
+
 ## Which exsurge is this?
 
 **This is a third fork in a chain, and it is neither of the two repositories you are likely to find by searching.** There are three:
@@ -18,13 +20,13 @@ Fr. Spencer wrote the original and stopped committing in July 2016; that reposit
 
 GitHub records the two-hop chain explicitly: this repository's `parent` is `bbloomf/exsurge` and its `source` — the root of the fork tree — is `frmatthew/exsurge`. If you are reading a copy of this file somewhere else, that pair is the quickest way to tell which of the three you actually have.
 
-> **Remotes.** One name here is a trap: `upstream` points at `frmatthew/exsurge`, the dormant *original* two hops up — **not** at the fork this one is based on. That naming was inherited from the clone and is easy to misread. The three remotes are:
+> **Remotes.** There are three of them but only two repositories: `bbloomf` and `upstream` are two names for the same URL. `upstream` here means the *parent fork*, not the root of the lineage — there is no remote for the dormant original at all.
 >
 > | Remote | Points at | Use |
 > | --- | --- | --- |
 > | `origin` | `vagdur/exsurge` | this fork; push here |
 > | `bbloomf` | `bbloomf/exsurge` | mainline; pull ongoing work from here |
-> | `upstream` | `frmatthew/exsurge` | the dormant original; historical interest only |
+> | `upstream` | `bbloomf/exsurge` | the same repository under a second name |
 >
 > To pick up Bloomfield's later work: `git fetch bbloomf && git merge bbloomf/master`. Note that this fork was created with the default branch only, so his topic branches exist under `bbloomf/*` rather than `origin/*`.
 
@@ -34,7 +36,7 @@ GitHub records the two-hop chain explicitly: this repository's `parent` is `bblo
 
 **`package.json` metadata is inherited and wrong.** Its `repository`, `author`, `homepage`, and `bugs` fields still point at `frmatthew/exsurge`, two forks up. They survived Bloomfield's fork unchanged and they are not a statement about where this code lives or where issues should go. Updating them is a reasonable early commit for this fork.
 
-**The old live demo is not this code.** The original README linked to `frmatthew.github.io/exsurge/chant.html`, a GitHub Pages build from the *original* repository — it serves a 2016/2017 bundle and describes itself as "the simplest of test pages." It reflects neither fork. For a substantial application built on this library, see **[jgabc](http://bbloomf.github.io/jgabc/)** ([source](https://github.com/bbloomf/jgabc)), a full gabc transcriber and chant editor by Bloomfield, which vendors the bundle from his fork.
+**The old live demo is not this code.** The original README linked to `frmatthew.github.io/exsurge/chant.html`, a GitHub Pages build from the *original* repository — it serves a 2016/2017 bundle and describes itself as "the simplest of test pages." It reflects neither fork. This fork publishes its own demos at [vagdur.github.io/exsurge](https://vagdur.github.io/exsurge/), which do track this code. For a substantial application built on this library, see **[jgabc](http://bbloomf.github.io/jgabc/)** ([source](https://github.com/bbloomf/jgabc)), a full gabc transcriber and chant editor by Bloomfield, which vendors the bundle from his fork.
 
 ## Installation
 
@@ -129,7 +131,7 @@ exsurge.createPlayableChant(ctxt, gabc, document.getElementById("chant"), {
 });
 ```
 
-Clicking a note plays from that note onward, highlighting whichever note is sounding; clicking again stops. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example.
+Clicking a note plays from that note onward, highlighting whichever note is sounding; clicking again stops. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example, [live here](https://vagdur.github.io/exsurge/test/playback.html).
 
 To attach to a score you rendered yourself, construct the player directly:
 
@@ -216,6 +218,8 @@ npx http-server -p 8080 -c-1 .
 ```
 
 Then open `http://localhost:8080/test/playback.html`.
+
+Because those pages need nothing but a static server, GitHub Pages serves them as they are: Pages is configured to publish `master` at `/`, so `test/playback.html` and `test/index.html` are live at [vagdur.github.io/exsurge](https://vagdur.github.io/exsurge/) (root `index.html` is a small landing page linking to both). Every push to `master` redeploys them, which also means a commit that breaks the sandbox pages breaks the public demo — there is no separate built artifact standing between the two. `.nojekyll` at the root keeps Pages from running the files through Jekyll.
 
 ### Releasing
 
