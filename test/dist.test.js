@@ -36,7 +36,14 @@ chai.should();
 // CommonJS loader untouched instead of through vite's transform pipeline. That
 // is the environment bbloomf/jgabc and any node consumer actually sees.
 const require = createRequire(import.meta.url);
-const Exsurge = require("../dist/exsurge.min.js");
+
+// The specifier is held in a variable so that it stays a runtime load. Written
+// as a literal, tsc resolves it and pulls 200 KB of one-line minified output
+// into the checkJs program, reporting every finding a second time against
+// generated code that nobody edits. tsconfig's "exclude" does not help: it
+// filters the include globs, not files reached by an import.
+const distBundle = "../dist/exsurge.min.js";
+const Exsurge = require(distBundle);
 
 describe("dist bundle", function () {
   // If any module ever touches document, window or AudioContext at module

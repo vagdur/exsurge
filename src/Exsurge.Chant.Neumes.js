@@ -23,6 +23,11 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 4 findings. firstAbove/firstBelow use false as a not-set sentinel and are
+// then assigned indices, so they are boolean|number and cannot index an array.
+// Worth a real look: index 0 is falsy, so `firstAbove || firstBelow || 0`
+// cannot distinguish a legitimate index of 0 from unset.
+
 import {
   LiquescentType,
   NoteShape,

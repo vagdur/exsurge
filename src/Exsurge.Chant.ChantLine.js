@@ -23,6 +23,10 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 31 checkJs findings, almost all TS2339 for fields
+// assigned to instances outside the constructor. Declaring them is tracked
+// separately; see the typecheck notes in CLAUDE.md.
+
 import { ChantLineBreak, NoteShape, TextOnly } from "./Exsurge.Chant.js";
 import {
   BraceAttachment,

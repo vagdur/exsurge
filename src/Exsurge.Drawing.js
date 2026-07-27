@@ -23,6 +23,10 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 62 checkJs findings, almost all TS2339 for fields
+// assigned to instances outside the constructor. Declaring them is tracked
+// separately; see the typecheck notes in CLAUDE.md.
+
 import { getCssForProperties, Point, Rect } from "./Exsurge.Core.js";
 import { Glyphs } from "./Exsurge.Glyphs.js";
 import { language } from "./Exsurge.Text.js";
@@ -3238,12 +3242,12 @@ export class ChantNotationElement extends ChantLayoutElement {
     this.lyrics = [];
 
     /**
-     * @type {ChantScore}
+     * @type {import("./Exsurge.Chant.js").ChantScore}
      */
     this.score = null; // the ChantScore
 
     /**
-     * @type {ChantLine}
+     * @type {import("./Exsurge.Chant.ChantLine.js").ChantLine}
      */
     this.line = null; // the ChantLine
 

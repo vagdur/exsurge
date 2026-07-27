@@ -23,6 +23,10 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 30 checkJs findings, almost all TS2339 for fields
+// assigned to instances outside the constructor. Declaring them is tracked
+// separately; see the typecheck notes in CLAUDE.md.
+
 import { ChantLine } from "./Exsurge.Chant.ChantLine.js";
 import { InsertionCursor } from "./Exsurge.Chant.Signs.js";
 import { Pitch, Rect, Step } from "./Exsurge.Core.js";
@@ -663,7 +667,7 @@ export class ChantScore {
 
   /**
    * Shared layout initialization method for performLayout() and performLayoutAsync()
-   * @param  {ChantContext} ctxt
+   * @param  {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   initializeLayout(ctxt) {
     // setup the context

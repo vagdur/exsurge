@@ -371,8 +371,21 @@ class Language {
 
   /**
    * @param {String} text The string to parsed into words.
-   * @return {Word[]} the resulting parsed words from syllabification
+   * @return {string[][]} the resulting parsed words from syllabification
    */
+  /**
+   * Subclasses must implement this.
+   *
+   * @param {string} word
+   * @return {string[]} the syllables of the word
+   */
+  // eslint-disable-next-line no-unused-vars
+  syllabifyWord(word) {
+    throw new Error(
+      "exsurge: " + this.name + " does not implement syllabifyWord"
+    );
+  }
+
   syllabify(text) {
     var parsedWords = [];
 
@@ -5356,12 +5369,12 @@ class ChantNotationElement extends ChantLayoutElement {
     this.lyrics = [];
 
     /**
-     * @type {ChantScore}
+     * @type {import("./Exsurge.Chant.js").ChantScore}
      */
     this.score = null; // the ChantScore
 
     /**
-     * @type {ChantLine}
+     * @type {import("./Exsurge.Chant.ChantLine.js").ChantLine}
      */
     this.line = null; // the ChantLine
 
@@ -6328,7 +6341,7 @@ class Accidental extends ChantNotationElement {
 
   applyToPitch(pitch) {
     // no adjusment needed
-    if (this.pitch.octave !== pitch.octave) return;
+    if (/** @type {any} */ (this).pitch.octave !== pitch.octave) return;
 
     pitch.step = this.adjustStep(pitch.step);
   }
@@ -12224,7 +12237,7 @@ class Titles extends ChantLayoutElement {
 
   /**
    * Lays out the titles, and returns their total height
-   * @param  {ChantContext} ctxt
+   * @param  {import("./Exsurge.Drawing.js").ChantContext} ctxt
    * @return {number}      the tottal height of titles laid out
    */
   layoutTitles(ctxt, width) {
@@ -13041,7 +13054,7 @@ class ChantScore {
 
   /**
    * Shared layout initialization method for performLayout() and performLayoutAsync()
-   * @param  {ChantContext} ctxt
+   * @param  {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   initializeLayout(ctxt) {
     // setup the context
@@ -13587,6 +13600,7 @@ var PlaybackVelocities = {
 //
 // This must stay instanceof-based. Matching on constructor.name would break in
 // dist/exsurge.min.js, where UglifyJS mangles class names.
+/** @type {[Function, string|null][]} */
 var __dividerKinds = [
   [InsertionCursor, null],
   [Virgula, "virgula"],
@@ -13600,7 +13614,7 @@ var __dividerKinds = [
 /**
  * Identifies which kind of bar line a divider is, for rest length purposes.
  *
- * @param {Divider} divider
+ * @param {import("./Exsurge.Chant.Signs.js").Divider} divider
  * @return {string|null} a key into PlaybackRests, or null if it never sounds
  */
 function classifyDivider(divider) {
@@ -13719,9 +13733,29 @@ function makeNoteSlot(note, durations, velocities) {
  * positions. Gabc bakes the active clef and accidental into note.pitch at parse
  * time, so mid-score clef changes and accidentals are already accounted for.
  *
- * @param {ChantScore} score
- * @param {object} [options] durations, restWeights, velocities, classifyDivider
- * @return {object} { events, totalPulses, eventIndexByNoteIndex }
+ * @typedef {object} PlaybackEvent
+ * @property {"note"|"rest"} kind
+ * @property {object|null} note the source note, or null for a rest
+ * @property {number|null} noteIndex index into score.notes, null for a rest
+ * @property {number|null} elementIndex
+ * @property {number|null} pitchInt absolute semitone, null when unpitched
+ * @property {string|undefined} dividerKind set on rests produced by a bar line
+ * @property {number} velocity 0 for silent events
+ * @property {number} startPulse cumulative pulse offset of this event
+ * @property {number} pulses duration of this event in pulses
+ */
+
+/**
+ * @typedef {object} PlaybackTimeline
+ * @property {PlaybackEvent[]} events dense and monotonic in startPulse
+ * @property {number} totalPulses
+ * @property {number[]} eventIndexByNoteIndex maps a note index to its event
+ */
+
+/**
+ * @param {import("./Exsurge.Chant.js").ChantScore} score
+ * @param {{durations?: {beforeDivider?: object}, restWeights?: object, velocities?: object, classifyDivider?: Function}} [options]
+ * @return {PlaybackTimeline}
  */
 function createPlaybackEvents(score, options) {
   var opts = options || {};
@@ -14054,7 +14088,7 @@ var Instruments = {
  * Resolves an instrument option, which may be a key into Instruments or an
  * object implementing the instrument interface directly.
  *
- * @param {string|object} spec
+ * @param {string|{createVoice: Function}} spec
  * @return {object} an instrument
  */
 function resolveInstrument(spec) {
@@ -15022,7 +15056,7 @@ class ChantPlayer {
  *     mySpeedSlider.oninput = function() { player.setSpeed(this.value); };
  *   });
  *
- * @param {ChantContext} ctxt
+ * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
  * @param {string} gabcSource
  * @param {HTMLElement} container emptied and filled with the rendered score
  * @param {object} [options] see PlaybackDefaults, plus useDropCap and autoResize

@@ -9,8 +9,21 @@ export class Language {
 
   /**
    * @param {String} text The string to parsed into words.
-   * @return {Word[]} the resulting parsed words from syllabification
+   * @return {string[][]} the resulting parsed words from syllabification
    */
+  /**
+   * Subclasses must implement this.
+   *
+   * @param {string} word
+   * @return {string[]} the syllables of the word
+   */
+  // eslint-disable-next-line no-unused-vars
+  syllabifyWord(word) {
+    throw new Error(
+      "exsurge: " + this.name + " does not implement syllabifyWord"
+    );
+  }
+
   syllabify(text) {
     var parsedWords = [];
 

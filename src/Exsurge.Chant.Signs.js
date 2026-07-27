@@ -329,7 +329,7 @@ export class Accidental extends ChantNotationElement {
 
   applyToPitch(pitch) {
     // no adjusment needed
-    if (this.pitch.octave !== pitch.octave) return;
+    if (/** @type {any} */ (this).pitch.octave !== pitch.octave) return;
 
     pitch.step = this.adjustStep(pitch.step);
   }

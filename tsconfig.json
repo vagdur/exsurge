@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    // ES2019 is the real floor: src/ calls Array.prototype.flatMap, and the
+    // bundle ships the source syntax untranspiled.
+    "target": "ES2019",
+    "lib": ["ES2019", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    // Kept on so @types/node and @types/opentype.js are not dragged into the
+    // check. The declaration file is checked properly by tsconfig.types.json,
+    // which turns this back off.
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+
+    // The ratchet. Every flag below is implied by "strict": false; they are
+    // spelled out so this file records what is still owed rather than hiding
+    // it behind one word. Turn them on roughly in this order -- each is
+    // meaningfully harder than the one above it:
+    //
+    //   1. noImplicitThis              cheap
+    //   2. useUnknownInCatchVariables  trivial, 9 catch blocks
+    //   3. noImplicitAny               voluminous but mechanical; every
+    //                                  parameter in 15k lines needs a JSDoc
+    //                                  @param
+    //   4. strictNullChecks            its own project, touches everything
+    //   5. the rest, then "strict": true
+    "strict": false,
+    "noImplicitThis": false,
+    "useUnknownInCatchVariables": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictBindCallApply": false,
+    "strictPropertyInitialization": false
+  },
+  "include": ["src/**/*.js", "test/**/*.js", "test/**/*.d.ts", "*.mjs"],
+
+  // dist/ is generated and minified. test/dist.test.js deliberately loads it
+  // to check the built bundle, which otherwise drags 200 KB of one-line
+  // minified output into the program and reports every finding twice.
+  "exclude": ["node_modules", "dist"]
+}

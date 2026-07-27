@@ -23,6 +23,10 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 43 checkJs findings, almost all TS2339 for fields
+// assigned to instances outside the constructor. Declaring them is tracked
+// separately; see the typecheck notes in CLAUDE.md.
+
 import { Step } from "./Exsurge.Core.js";
 import {
   MarkingPositionHint,

@@ -23,6 +23,9 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 6 findings: the titles bag is inferred as {} at its declaration, plus one
+// expando on Element.
+
 import { Rect } from "./Exsurge.Core.js";
 import {
   ChantLayoutElement,
@@ -68,7 +71,7 @@ export class Titles extends ChantLayoutElement {
 
   /**
    * Lays out the titles, and returns their total height
-   * @param  {ChantContext} ctxt
+   * @param  {import("./Exsurge.Drawing.js").ChantContext} ctxt
    * @return {number}      the tottal height of titles laid out
    */
   layoutTitles(ctxt, width) {

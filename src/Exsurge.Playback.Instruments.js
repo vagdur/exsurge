@@ -213,7 +213,7 @@ export var Instruments = {
  * Resolves an instrument option, which may be a key into Instruments or an
  * object implementing the instrument interface directly.
  *
- * @param {string|object} spec
+ * @param {string|{createVoice: Function}} spec
  * @return {object} an instrument
  */
 export function resolveInstrument(spec) {

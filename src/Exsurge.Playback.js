@@ -33,6 +33,9 @@
 // expected to build their own controls on top of the setters.
 //
 
+// @ts-nocheck -- 6 findings: options bags typed as object, window.webkitAudioContext, and two
+// places where SVG node arrays meet DOM signatures.
+
 import { Gabc } from "./Exsurge.Gabc.js";
 import { ChantScore } from "./Exsurge.Chant.js";
 import {
@@ -964,7 +967,7 @@ export class ChantPlayer {
  *     mySpeedSlider.oninput = function() { player.setSpeed(this.value); };
  *   });
  *
- * @param {ChantContext} ctxt
+ * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
  * @param {string} gabcSource
  * @param {HTMLElement} container emptied and filled with the rendered score
  * @param {object} [options] see PlaybackDefaults, plus useDropCap and autoResize
