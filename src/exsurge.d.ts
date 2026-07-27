@@ -38,31 +38,61 @@ declare module "exsurge" {
     static staffOffsetToStep(offset: number): number;
   }
 
-  export interface Titles {
+  export class Titles {
+    constructor(ctxt: ChantContext, score: ChantScore);
     score: ChantScore;
     setSupertitle(ctxt: ChantContext, supertitle: string): Supertitle;
     setTitle(ctxt: ChantContext, title: string): Title;
     setSubtitle(ctxt: ChantContext, subtitle: string): Subtitle;
-    setTextLeft(ctxt: ChantContext, textLeft: string): TextLeft;
-    setTextRight(ctxt: ChantContext, textRight: string): TextRight;
+    setTextLeft(ctxt: ChantContext, textLeft: string): TextLeftRight;
+    setTextRight(ctxt: ChantContext, textRight: string): TextLeftRight;
+    hasSupertitle(): boolean;
+    hasTitle(): boolean;
+    hasSubtitle(): boolean;
+    hasTextLeft(): boolean;
+    hasTextRight(): boolean;
+    layoutTitles(ctxt: ChantContext): number;
+    createSvgNode(ctxt: ChantContext): SVGElement;
+    draw(ctxt: ChantContext, scale?: number): void;
   }
 
-  export interface Language {
+  // The title block elements the setters above return.
+  export class Supertitle {}
+  export class Title {}
+  export class Subtitle {}
+  export class TextLeftRight {}
+
+  export class Language {
+    constructor(name?: string);
+    name: string;
+    centerNeume: boolean;
     syllabify(text: string): Array<Array<string>>;
+    syllabifyWord(word: string): string[];
     findVowelSegment(
       text: string,
       startingIndex: number
     ): { found: boolean; startIndex: number; length: number };
   }
-  export interface English extends Language {
+  export class English extends Language {
     regexLetter: RegExp;
   }
+  export class Latin extends Language {
+    diphthongs: string[];
+    possibleDiphthongs: string[];
+    vowels: string[];
+    regexVowel: RegExp;
+    isVowel(c: string): boolean;
+    isDiphthong(s: string): boolean;
+    isPossibleDiphthong(s: string): boolean;
+  }
+  export class Spanish extends Language {}
   export const language: {
     english: English;
-    latin: Language;
+    latin: Latin;
+    spanish: Spanish;
   };
 
-  export interface TextSpan {
+  export class TextSpan {
     text: string;
     properties: {
       newLine?: number | boolean;
@@ -98,10 +128,8 @@ declare module "exsurge" {
     getFromSvgElem(score: any, elem: any): any;
   }
 
-  interface TextTypeWithSvgAndCss {
-    TextTypeWithSvgElem;
-    TextTypeWithCssClass;
-  }
+  interface TextTypeWithSvgAndCss
+    extends TextTypeWithSvgElem, TextTypeWithCssClass {}
 
   export enum TextMeasuringStrategy {
     Svg,
@@ -113,7 +141,7 @@ declare module "exsurge" {
   }
 
   export class Annotations {
-    constructor(ctxt: ChantContext, ...string);
+    constructor(ctxt: ChantContext, ...texts: string[]);
     recalculateMetrics(ctxt: ChantContext): void;
   }
 
@@ -124,22 +152,26 @@ declare module "exsurge" {
   }
 
   export class Gabc {
-    static createMappingsFromSource(ctxt: ChantContext, gabcSource: string);
+    static createMappingsFromSource(
+      ctxt: ChantContext,
+      gabcSource: string
+    ): ChantMapping[];
     static updateMappingsFromSource(
       ctxt: ChantContext,
       mappings: ChantMapping[],
       newGabcSource: string,
       insertionIndex?: number,
       oldInsertionIndex?: number
-    );
+    ): ChantMapping[];
   }
 
   export class GabcHeader {
     static getLength(gabc: string): number;
     constructor(text: string);
     toString(): string;
-    [key: `${string}Array`]: string[];
-    [key: string]: string;
+    // Headers appearing more than once are also collected into a parallel
+    // "<name>Array" property, so a value is either a string or a string[].
+    [key: string]: string | string[] | ((...args: any[]) => any);
   }
 
   export interface SvgTreeNode {
@@ -151,12 +183,16 @@ declare module "exsurge" {
   }
 
   export class ChantScore {
-    constructor(ctxt: ChantContext);
+    constructor(
+      ctxt: ChantContext,
+      mappings?: ChantMapping[],
+      useDropCap?: boolean
+    );
 
     mappings: ChantMapping[];
     lines: ChantLine[];
     staffLineCount: number;
-    notes: Note;
+    notes: Note[];
     titles?: Titles;
     startingClef: Clef;
     useDropCap: boolean;
@@ -169,18 +205,43 @@ declare module "exsurge" {
     bounds: Rect;
     forceLayout: boolean;
     pages: ChantScore[];
-    updateSelection(selection: Selection);
+    updateSelection(selection: Selection): void;
+    createSvgNode(ctxt: ChantContext, zoom?: number): SVGElement;
     createSvgTree(ctxt: ChantContext, zoom?: number): SvgTreeNode;
     createSvg(ctxt: ChantContext): string;
     recreateDropCap(ctxt: ChantContext): void;
     updateNotations(ctxt: ChantContext): void;
     performLayout(ctxt: ChantContext, forceLayout?: boolean): void;
-    layoutChantLines(ctxt: ChantContext, width: number): void;
+    performLayoutAsync(ctxt: ChantContext, finishedCallback?: () => void): void;
+    layoutChantLines(
+      ctxt: ChantContext,
+      width: number,
+      finishedCallback?: () => void
+    ): void;
+    draw(ctxt: ChantContext, scale?: number): void;
     paginate(height: number): void;
   }
 
   export const QuickSvg: {
-    react: any;
+    ns: string;
+    xmlns: string;
+    xlink: string;
+    hasDOMAccess(): boolean;
+    svg(width: number, height: number, children?: any): SVGElement;
+    rect(width: number, height: number, options?: any): SVGElement;
+    line(x1: number, y1: number, x2: number, y2: number): SVGElement;
+    g(children?: any): SVGElement;
+    text(options?: any, children?: any): SVGElement;
+    tspan(text: string, options?: any): SVGElement;
+    use(href: string, options?: any): SVGElement;
+    svgFragmentForGlyph(glyph: any): string;
+    nodesForGlyph(glyph: any): SVGElement[];
+    createNode(name: string, attributes?: any, children?: any): SVGElement;
+    createSvgTree(name: string, props?: any, ...children: any[]): SvgTreeNode;
+    createFragment(name: string, attributes?: any, child?: any): string;
+    parseFragment(fragment: string): SVGElement;
+    translate(node: SVGElement, x: number, y: number): any;
+    scale(node: SVGElement, sx: number, sy?: number): any;
   };
 
   export interface TextTypes {
@@ -231,7 +292,7 @@ declare module "exsurge" {
         "font-style"?: string;
         "font-weight"?: string;
       },
-      url = "{}"
+      url?: string
     ) => string;
 
     textStyles: TextTypeStyles;
@@ -318,7 +379,7 @@ declare module "exsurge" {
     setScaleDefs(scaleDefs: boolean): void;
     createStyleCss(): string;
     createStyleNode(): HTMLOrSVGElement;
-    createStyleReact(): any;
+    createStyleTree(): SvgTreeNode;
     createStyle(): string;
     updateHyphenWidth(): void;
     setStaffHeight(staffHeight: number, glyphMultiplier?: number): void;
