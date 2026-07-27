@@ -23,8 +23,12 @@
 // THE SOFTWARE.
 //
 
-var should = require("chai").should(),
-  Exsurge = require("../dist/exsurge.min.js");
+import { describe, it, chai } from "vitest";
+import * as Exsurge from "../src/index.js";
+
+// Vitest bundles chai, so the should-style assertions this suite has always
+// used carry over unchanged.
+chai.should();
 
 describe("Core functionality", function () {
   it("Point object", function () {

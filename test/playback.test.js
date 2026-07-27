@@ -23,8 +23,12 @@
 // THE SOFTWARE.
 //
 
-var should = require("chai").should(),
-  Exsurge = require("../dist/exsurge.min.js");
+import { describe, it, chai } from "vitest";
+import * as Exsurge from "../src/index.js";
+
+// Vitest bundles chai, so the should-style assertions this suite has always
+// used carry over unchanged.
+var should = chai.should();
 
 var MIDDLE_C = 261.6255653;
 
@@ -78,22 +82,9 @@ function pulsesOf(timeline) {
   });
 }
 
-describe("Playback: loading", function () {
-  // If a playback module ever touches document, window or AudioContext at
-  // module scope, requiring the bundle in node breaks -- and nothing else in
-  // this suite would notice.
-  it("exposes the playback API without needing a browser", function () {
-    Exsurge.ChantPlayer.should.be.a("function");
-    Exsurge.createPlayableChant.should.be.a("function");
-    Exsurge.createPlaybackEvents.should.be.a("function");
-    Exsurge.PianoInstrument.should.be.a("function");
-    Exsurge.resolveInstrument.should.be.a("function");
-    Exsurge.PlaybackDefaults.should.be.an("object");
-    Exsurge.PlaybackDurations.should.be.an("object");
-    Exsurge.PlaybackRests.should.be.an("object");
-    Exsurge.PlaybackVelocities.should.be.an("object");
-  });
-});
+// The "Playback: loading" suite that used to live here has moved to
+// dist.test.js. It is a tripwire for module-scope DOM access, so it only means
+// anything when it loads the built bundle rather than src/.
 
 describe("Playback: pitch and tempo", function () {
   it("anchors tuning on the Do that the clef names", function () {
@@ -539,25 +530,22 @@ describe("Gabc: staff position offsets and pitch", function () {
 });
 
 describe("Playback: real gabc", function () {
-  var score = null;
-
-  before(function () {
-    // ChantScore's constructor runs updateNotations, which is all the
-    // extractor needs -- no layout, and therefore no text measurement
-    try {
-      var ctxt = new Exsurge.ChantContext();
-      var gabc =
-        "(c4) Chris(ffg)tus(f.) *(,) fac(fg)tus(f) est(f) pro(f) no(gh)bis(f.) (::)";
-      var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
-      score = new Exsurge.ChantScore(ctxt, mappings, false);
-    } catch (e) {
-      score = null;
-    }
-  });
+  // ChantScore's constructor runs updateNotations, which is all the extractor
+  // needs -- no layout, and therefore no text measurement.
+  //
+  // This deliberately parses at suite scope with no try/catch. It used to sit
+  // in a before() hook that swallowed the exception into `score = null`, with
+  // every test below opening `if (!score) this.skip()` -- so a parse
+  // regression reported as three pending tests and the suite still went green.
+  // Letting the exception through turns that into three real failures with a
+  // usable stack.
+  var ctxt = new Exsurge.ChantContext();
+  var gabc =
+    "(c4) Chris(ffg)tus(f.) *(,) fac(fg)tus(f) est(f) pro(f) no(gh)bis(f.) (::)";
+  var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
+  var score = new Exsurge.ChantScore(ctxt, mappings, false);
 
   it("extracts sounding notes from parsed gabc", function () {
-    if (!score) this.skip();
-
     var timeline = Exsurge.createPlaybackEvents(score);
 
     timeline.events.length.should.be.above(0);
@@ -573,8 +561,6 @@ describe("Playback: real gabc", function () {
   });
 
   it("reads pitches straight off the parsed notes", function () {
-    if (!score) this.skip();
-
     var timeline = Exsurge.createPlaybackEvents(score);
     var pitched = timeline.events.filter(function (e) {
       return e.pitchInt !== null;
@@ -591,8 +577,6 @@ describe("Playback: real gabc", function () {
   });
 
   it("doubles the mora dotted notes that gabc marked", function () {
-    if (!score) this.skip();
-
     var timeline = Exsurge.createPlaybackEvents(score);
     var dotted = timeline.events.filter(function (e) {
       return e.note && e.note.morae && e.note.morae.length > 0;
