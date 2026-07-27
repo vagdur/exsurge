@@ -1,0 +1,17 @@
+# Normalise line endings. Everything in the tree is already LF; this is
+# insurance for a repository that lives under OneDrive on Windows.
+* text=auto eol=lf
+
+# Generated build artifacts. Committed on purpose -- consumers install this
+# package from git rather than npm -- but collapsed by default in diffs and
+# excluded from language statistics.
+dist/exsurge.min.js linguist-generated=true
+dist/exsurge.mjs linguist-generated=true
+dist/*.map linguist-generated=true
+
+# Generated from commit messages by conventional-changelog.
+CHANGELOG.md linguist-generated=true
+
+# Generated glyph tables extracted from the ExsurgeChar font.
+src/Exsurge.Glyphs.js linguist-generated=true
+src/greextraGlyphs.js linguist-generated=true
