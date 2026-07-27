@@ -1,8 +1,7 @@
-engines: 
+engines:
   eslint:
     enabled: true
-    
-ratings:
-   paths:
-   - "**.js"
 
+ratings:
+  paths:
+    - "**.js"

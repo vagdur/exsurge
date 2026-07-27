@@ -27,10 +27,13 @@ import { ChantLine } from "./Exsurge.Chant.ChantLine.js";
 import { InsertionCursor } from "./Exsurge.Chant.Signs.js";
 import { Pitch, Rect, Step } from "./Exsurge.Core.js";
 import {
-  Annotation, ChantLayoutElement,
+  Annotation,
+  ChantLayoutElement,
   ChantNotationElement,
   GlyphCode,
-  GlyphVisualizer, QuickSvg, TextLeftRight,
+  GlyphVisualizer,
+  QuickSvg,
+  TextLeftRight,
   TextSpan
 } from "./Exsurge.Drawing.js";
 import { Gabc } from "./Exsurge.Gabc.js";
@@ -344,7 +347,10 @@ export class TrebleClef extends Clef {
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
-    var glyph = new GlyphVisualizer(ctxt, this.small ? GlyphCode.TrebleClefSmall : GlyphCode.TrebleClef);
+    var glyph = new GlyphVisualizer(
+      ctxt,
+      this.small ? GlyphCode.TrebleClefSmall : GlyphCode.TrebleClef
+    );
     glyph.setStaffPosition(ctxt, this.staffPosition);
     this.addVisualizer(glyph);
 
@@ -389,7 +395,10 @@ export class ChiRhoClef extends Clef {
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
-    var glyph = new GlyphVisualizer(ctxt, this.sans ? GlyphCode.ChiRhoClefSans : GlyphCode.ChiRhoClef);
+    var glyph = new GlyphVisualizer(
+      ctxt,
+      this.sans ? GlyphCode.ChiRhoClefSans : GlyphCode.ChiRhoClef
+    );
     glyph.setStaffPosition(ctxt, this.staffPosition);
     this.addVisualizer(glyph);
 
@@ -528,9 +537,8 @@ export class ChantScore {
       let element = this.notes[i];
       element.selected = selectedIndices.includes(i);
     }
-    (
-      this.startingClef.model || this.startingClef
-    ).selected = selectedIndices.includes(-1);
+    (this.startingClef.model || this.startingClef).selected =
+      selectedIndices.includes(-1);
     for (let i = 0; i < this.lines.length; ++i) {
       this.lines[i].insertionCursor = null;
     }
@@ -551,7 +559,8 @@ export class ChantScore {
           this.insertionElement = this.insertionElement.neume;
         }
         if (!insertionLine) {
-          insertionLine = this.insertionElement.line || this.lines[this.lines.length - 1];
+          insertionLine =
+            this.insertionElement.line || this.lines[this.lines.length - 1];
         }
         insertionLine.insertionCursor = new InsertionCursor();
       }
@@ -610,7 +619,7 @@ export class ChantScore {
           } else {
             ++nonNoteElementCount;
           }
-          
+
           element.selected = selectedIndices.includes(elementIndex);
         }
       }
@@ -763,7 +772,9 @@ export class ChantScore {
           : [annotation.spans];
       this.overrideTextLeft = new TextLeftRight(ctxt, "", "textLeft");
       if (ctxt.mapAnnotationSpansToTextLeft) {
-        annotationSpans = annotationSpans.map(ctxt.mapAnnotationSpansToTextLeft);
+        annotationSpans = annotationSpans.map(
+          ctxt.mapAnnotationSpansToTextLeft
+        );
       }
       this.overrideTextLeft.spans = ctxt.mergeAnnotationWithTextLeft(
         ...annotationSpans,
@@ -853,15 +864,16 @@ export class ChantScore {
         typeof zoom === "number"
           ? zoom * this.bounds.width
           : zoom
-          ? undefined
-          : this.bounds.width,
+            ? undefined
+            : this.bounds.width,
       height = zoom ? undefined : this.bounds.height;
 
     return {
       xmlns: QuickSvg.ns,
       "xmlns:xlink": QuickSvg.xlink,
       version: "1.1",
-      class: "Exsurge ChantScore" + (ctxt.editable ? " EditableChantScore" : ""),
+      class:
+        "Exsurge ChantScore" + (ctxt.editable ? " EditableChantScore" : ""),
       width,
       height,
       viewBox: [0, 0, this.bounds.width, this.bounds.height].join(" ")

@@ -112,7 +112,10 @@ function toArray(value) {
 function addClass(element, className) {
   var existing = element.getAttribute("class") || "";
   if ((" " + existing + " ").indexOf(" " + className + " ") >= 0) return;
-  element.setAttribute("class", existing ? existing + " " + className : className);
+  element.setAttribute(
+    "class",
+    existing ? existing + " " + className : className
+  );
 }
 
 function removeClass(element, className) {
@@ -178,13 +181,13 @@ export class ChantPlayer {
     this.__rafId = null;
 
     var self = this;
-    this.__boundClick = function(evt) {
+    this.__boundClick = function (evt) {
       self.__onClick(evt);
     };
-    this.__boundTick = function() {
+    this.__boundTick = function () {
       self.__tick();
     };
-    this.__boundFrame = function() {
+    this.__boundFrame = function () {
       self.__frame();
     };
 
@@ -554,7 +557,9 @@ export class ChantPlayer {
 
     // a repeated note would otherwise beat against its own decaying tail
     if (this.__lastVoice && this.__lastFrequency > 0) {
-      var cents = Math.abs(1200 * Math.log(frequency / this.__lastFrequency) / Math.LN2);
+      var cents = Math.abs(
+        (1200 * Math.log(frequency / this.__lastFrequency)) / Math.LN2
+      );
       if (cents < 5) this.__lastVoice.release(when);
     }
 
@@ -669,7 +674,10 @@ export class ChantPlayer {
       return;
     }
 
-    this.__tickTimer = setTimeout(this.__boundTick, this.options.tickIntervalMs);
+    this.__tickTimer = setTimeout(
+      this.__boundTick,
+      this.options.tickIntervalMs
+    );
   }
 
   __reachedEnd() {
@@ -822,9 +830,8 @@ export class ChantPlayer {
       var nodes = this.__roots[r].querySelectorAll(".note");
 
       for (var i = 0; i < nodes.length; i++) {
-        var owner = this.score.notes[
-          Number(nodes[i].getAttribute("element-index"))
-        ];
+        var owner =
+          this.score.notes[Number(nodes[i].getAttribute("element-index"))];
         if (!owner || typeof owner.noteIndex !== "number") continue;
 
         var element = nodes[i];
@@ -889,7 +896,8 @@ export class ChantPlayer {
     }
 
     if (!this.__styleNodes.length) {
-      for (i = 0; i < this.__roots.length; i++) this.__injectStyle(this.__roots[i]);
+      for (i = 0; i < this.__roots.length; i++)
+        this.__injectStyle(this.__roots[i]);
       return;
     }
 
@@ -915,9 +923,7 @@ export class ChantPlayer {
       return;
     }
 
-    var note = this.score.notes[
-      Number(element.getAttribute("element-index"))
-    ];
+    var note = this.score.notes[Number(element.getAttribute("element-index"))];
     if (!note || typeof note.noteIndex !== "number") return;
 
     this.play(note.noteIndex);
@@ -980,7 +986,7 @@ export function createPlayableChant(
   var resizeTimer = null;
 
   function render(callback) {
-    score.layoutChantLines(ctxt, container.clientWidth, function() {
+    score.layoutChantLines(ctxt, container.clientWidth, function () {
       while (container.firstChild) container.removeChild(container.firstChild);
       container.appendChild(score.createSvgNode(ctxt));
       callback();
@@ -989,25 +995,25 @@ export function createPlayableChant(
 
   function onResize() {
     if (resizeTimer !== null) clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(function() {
+    resizeTimer = setTimeout(function () {
       resizeTimer = null;
       // only the second layout phase depends on width, and it changes neither
       // note order nor pitch -- so playback carries on across a resize
-      render(function() {
+      render(function () {
         player.attach(container.firstChild);
       });
     }, 150);
   }
 
-  score.performLayoutAsync(ctxt, function() {
-    render(function() {
+  score.performLayoutAsync(ctxt, function () {
+    render(function () {
       player = new ChantPlayer(score, container.firstChild, opts);
 
       if (opts.autoResize !== false && typeof window !== "undefined") {
         window.addEventListener("resize", onResize);
 
         var innerDestroy = player.destroy;
-        player.destroy = function() {
+        player.destroy = function () {
           window.removeEventListener("resize", onResize);
           if (resizeTimer !== null) clearTimeout(resizeTimer);
           innerDestroy.call(player);

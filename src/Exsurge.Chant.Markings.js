@@ -44,7 +44,10 @@ export class Accent extends GlyphVisualizer {
 
     // this puts the acute accent either over the staff lines, or over the note if the
     // note is above the staff lines
-    this.setStaffPosition(ctxt, Math.max(this.note.staffPosition + 1, 2 * ctxt.staffLineCount));
+    this.setStaffPosition(
+      ctxt,
+      Math.max(this.note.staffPosition + 1, 2 * ctxt.staffLineCount)
+    );
   }
 }
 
@@ -95,7 +98,7 @@ export class HorizontalEpisema extends ChantLayoutElement {
       }
     }
 
-    const staffLineCountParity = (ctxt.staffLineCount % 2) || 0;
+    const staffLineCountParity = ctxt.staffLineCount % 2 || 0;
     const staffLineCountNonParity = (staffLineCountParity + 1) % 2;
     if (this.positionHint === MarkingPositionHint.Below) {
       y = this.note.bounds.bottom() + minDistanceAway; // the highest the line could be at
@@ -111,12 +114,19 @@ export class HorizontalEpisema extends ChantLayoutElement {
         step = (step + 3 / 4 + (y - minDistanceAway) / ctxt.staffInterval) / 2;
       } else {
         // otherwise, find nearest acceptable third between staff lines (or staff line)
-        step = (Math.ceil((1.5 * y) / ctxt.staffInterval - 0.5) * 2 + staffLineCountNonParity) / 3;
+        step =
+          (Math.ceil((1.5 * y) / ctxt.staffInterval - 0.5) * 2 +
+            staffLineCountNonParity) /
+          3;
 
         // if it's an odd step, that means we're on a staff line,
         // so we shift to between the staff line
         if (Math.abs(step) % 2 === staffLineCountNonParity) {
-          if (Math.abs(step) < ctxt.staffLineCount || ctxt.convertStaffPositionToSymmetric(ledgerLine.staffPosition) === -step) {
+          if (
+            Math.abs(step) < ctxt.staffLineCount ||
+            ctxt.convertStaffPositionToSymmetric(ledgerLine.staffPosition) ===
+              -step
+          ) {
             step += 2 / 3;
           } else {
             // no ledger line, but we don't want the episema to be at exactly the same height the ledger line would occupy:
@@ -135,12 +145,19 @@ export class HorizontalEpisema extends ChantLayoutElement {
         step = (step - 3 / 4 + (y + minDistanceAway) / ctxt.staffInterval) / 2;
       } else {
         // otherwise, find nearest acceptable third between staff lines (or staff line)
-        step = (Math.floor((1.5 * y) / ctxt.staffInterval - 0.5) * 2 + staffLineCountNonParity) / 3;
+        step =
+          (Math.floor((1.5 * y) / ctxt.staffInterval - 0.5) * 2 +
+            staffLineCountNonParity) /
+          3;
 
         // find nearest acceptable third between staff lines (or staff line)
         if (Math.abs(step) % 2 === staffLineCountNonParity) {
           // if it was a staff line, we need to adjust
-          if (Math.abs(step) < ctxt.staffLineCount || ctxt.convertStaffPositionToSymmetric(ledgerLine.staffPosition) === -step) {
+          if (
+            Math.abs(step) < ctxt.staffLineCount ||
+            ctxt.convertStaffPositionToSymmetric(ledgerLine.staffPosition) ===
+              -step
+          ) {
             step -= 2 / 3;
           } else {
             // no ledger line, but we don't want the episema to be at exactly the same height the ledger line would occupy:
@@ -258,7 +275,8 @@ export class Ictus extends GlyphVisualizer {
     var extraOffset = 0;
     var collisionWithStaffLine =
       staffPosition % 2 &&
-      (Math.abs(ctxt.convertStaffPositionToSymmetric(staffPosition)) < ctxt.staffLineCount ||
+      (Math.abs(ctxt.convertStaffPositionToSymmetric(staffPosition)) <
+        ctxt.staffLineCount ||
         (this.note.neume.ledgerLines[0] || {}).staffPosition === staffPosition);
 
     // The porrectus requires special handling of the note width,
@@ -356,9 +374,8 @@ export class Mora extends GlyphVisualizer {
             this.note.neume
           );
           if (notationIndex >= 0) {
-            var nextNotation = this.note.neume.score.notations[
-              notationIndex + 1
-            ];
+            var nextNotation =
+              this.note.neume.score.notations[notationIndex + 1];
             if (nextNotation && nextNotation.notes) {
               nextNote = nextNotation.notes[0];
             }

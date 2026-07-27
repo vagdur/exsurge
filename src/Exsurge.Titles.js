@@ -25,7 +25,12 @@
 
 import { Rect } from "./Exsurge.Core.js";
 import {
-  ChantLayoutElement, QuickSvg, Subtitle, Supertitle, TextLeftRight, Title
+  ChantLayoutElement,
+  QuickSvg,
+  Subtitle,
+  Supertitle,
+  TextLeftRight,
+  Title
 } from "./Exsurge.Drawing.js";
 
 export class Titles extends ChantLayoutElement {

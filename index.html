@@ -1,62 +1,103 @@
 <!doctype html>
 
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>exsurge &mdash; Gregorian chant in square note notation</title>
-  <meta name="description" content="Live demos of exsurge, a JavaScript library that renders gabc as square note notation.">
-  <link href='https://fonts.googleapis.com/css?family=Crimson+Text:400,700,700italic,400italic' rel='stylesheet' type='text/css'>
-  <style>
-    body { font-family: sans-serif; max-width: 42rem; margin: 2rem auto 5rem; padding: 0 1.25rem;
-           line-height: 1.5; color: #222; }
-    h1 { margin-bottom: .25rem; }
-    .tagline { color: #555; margin-top: 0; }
-    ul.demos { list-style: none; padding: 0; }
-    ul.demos li { margin: 1.25rem 0; padding: 1rem 1.25rem; background: #f4f4f4; border-radius: 6px; }
-    ul.demos a { font-size: 1.1rem; font-weight: bold; }
-    ul.demos p { margin: .4rem 0 0; color: #555; font-size: .95rem; }
-    .note { color: #666; font-size: .9rem; }
-  </style>
-</head>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>exsurge &mdash; Gregorian chant in square note notation</title>
+    <meta
+      name="description"
+      content="Live demos of exsurge, a JavaScript library that renders gabc as square note notation."
+    />
+    <link
+      href="https://fonts.googleapis.com/css?family=Crimson+Text:400,700,700italic,400italic"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 42rem;
+        margin: 2rem auto 5rem;
+        padding: 0 1.25rem;
+        line-height: 1.5;
+        color: #222;
+      }
+      h1 {
+        margin-bottom: 0.25rem;
+      }
+      .tagline {
+        color: #555;
+        margin-top: 0;
+      }
+      ul.demos {
+        list-style: none;
+        padding: 0;
+      }
+      ul.demos li {
+        margin: 1.25rem 0;
+        padding: 1rem 1.25rem;
+        background: #f4f4f4;
+        border-radius: 6px;
+      }
+      ul.demos a {
+        font-size: 1.1rem;
+        font-weight: bold;
+      }
+      ul.demos p {
+        margin: 0.4rem 0 0;
+        color: #555;
+        font-size: 0.95rem;
+      }
+      .note {
+        color: #666;
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
 
-<body>
+  <body>
+    <h1>exsurge</h1>
+    <p class="tagline">
+      A JavaScript library that renders Gregorian chant in square note notation,
+      taking
+      <a href="http://gregorio-project.github.io/gabc/">gabc</a> as input and
+      emitting SVG or canvas output.
+    </p>
 
-  <h1>exsurge</h1>
-  <p class="tagline">
-    A JavaScript library that renders Gregorian chant in square note notation, taking
-    <a href="http://gregorio-project.github.io/gabc/">gabc</a> as input and emitting SVG or canvas output.
-  </p>
+    <ul class="demos">
+      <li>
+        <a href="test/playback.html">Playback demo</a>
+        <p>
+          A rendered score you can hear: click any note to play from there.
+          Speed, tuning (including historical A=415 and A=392), transposition,
+          instrument and volume are all driven from host controls on the page,
+          and a second score shows two independent players coexisting.
+        </p>
+      </li>
+      <li>
+        <a href="test/index.html">Rendering sandbox</a>
+        <p>
+          Paste gabc and watch it lay out as you type, in both the SVG and the
+          canvas backend.
+        </p>
+      </li>
+    </ul>
 
-  <ul class="demos">
-    <li>
-      <a href="test/playback.html">Playback demo</a>
-      <p>
-        A rendered score you can hear: click any note to play from there. Speed, tuning
-        (including historical A=415 and A=392), transposition, instrument and volume are all
-        driven from host controls on the page, and a second score shows two independent players
-        coexisting.
-      </p>
-    </li>
-    <li>
-      <a href="test/index.html">Rendering sandbox</a>
-      <p>
-        Paste gabc and watch it lay out as you type, in both the SVG and the canvas backend.
-      </p>
-    </li>
-  </ul>
+    <p class="note">
+      Both pages import <code>src/index.js</code> directly as native ES modules,
+      so what you are looking at is this repository's current source rather than
+      a built bundle.
+    </p>
 
-  <p class="note">
-    Both pages import <code>src/index.js</code> directly as native ES modules, so what you are
-    looking at is this repository's current source rather than a built bundle.
-  </p>
-
-  <p class="note">
-    Source, documentation and issues:
-    <a href="https://github.com/vagdur/exsurge">github.com/vagdur/exsurge</a>. This is a fork of
-    <a href="https://github.com/bbloomf/exsurge">bbloomf/exsurge</a>, itself a fork of
-    <a href="https://github.com/frmatthew/exsurge">frmatthew/exsurge</a> by Fr. Matthew Spencer, O.S.J.
-  </p>
-
-</body>
+    <p class="note">
+      Source, documentation and issues:
+      <a href="https://github.com/vagdur/exsurge">github.com/vagdur/exsurge</a>.
+      This is a fork of
+      <a href="https://github.com/bbloomf/exsurge">bbloomf/exsurge</a>, itself a
+      fork of
+      <a href="https://github.com/frmatthew/exsurge">frmatthew/exsurge</a> by
+      Fr. Matthew Spencer, O.S.J.
+    </p>
+  </body>
 </html>

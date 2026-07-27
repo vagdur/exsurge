@@ -23,7 +23,7 @@
 // THE SOFTWARE.
 //
 
-'use strict';
+"use strict";
 
 // import { Annotation, ChantContext } from './Exsurge.Drawing.js'
 // import { Gabc } from './Exsurge.Gabc.js'
@@ -87,22 +87,22 @@
 //   // }
 // }
 
-export * from './Exsurge.Core.js'
-export * from './Exsurge.Text.js'
-export * from './Exsurge.Glyphs.js'
-export * from './Exsurge.Drawing.js'
-export * from './Exsurge.Chant.js'
-export * from './Exsurge.Chant.ChantLine.js'
-export * from './Exsurge.Chant.Markings.js'
-export * from './Exsurge.Chant.Signs.js'
-export * from './Exsurge.Chant.Neumes.js'
-export * from './Exsurge.Gabc.js'
-export * from './Exsurge.Titles.js'
-export * from './greextraGlyphs.js'
+export * from "./Exsurge.Core.js";
+export * from "./Exsurge.Text.js";
+export * from "./Exsurge.Glyphs.js";
+export * from "./Exsurge.Drawing.js";
+export * from "./Exsurge.Chant.js";
+export * from "./Exsurge.Chant.ChantLine.js";
+export * from "./Exsurge.Chant.Markings.js";
+export * from "./Exsurge.Chant.Signs.js";
+export * from "./Exsurge.Chant.Neumes.js";
+export * from "./Exsurge.Gabc.js";
+export * from "./Exsurge.Titles.js";
+export * from "./greextraGlyphs.js";
 
 // playback comes last: these modules import from Exsurge.Chant.js, which is
 // already part of a cycle with Exsurge.Gabc.js, so they need it fully
 // evaluated before they run
-export * from './Exsurge.Playback.Timeline.js'
-export * from './Exsurge.Playback.Instruments.js'
-export * from './Exsurge.Playback.js'
+export * from "./Exsurge.Playback.Timeline.js";
+export * from "./Exsurge.Playback.Instruments.js";
+export * from "./Exsurge.Playback.js";

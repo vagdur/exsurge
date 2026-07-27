@@ -177,8 +177,7 @@ export function pitchToFrequency(pitch, tuning, transpose) {
  * @return {number} seconds
  */
 export function secondsPerPulse(speedPercent, basePulseSeconds) {
-  var base =
-    typeof basePulseSeconds === "number" ? basePulseSeconds : 0.4;
+  var base = typeof basePulseSeconds === "number" ? basePulseSeconds : 0.4;
   var percent = typeof speedPercent === "number" ? speedPercent : 100;
   if (percent <= 0) percent = 100;
   return (base * 100) / percent;
@@ -264,11 +263,7 @@ export function createPlaybackEvents(score, options) {
     (opts.durations || {}).beforeDivider || {}
   );
   var rests = Object.assign({}, PlaybackRests, opts.restWeights || {});
-  var velocities = Object.assign(
-    {},
-    PlaybackVelocities,
-    opts.velocities || {}
-  );
+  var velocities = Object.assign({}, PlaybackVelocities, opts.velocities || {});
   var classify = opts.classifyDivider || classifyDivider;
 
   var notations = (score && score.notations) || [];
@@ -349,7 +344,8 @@ export function createPlaybackEvents(score, options) {
     if (s.kind === "rest" && pulses <= 0) continue;
     if (pulses < 0) pulses = 0;
 
-    if (s.noteIndex !== null) eventIndexByNoteIndex[s.noteIndex] = events.length;
+    if (s.noteIndex !== null)
+      eventIndexByNoteIndex[s.noteIndex] = events.length;
 
     events.push({
       kind: s.kind,

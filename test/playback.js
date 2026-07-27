@@ -23,7 +23,8 @@
 // THE SOFTWARE.
 //
 
-var should = require('chai').should(), Exsurge = require('../dist/exsurge.min.js');
+var should = require("chai").should(),
+  Exsurge = require("../dist/exsurge.min.js");
 
 var MIDDLE_C = 261.6255653;
 
@@ -72,121 +73,142 @@ function scoreOf(notations) {
 }
 
 function pulsesOf(timeline) {
-  return timeline.events.map(function(e) {
+  return timeline.events.map(function (e) {
     return e.pulses;
   });
 }
 
-
-describe('Playback: loading', function() {
-
+describe("Playback: loading", function () {
   // If a playback module ever touches document, window or AudioContext at
   // module scope, requiring the bundle in node breaks -- and nothing else in
   // this suite would notice.
-  it('exposes the playback API without needing a browser', function() {
-    Exsurge.ChantPlayer.should.be.a('function');
-    Exsurge.createPlayableChant.should.be.a('function');
-    Exsurge.createPlaybackEvents.should.be.a('function');
-    Exsurge.PianoInstrument.should.be.a('function');
-    Exsurge.resolveInstrument.should.be.a('function');
-    Exsurge.PlaybackDefaults.should.be.an('object');
-    Exsurge.PlaybackDurations.should.be.an('object');
-    Exsurge.PlaybackRests.should.be.an('object');
-    Exsurge.PlaybackVelocities.should.be.an('object');
+  it("exposes the playback API without needing a browser", function () {
+    Exsurge.ChantPlayer.should.be.a("function");
+    Exsurge.createPlayableChant.should.be.a("function");
+    Exsurge.createPlaybackEvents.should.be.a("function");
+    Exsurge.PianoInstrument.should.be.a("function");
+    Exsurge.resolveInstrument.should.be.a("function");
+    Exsurge.PlaybackDefaults.should.be.an("object");
+    Exsurge.PlaybackDurations.should.be.an("object");
+    Exsurge.PlaybackRests.should.be.an("object");
+    Exsurge.PlaybackVelocities.should.be.an("object");
   });
-
 });
 
-
-describe('Playback: pitch and tempo', function() {
-
-  it('anchors tuning on the Do that the clef names', function() {
+describe("Playback: pitch and tempo", function () {
+  it("anchors tuning on the Do that the clef names", function () {
     Exsurge.DoReferenceInt.should.equal(24);
-    Exsurge.DoReferenceInt.should.equal(new Exsurge.Pitch(Exsurge.Step.Do, 2).toInt());
+    Exsurge.DoReferenceInt.should.equal(
+      new Exsurge.Pitch(Exsurge.Step.Do, 2).toInt()
+    );
 
     var doPitch = new Exsurge.Pitch(Exsurge.Step.Do, 2);
     Exsurge.pitchToFrequency(doPitch, MIDDLE_C).should.equal(MIDDLE_C);
   });
 
-  it('doubles frequency every octave', function() {
+  it("doubles frequency every octave", function () {
     var up = new Exsurge.Pitch(Exsurge.Step.Do, 3);
     var down = new Exsurge.Pitch(Exsurge.Step.Do, 1);
 
-    Exsurge.pitchToFrequency(up, MIDDLE_C).should.be.closeTo(MIDDLE_C * 2, 1e-9);
-    Exsurge.pitchToFrequency(down, MIDDLE_C).should.be.closeTo(MIDDLE_C / 2, 1e-9);
+    Exsurge.pitchToFrequency(up, MIDDLE_C).should.be.closeTo(
+      MIDDLE_C * 2,
+      1e-9
+    );
+    Exsurge.pitchToFrequency(down, MIDDLE_C).should.be.closeTo(
+      MIDDLE_C / 2,
+      1e-9
+    );
   });
 
-  it('treats Te as one semitone below Ti', function() {
-    var te = Exsurge.pitchIntToFrequency(new Exsurge.Pitch(Exsurge.Step.Te, 2).toInt(), MIDDLE_C);
-    var ti = Exsurge.pitchIntToFrequency(new Exsurge.Pitch(Exsurge.Step.Ti, 2).toInt(), MIDDLE_C);
+  it("treats Te as one semitone below Ti", function () {
+    var te = Exsurge.pitchIntToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.Te, 2).toInt(),
+      MIDDLE_C
+    );
+    var ti = Exsurge.pitchIntToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.Ti, 2).toInt(),
+      MIDDLE_C
+    );
 
     (ti / te).should.be.closeTo(Math.pow(2, 1 / 12), 1e-12);
   });
 
-  it('steps evenly across the unused gap at Step index 8', function() {
+  it("steps evenly across the unused gap at Step index 8", function () {
     // Step skips 8, but toInt() is a plain semitone count, so So(7) -> La(9)
     // must still come out as a whole tone rather than a jump
-    var so = Exsurge.pitchIntToFrequency(new Exsurge.Pitch(Exsurge.Step.So, 2).toInt(), MIDDLE_C);
-    var la = Exsurge.pitchIntToFrequency(new Exsurge.Pitch(Exsurge.Step.La, 2).toInt(), MIDDLE_C);
+    var so = Exsurge.pitchIntToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.So, 2).toInt(),
+      MIDDLE_C
+    );
+    var la = Exsurge.pitchIntToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.La, 2).toInt(),
+      MIDDLE_C
+    );
 
     (la / so).should.be.closeTo(Math.pow(2, 2 / 12), 1e-12);
   });
 
-  it('composes transpose with tuning', function() {
+  it("composes transpose with tuning", function () {
     var pitch = new Exsurge.Pitch(Exsurge.Step.Do, 2);
 
-    Exsurge.pitchToFrequency(pitch, MIDDLE_C, 12).should.be.closeTo(MIDDLE_C * 2, 1e-9);
-    Exsurge.pitchToFrequency(pitch, MIDDLE_C, -12).should.be.closeTo(MIDDLE_C / 2, 1e-9);
+    Exsurge.pitchToFrequency(pitch, MIDDLE_C, 12).should.be.closeTo(
+      MIDDLE_C * 2,
+      1e-9
+    );
+    Exsurge.pitchToFrequency(pitch, MIDDLE_C, -12).should.be.closeTo(
+      MIDDLE_C / 2,
+      1e-9
+    );
     Exsurge.pitchToFrequency(pitch, MIDDLE_C, 0).should.equal(MIDDLE_C);
   });
 
-  it('returns null for a note with no pitch', function() {
+  it("returns null for a note with no pitch", function () {
     should.equal(Exsurge.pitchToFrequency(null, MIDDLE_C), null);
   });
 
-  it('converts speed percentage to seconds per pulse', function() {
+  it("converts speed percentage to seconds per pulse", function () {
     Exsurge.secondsPerPulse(100).should.be.closeTo(0.4, 1e-12);
     Exsurge.secondsPerPulse(200).should.be.closeTo(0.2, 1e-12);
     Exsurge.secondsPerPulse(50).should.be.closeTo(0.8, 1e-12);
     Exsurge.secondsPerPulse(100, 0.5).should.be.closeTo(0.5, 1e-12);
   });
-
 });
 
-
-describe('Playback: divider classification', function() {
-
-  it('names each kind of bar line', function() {
-    Exsurge.classifyDivider(new Exsurge.Virgula()).should.equal('virgula');
-    Exsurge.classifyDivider(new Exsurge.QuarterBar()).should.equal('quarterBar');
-    Exsurge.classifyDivider(new Exsurge.HalfBar()).should.equal('halfBar');
-    Exsurge.classifyDivider(new Exsurge.FullBar()).should.equal('fullBar');
-    Exsurge.classifyDivider(new Exsurge.DoubleBar()).should.equal('doubleBar');
-    Exsurge.classifyDivider(new Exsurge.DominicanBar(3)).should.equal('dominicanBar');
+describe("Playback: divider classification", function () {
+  it("names each kind of bar line", function () {
+    Exsurge.classifyDivider(new Exsurge.Virgula()).should.equal("virgula");
+    Exsurge.classifyDivider(new Exsurge.QuarterBar()).should.equal(
+      "quarterBar"
+    );
+    Exsurge.classifyDivider(new Exsurge.HalfBar()).should.equal("halfBar");
+    Exsurge.classifyDivider(new Exsurge.FullBar()).should.equal("fullBar");
+    Exsurge.classifyDivider(new Exsurge.DoubleBar()).should.equal("doubleBar");
+    Exsurge.classifyDivider(new Exsurge.DominicanBar(3)).should.equal(
+      "dominicanBar"
+    );
   });
 
-  it('refuses to sound the editor insertion cursor', function() {
+  it("refuses to sound the editor insertion cursor", function () {
     should.equal(Exsurge.classifyDivider(new Exsurge.InsertionCursor()), null);
   });
 
-  it('gives an unrecognized divider the shortest breath', function() {
-    Exsurge.classifyDivider(new Exsurge.Divider()).should.equal('quarterBar');
+  it("gives an unrecognized divider the shortest breath", function () {
+    Exsurge.classifyDivider(new Exsurge.Divider()).should.equal("quarterBar");
   });
-
 });
 
-
-describe('Playback: event extraction', function() {
-
-  it('gives every plain note one pulse, and holds the last', function() {
-    var timeline = Exsurge.createPlaybackEvents(scoreOf([fakeNeume(plainNotes(4))]));
+describe("Playback: event extraction", function () {
+  it("gives every plain note one pulse, and holds the last", function () {
+    var timeline = Exsurge.createPlaybackEvents(
+      scoreOf([fakeNeume(plainNotes(4))])
+    );
 
     timeline.events.length.should.equal(4);
     pulsesOf(timeline).should.eql([1, 1, 1, 1.5]);
     timeline.totalPulses.should.equal(4.5);
   });
 
-  it('adds a pulse per mora dot', function() {
+  it("adds a pulse per mora dot", function () {
     var notes = plainNotes(3);
     notes[0].morae = [{}];
     notes[1].morae = [{}, {}];
@@ -197,7 +219,7 @@ describe('Playback: event extraction', function() {
     timeline.events[1].pulses.should.equal(3);
   });
 
-  it('lengthens an episema note by a nuance rather than a doubling', function() {
+  it("lengthens an episema note by a nuance rather than a doubling", function () {
     var notes = plainNotes(3);
     notes[0].episemata = [{}];
 
@@ -206,7 +228,7 @@ describe('Playback: event extraction', function() {
     timeline.events[0].pulses.should.be.closeTo(1.3, 1e-12);
   });
 
-  it('adds morae to an episema rather than multiplying by them', function() {
+  it("adds morae to an episema rather than multiplying by them", function () {
     var notes = plainNotes(3);
     notes[0].episemata = [{}];
     notes[0].morae = [{}];
@@ -217,7 +239,7 @@ describe('Playback: event extraction', function() {
     timeline.events[0].pulses.should.be.closeTo(2.3, 1e-12);
   });
 
-  it('accents on the ictus without lengthening it', function() {
+  it("accents on the ictus without lengthening it", function () {
     var notes = plainNotes(3);
     notes[0].ictus = {};
 
@@ -227,7 +249,7 @@ describe('Playback: event extraction', function() {
     timeline.events[0].velocity.should.be.above(timeline.events[1].velocity);
   });
 
-  it('lightens a quilisma and broadens the note before it', function() {
+  it("lightens a quilisma and broadens the note before it", function () {
     var notes = plainNotes(3);
     notes[1].shape = Exsurge.NoteShape.Quilisma;
 
@@ -237,9 +259,12 @@ describe('Playback: event extraction', function() {
     timeline.events[1].pulses.should.be.closeTo(0.9, 1e-12);
   });
 
-  it('does not let a quilisma reach back across a bar line', function() {
+  it("does not let a quilisma reach back across a bar line", function () {
     var before = [fakeNote(0, 17)];
-    var after = [fakeNote(1, 17, { shape: Exsurge.NoteShape.Quilisma }), fakeNote(2, 17)];
+    var after = [
+      fakeNote(1, 17, { shape: Exsurge.NoteShape.Quilisma }),
+      fakeNote(2, 17)
+    ];
 
     var timeline = Exsurge.createPlaybackEvents(
       scoreOf([fakeNeume(before), new Exsurge.HalfBar(), fakeNeume(after)])
@@ -249,7 +274,7 @@ describe('Playback: event extraction', function() {
     timeline.events[0].pulses.should.be.closeTo(1.25, 1e-12);
   });
 
-  it('clips liquescents and initio debilis', function() {
+  it("clips liquescents and initio debilis", function () {
     var notes = plainNotes(4);
     notes[0].liquescent = Exsurge.LiquescentType.SmallAscending;
     notes[1].liquescent = Exsurge.LiquescentType.LargeDescending;
@@ -262,20 +287,24 @@ describe('Playback: event extraction', function() {
     timeline.events[2].pulses.should.be.closeTo(0.6, 1e-12);
   });
 
-  it('rests for each bar line and lengthens the note before it', function() {
+  it("rests for each bar line and lengthens the note before it", function () {
     var timeline = Exsurge.createPlaybackEvents(
-      scoreOf([fakeNeume([fakeNote(0, 17)]), new Exsurge.HalfBar(), fakeNeume([fakeNote(1, 17)])])
+      scoreOf([
+        fakeNeume([fakeNote(0, 17)]),
+        new Exsurge.HalfBar(),
+        fakeNeume([fakeNote(1, 17)])
+      ])
     );
 
     timeline.events.length.should.equal(3);
     timeline.events[0].pulses.should.be.closeTo(1.25, 1e-12);
-    timeline.events[1].kind.should.equal('rest');
-    timeline.events[1].dividerKind.should.equal('halfBar');
+    timeline.events[1].kind.should.equal("rest");
+    timeline.events[1].dividerKind.should.equal("halfBar");
     timeline.events[1].pulses.should.equal(2);
     should.equal(timeline.events[1].noteIndex, null);
   });
 
-  it('scales the rest by the weight of the bar', function() {
+  it("scales the rest by the weight of the bar", function () {
     var kinds = [
       [new Exsurge.Virgula(), 0.5],
       [new Exsurge.QuarterBar(), 1],
@@ -286,39 +315,48 @@ describe('Playback: event extraction', function() {
 
     for (var i = 0; i < kinds.length; i++) {
       var timeline = Exsurge.createPlaybackEvents(
-        scoreOf([fakeNeume([fakeNote(0, 17)]), kinds[i][0], fakeNeume([fakeNote(1, 17)])])
+        scoreOf([
+          fakeNeume([fakeNote(0, 17)]),
+          kinds[i][0],
+          fakeNeume([fakeNote(1, 17)])
+        ])
       );
       timeline.events[1].pulses.should.equal(kinds[i][1]);
     }
   });
 
-  it('does not double-lengthen a final note that a bar already closed', function() {
+  it("does not double-lengthen a final note that a bar already closed", function () {
     var closed = Exsurge.createPlaybackEvents(
       scoreOf([fakeNeume([fakeNote(0, 17)]), new Exsurge.DoubleBar()])
     );
-    var open = Exsurge.createPlaybackEvents(scoreOf([fakeNeume([fakeNote(0, 17)])]));
+    var open = Exsurge.createPlaybackEvents(
+      scoreOf([fakeNeume([fakeNote(0, 17)])])
+    );
 
     closed.events[0].pulses.should.be.closeTo(1.5, 1e-12); // beforeDivider only
     open.events[0].pulses.should.be.closeTo(1.5, 1e-12); // finalNote only
   });
 
-  it('ignores everything that does not sound', function() {
+  it("ignores everything that does not sound", function () {
     var silent = [
       new Exsurge.InsertionCursor(),
       { hasNoWidth: true, isNeume: true, notes: [fakeNote(99, 17)] },
       { isClef: true },
       { isAccidental: true },
       new Exsurge.Custos(),
-      { /* TextOnly and ChantLineBreak look like this: no isNeume, no notes */ }
+      {/* TextOnly and ChantLineBreak look like this: no isNeume, no notes */}
     ];
 
     for (var i = 0; i < silent.length; i++) {
       var timeline = Exsurge.createPlaybackEvents(scoreOf([silent[i]]));
-      timeline.events.length.should.equal(0, 'entry ' + i + ' should be silent');
+      timeline.events.length.should.equal(
+        0,
+        "entry " + i + " should be silent"
+      );
     }
   });
 
-  it('keeps an unpitched note in the timeline but silent', function() {
+  it("keeps an unpitched note in the timeline but silent", function () {
     var notes = [fakeNote(0, 17), fakeNote(1, null), fakeNote(2, 17)];
     var timeline = Exsurge.createPlaybackEvents(scoreOf([fakeNeume(notes)]));
 
@@ -329,7 +367,7 @@ describe('Playback: event extraction', function() {
     timeline.eventIndexByNoteIndex[1].should.equal(1);
   });
 
-  it('produces a dense, monotonic timeline', function() {
+  it("produces a dense, monotonic timeline", function () {
     var timeline = Exsurge.createPlaybackEvents(
       scoreOf([
         fakeNeume(plainNotes(3)),
@@ -354,7 +392,7 @@ describe('Playback: event extraction', function() {
     }
   });
 
-  it('honours a partial override of the duration tables', function() {
+  it("honours a partial override of the duration tables", function () {
     var notes = plainNotes(2);
     notes[0].morae = [{}];
 
@@ -366,32 +404,35 @@ describe('Playback: event extraction', function() {
     timeline.events[0].pulses.should.equal(3);
     timeline.events[1].pulses.should.equal(1);
   });
-
 });
 
-
-describe('Playback: instruments', function() {
-
-  it('resolves the default piano', function() {
-    Exsurge.resolveInstrument().name.should.equal('piano');
-    Exsurge.resolveInstrument('piano').should.equal(Exsurge.Instruments.piano);
+describe("Playback: instruments", function () {
+  it("resolves the default piano", function () {
+    Exsurge.resolveInstrument().name.should.equal("piano");
+    Exsurge.resolveInstrument("piano").should.equal(Exsurge.Instruments.piano);
   });
 
-  it('accepts a duck typed instrument', function() {
-    var custom = { name: 'kazoo', createVoice: function() { return null; } };
+  it("accepts a duck typed instrument", function () {
+    var custom = {
+      name: "kazoo",
+      createVoice: function () {
+        return null;
+      }
+    };
     Exsurge.resolveInstrument(custom).should.equal(custom);
   });
 
-  it('rejects an unknown name and a malformed object', function() {
-    (function() { Exsurge.resolveInstrument('sackbut'); }).should.throw(/unknown instrument/);
-    (function() { Exsurge.resolveInstrument({ name: 'nope' }); }).should.throw(/createVoice/);
+  it("rejects an unknown name and a malformed object", function () {
+    (function () {
+      Exsurge.resolveInstrument("sackbut");
+    }).should.throw(/unknown instrument/);
+    (function () {
+      Exsurge.resolveInstrument({ name: "nope" });
+    }).should.throw(/createVoice/);
   });
-
 });
 
-
-describe('Gabc: staff position offsets and pitch', function() {
-
+describe("Gabc: staff position offsets and pitch", function () {
   // The gabc 0 and 9 modifiers nudge a note a third of a staff position for
   // engraving, and that nudge is folded into note.staffPosition. Pitch belongs
   // to the line or space the note really sits on, so it has to come back off
@@ -409,11 +450,15 @@ describe('Gabc: staff position offsets and pitch', function() {
 
   function pitchIntsOf(score) {
     return score.notes
-      .filter(function(n) { return n instanceof Exsurge.Note; })
-      .map(function(n) { return n.pitch.toInt(); });
+      .filter(function (n) {
+        return n instanceof Exsurge.Note;
+      })
+      .map(function (n) {
+        return n.pitch.toInt();
+      });
   }
 
-  it('recovers the integer staff position despite float drift', function() {
+  it("recovers the integer staff position despite float drift", function () {
     // g9 is the case that does not round trip exactly: 4 + 1/3 - 1/3 lands on
     // 3.9999999999999996
     var note = { staffPosition: 4 + 1 / 3, staffPositionOffset: 1 / 3 };
@@ -421,23 +466,23 @@ describe('Gabc: staff position offsets and pitch', function() {
     Exsurge.Gabc.getIntegerStaffPosition(note).should.equal(4);
   });
 
-  it('tolerates a note that has no offset at all', function() {
+  it("tolerates a note that has no offset at all", function () {
     Exsurge.Gabc.getIntegerStaffPosition({ staffPosition: 3 }).should.equal(3);
   });
 
-  it('gives every nudged note a real pitch when parsing', function() {
+  it("gives every nudged note a real pitch when parsing", function () {
     var pitches = pitchIntsOf(parse(SHIFTED).score);
 
     pitches.length.should.equal(8);
     for (var i = 0; i < pitches.length; i++)
-      isNaN(pitches[i]).should.equal(false, 'note ' + i + ' has a NaN pitch');
+      isNaN(pitches[i]).should.equal(false, "note " + i + " has a NaN pitch");
 
     // the nudge is purely visual, so a nudged note sounds exactly as its
     // unnudged neighbour on the same line would
     pitches[0].should.equal(pitches[7]); // both plain f
   });
 
-  it('gives the same pitches after an in-place source update', function() {
+  it("gives the same pitches after an in-place source update", function () {
     var fresh = pitchIntsOf(parse(SHIFTED).score);
 
     var edited = parse(SHIFTED);
@@ -451,17 +496,20 @@ describe('Gabc: staff position offsets and pitch', function() {
     pitchIntsOf(edited.score).should.eql(fresh);
   });
 
-  it('keeps nudged notes audible', function() {
+  it("keeps nudged notes audible", function () {
     var timeline = Exsurge.createPlaybackEvents(parse(SHIFTED).score);
 
-    var sounding = timeline.events.filter(function(e) {
-      return e.kind === 'note';
+    var sounding = timeline.events.filter(function (e) {
+      return e.kind === "note";
     });
     sounding.length.should.equal(8);
 
     for (var i = 0; i < sounding.length; i++) {
       var hz = Exsurge.pitchIntToFrequency(sounding[i].pitchInt, MIDDLE_C);
-      isNaN(hz).should.equal(false, 'note ' + i + ' would be scheduled at NaN Hz');
+      isNaN(hz).should.equal(
+        false,
+        "note " + i + " would be scheduled at NaN Hz"
+      );
       hz.should.be.above(0);
     }
   });
@@ -472,36 +520,34 @@ describe('Gabc: staff position offsets and pitch', function() {
   // path goes through getIntegerStaffPosition anyway, so that the invariant
   // 'ask a clef for a pitch using an integer' holds everywhere rather than
   // in two places out of three. This guards that.
-  it('gives an accidental a real pitch', function() {
-    ['(c4) a(f) b(gx) c(g) (::)', '(c4) a(f) b(gx9) c(g) (::)'].forEach(
-      function(src) {
-        var accidentals = parse(src).score.notations.filter(function(n) {
+  it("gives an accidental a real pitch", function () {
+    ["(c4) a(f) b(gx) c(g) (::)", "(c4) a(f) b(gx9) c(g) (::)"].forEach(
+      function (src) {
+        var accidentals = parse(src).score.notations.filter(function (n) {
           return n.isAccidental;
         });
 
         accidentals.length.should.be.above(0, src);
         accidentals[0].staffPosition.should.equal(
           Math.round(accidentals[0].staffPosition),
-          src + ' should reach the clef with a whole staff position'
+          src + " should reach the clef with a whole staff position"
         );
         isNaN(accidentals[0].pitch.toInt()).should.equal(false, src);
       }
     );
   });
-
 });
 
-
-describe('Playback: real gabc', function() {
-
+describe("Playback: real gabc", function () {
   var score = null;
 
-  before(function() {
+  before(function () {
     // ChantScore's constructor runs updateNotations, which is all the
     // extractor needs -- no layout, and therefore no text measurement
     try {
       var ctxt = new Exsurge.ChantContext();
-      var gabc = '(c4) Chris(ffg)tus(f.) *(,) fac(fg)tus(f) est(f) pro(f) no(gh)bis(f.) (::)';
+      var gabc =
+        "(c4) Chris(ffg)tus(f.) *(,) fac(fg)tus(f) est(f) pro(f) no(gh)bis(f.) (::)";
       var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
       score = new Exsurge.ChantScore(ctxt, mappings, false);
     } catch (e) {
@@ -509,7 +555,7 @@ describe('Playback: real gabc', function() {
     }
   });
 
-  it('extracts sounding notes from parsed gabc', function() {
+  it("extracts sounding notes from parsed gabc", function () {
     if (!score) this.skip();
 
     var timeline = Exsurge.createPlaybackEvents(score);
@@ -521,16 +567,16 @@ describe('Playback: real gabc', function() {
     // no clef, divider or custos leaked in as a pitched note
     for (var i = 0; i < timeline.events.length; i++) {
       var event = timeline.events[i];
-      if (event.kind === 'note') should.exist(event.note);
+      if (event.kind === "note") should.exist(event.note);
       else should.equal(event.note, null);
     }
   });
 
-  it('reads pitches straight off the parsed notes', function() {
+  it("reads pitches straight off the parsed notes", function () {
     if (!score) this.skip();
 
     var timeline = Exsurge.createPlaybackEvents(score);
-    var pitched = timeline.events.filter(function(e) {
+    var pitched = timeline.events.filter(function (e) {
       return e.pitchInt !== null;
     });
 
@@ -544,11 +590,11 @@ describe('Playback: real gabc', function() {
     }
   });
 
-  it('doubles the mora dotted notes that gabc marked', function() {
+  it("doubles the mora dotted notes that gabc marked", function () {
     if (!score) this.skip();
 
     var timeline = Exsurge.createPlaybackEvents(score);
-    var dotted = timeline.events.filter(function(e) {
+    var dotted = timeline.events.filter(function (e) {
       return e.note && e.note.morae && e.note.morae.length > 0;
     });
 
@@ -556,5 +602,4 @@ describe('Playback: real gabc', function() {
     for (var i = 0; i < dotted.length; i++)
       dotted[i].pulses.should.be.at.least(2);
   });
-
 });

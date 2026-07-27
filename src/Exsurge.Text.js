@@ -75,7 +75,8 @@ export class Latin extends Language {
       "éu",
       "úi"
     ]);
-    this.regexVowel = /(i|(?:[qg]|^)u)?([eé][iu]|[uú]i|[ao][eé]|[aá]u|[aeiouáéíóúäëïöüāēīōūăĕĭŏŭåe̊o̊ůæœǽyýÿ])/gi;
+    this.regexVowel =
+      /(i|(?:[qg]|^)u)?([eé][iu]|[uú]i|[ao][eé]|[aá]u|[aeiouáéíóúäëïöüāēīōūăĕĭŏŭåe̊o̊ůæœǽyýÿ])/gi;
 
     // some words that are simply exceptions to standard syllabification rules!
     var wordExceptions = new Object();
@@ -239,7 +240,7 @@ export class Latin extends Language {
     var c, lookahead, haveLookahead;
 
     // a helper function to create syllables
-    var makeSyllable = function(length) {
+    var makeSyllable = function (length) {
       if (haveCompleteSyllable) {
         syllables.push(word.substr(startSyllable, length));
         startSyllable += length;
@@ -335,8 +336,12 @@ export class Latin extends Language {
     this.regexVowel.lastIndex = 0;
     let stringSlice = s.slice(startIndex);
     var match = this.regexVowel.exec(stringSlice);
-    var isIgnoredMatch = ({ index, endIndex }) => (index <= match.index && endIndex > match.index) || (index < this.regexVowel.lastIndex && endIndex >= this.regexVowel.lastIndex);
-    let inIgnore = match && ignore && ignore.length && ignore.find(isIgnoredMatch);
+    var isIgnoredMatch = ({ index, endIndex }) =>
+      (index <= match.index && endIndex > match.index) ||
+      (index < this.regexVowel.lastIndex &&
+        endIndex >= this.regexVowel.lastIndex);
+    let inIgnore =
+      match && ignore && ignore.length && ignore.find(isIgnoredMatch);
     while (inIgnore) {
       match = this.regexVowel.exec(stringSlice);
       inIgnore = match && ignore.find(isIgnoredMatch);

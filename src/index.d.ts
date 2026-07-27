@@ -5,15 +5,24 @@ declare module "exsurge" {
   type Note = unknown;
   type Clef = unknown;
   type DropCap = unknown;
-  type Annotation = { recalculateMetrics: (ctxt: ChantContext) => void; };
+  type Annotation = { recalculateMetrics: (ctxt: ChantContext) => void };
   type Rect = unknown;
   type ExsurgeLanguage = unknown;
   type ChantNotationElement = unknown;
 
   /** Steps are semitone offsets within an octave. Index 8 is intentionally unused. */
   export const Step: {
-    Do: 0; Du: 1; Re: 2; Me: 3; Mi: 4; Fa: 5;
-    Fu: 6; So: 7; La: 9; Te: 10; Ti: 11;
+    Do: 0;
+    Du: 1;
+    Re: 2;
+    Me: 3;
+    Mi: 4;
+    Fa: 5;
+    Fu: 6;
+    So: 7;
+    La: 9;
+    Te: 10;
+    Ti: 11;
   };
 
   export class Pitch {
@@ -29,7 +38,6 @@ declare module "exsurge" {
     static staffOffsetToStep(offset: number): number;
   }
 
-
   export interface Titles {
     score: ChantScore;
     setSupertitle(ctxt: ChantContext, supertitle: string): Supertitle;
@@ -37,7 +45,7 @@ declare module "exsurge" {
     setSubtitle(ctxt: ChantContext, subtitle: string): Subtitle;
     setTextLeft(ctxt: ChantContext, textLeft: string): TextLeft;
     setTextRight(ctxt: ChantContext, textRight: string): TextRight;
-  };
+  }
 
   export interface Language {
     syllabify(text: string): Array<Array<string>>;
@@ -53,10 +61,10 @@ declare module "exsurge" {
     english: English;
     latin: Language;
   };
-  
+
   export interface TextSpan {
     text: string;
-    properties: { 
+    properties: {
       newLine?: number | boolean;
       "font-weight"?: string;
       "font-style"?: string;
@@ -71,7 +79,9 @@ declare module "exsurge" {
     clone: () => TextSpan;
   }
 
-  export type AnnotationSpansToTextLeftMapper = (spans: TextSpan[]) => TextSpan[];
+  export type AnnotationSpansToTextLeftMapper = (
+    spans: TextSpan[]
+  ) => TextSpan[];
   interface TextType {
     display: string;
 
@@ -301,7 +311,7 @@ declare module "exsurge" {
       font: string,
       size: number,
       baseStyle?: any,
-      fontDictionary?: { [key: string]: import('opentype.js').Font }
+      fontDictionary?: { [key: string]: import("opentype.js").Font }
     ): void;
     setRubricColor(color: string): void;
     setMergeAnnotationWithTextLeft(merge: boolean): void;
@@ -333,7 +343,6 @@ declare module "exsurge" {
   export interface Selection {
     element?: ElementSelection;
   }
-  
 
   export const greextraGlyphs: {
     MedicaeaFlat: string;
@@ -416,7 +425,7 @@ declare module "exsurge" {
     ABarSmallSlant: string;
     RBarSmallSlant: string;
     VBarSmallSlant: string;
-  }
+  };
 
   //
   // Playback

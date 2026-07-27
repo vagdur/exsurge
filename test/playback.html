@@ -1,231 +1,300 @@
 <!doctype html>
 
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>exsurge Playback Test Page</title>
-  <meta name="description" content="exsurge playback test page">
-  <link href='https://fonts.googleapis.com/css?family=Crimson+Text:400,700,700italic,400italic' rel='stylesheet' type='text/css'>
-  <style>
-    body { font-family: sans-serif; margin: 1rem 2rem 4rem; }
-    .controls { display: flex; flex-wrap: wrap; gap: 1.25rem; align-items: flex-end;
-                margin: 1rem 0; padding: .75rem 1rem; background: #f4f4f4; border-radius: 6px; }
-    .controls label { display: block; font-size: .8rem; color: #555; margin-bottom: .2rem; }
-    .controls input[type=number] { width: 6rem; }
-    .controls .readout { font-variant-numeric: tabular-nums; }
-    .hint { color: #666; font-style: italic; }
-    button { cursor: pointer; }
-  </style>
-</head>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>exsurge Playback Test Page</title>
+    <meta name="description" content="exsurge playback test page" />
+    <link
+      href="https://fonts.googleapis.com/css?family=Crimson+Text:400,700,700italic,400italic"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 1rem 2rem 4rem;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+        align-items: flex-end;
+        margin: 1rem 0;
+        padding: 0.75rem 1rem;
+        background: #f4f4f4;
+        border-radius: 6px;
+      }
+      .controls label {
+        display: block;
+        font-size: 0.8rem;
+        color: #555;
+        margin-bottom: 0.2rem;
+      }
+      .controls input[type="number"] {
+        width: 6rem;
+      }
+      .controls .readout {
+        font-variant-numeric: tabular-nums;
+      }
+      .hint {
+        color: #666;
+        font-style: italic;
+      }
+      button {
+        cursor: pointer;
+      }
+    </style>
+  </head>
 
-<body>
+  <body>
+    <h1>exsurge playback</h1>
 
-  <h1>exsurge playback</h1>
+    <p class="hint">
+      Click any note to start playing from there. Click again anywhere on the
+      score to stop. The player has no controls of its own &mdash; everything
+      below is host code calling
+      <code>player.setSpeed()</code> and friends.
+    </p>
 
-  <p class="hint">
-    Click any note to start playing from there. Click again anywhere on the score to stop.
-    The player has no controls of its own &mdash; everything below is host code calling
-    <code>player.setSpeed()</code> and friends.
-  </p>
-
-  <label for="gabcSource">GABC source:</label>
-  <textarea rows="10" cols="80" style="max-width: 100%; box-sizing: border-box; width: 100%;" id="gabcSource">
+    <label for="gabcSource">GABC source:</label>
+    <textarea
+      rows="10"
+      cols="80"
+      style="max-width: 100%; box-sizing: border-box; width: 100%"
+      id="gabcSource"
+    >
 (c4) CHris(ffg)tus(f.) *(,) fac(fg)tus(f) est(f') pro(f) no(ghF'ED.g_e/fg)bis(f.) (;) o(f)bé(hf/gh!jj/kjk)di(jij)ens(h_g) (,) us(h!jjh)que(f.) ad(ixfiH'Gh) mor(fgf___)tem,(f.) (:) mor(ixf!hhi)tem(g) au(ixgjj//)tem(j.h!iw!jvIG'hw!ivHG) cru(fv.ff)cis.(f_c) (,) (fg!hvGF.e!g'h//fhg/hggf.) V/.(z0::c3)  Prop(d)ter(d) quod(d) et(fe~) De(eh)us(h.) (,) e(h)xal(h)tá(h)vit(h) il(h)lum,(ihhe.//hih___/ihhe.) (,) (hi!kv//lvKI'jvHF.) (,) (h_g/ijh'___ jvIH'jvIH'//hvGF.) (:) et(f) de(f!h'i)dit(i) il(i)li(ih/jki/hhf.) (,) no(hf/hhh)men,(h.f!gwh!iv.hi/jhh/iih.) (;) quod(d) est(d) su(d)per(d) o(dfE'D)mne(ef) *() no(fhG'Fhhh)men.(hhf.) (,) (gxg_fgvED.fgED.fehv.hhhff//dfe/feed.) (::)
 </textarea>
-  <p><button id="rebuild">Re-parse gabc</button></p>
+    <p><button id="rebuild">Re-parse gabc</button></p>
 
-  <div class="controls">
-    <div>
-      <label for="speed">Speed <span id="speedOut" class="readout">100</span>%</label>
-      <input type="range" id="speed" min="25" max="250" step="5" value="100">
+    <div class="controls">
+      <div>
+        <label for="speed"
+          >Speed <span id="speedOut" class="readout">100</span>%</label
+        >
+        <input
+          type="range"
+          id="speed"
+          min="25"
+          max="250"
+          step="5"
+          value="100"
+        />
+      </div>
+      <div>
+        <label for="tuning"
+          >Tuning: C = <span id="tuningOut" class="readout"></span> Hz</label
+        >
+        <input type="number" id="tuning" step="0.1" value="261.6" />
+      </div>
+      <div>
+        <label>Historical pitch</label>
+        <button data-a="440">A=440</button>
+        <button data-a="415">A=415</button>
+        <button data-a="392">A=392</button>
+      </div>
+      <div>
+        <label for="transpose">Transpose (semitones)</label>
+        <input
+          type="number"
+          id="transpose"
+          min="-24"
+          max="24"
+          step="1"
+          value="0"
+        />
+      </div>
+      <div>
+        <label for="instrument">Instrument</label>
+        <select id="instrument"></select>
+      </div>
+      <div>
+        <label for="volume">Volume</label>
+        <input type="range" id="volume" min="0" max="1" step="0.05" value="1" />
+      </div>
+      <div>
+        <label>Transport</label>
+        <button id="playFromStart">Play from start</button>
+        <button id="stop">Stop</button>
+      </div>
+      <div>
+        <label>Now playing</label>
+        <span id="nowPlaying" class="readout">&mdash;</span>
+      </div>
     </div>
-    <div>
-      <label for="tuning">Tuning: C = <span id="tuningOut" class="readout"></span> Hz</label>
-      <input type="number" id="tuning" step="0.1" value="261.6">
-    </div>
-    <div>
-      <label>Historical pitch</label>
-      <button data-a="440">A=440</button>
-      <button data-a="415">A=415</button>
-      <button data-a="392">A=392</button>
-    </div>
-    <div>
-      <label for="transpose">Transpose (semitones)</label>
-      <input type="number" id="transpose" min="-24" max="24" step="1" value="0">
-    </div>
-    <div>
-      <label for="instrument">Instrument</label>
-      <select id="instrument"></select>
-    </div>
-    <div>
-      <label for="volume">Volume</label>
-      <input type="range" id="volume" min="0" max="1" step="0.05" value="1">
-    </div>
-    <div>
-      <label>Transport</label>
-      <button id="playFromStart">Play from start</button>
-      <button id="stop">Stop</button>
-    </div>
-    <div>
-      <label>Now playing</label>
-      <span id="nowPlaying" class="readout">&mdash;</span>
-    </div>
-  </div>
 
-  <div id="chant-container"></div>
+    <div id="chant-container"></div>
 
-  <hr style="margin-top: 3rem;">
+    <hr style="margin-top: 3rem" />
 
-  <h2>A second score on the same page</h2>
-  <p class="hint">
-    Its own player, its own <code>ctxt.noteIdPrefix</code> and its own highlight colour &mdash;
-    proof that two players do not collide over element ids or injected css.
-  </p>
-  <div id="chant-container-2"></div>
+    <h2>A second score on the same page</h2>
+    <p class="hint">
+      Its own player, its own <code>ctxt.noteIdPrefix</code> and its own
+      highlight colour &mdash; proof that two players do not collide over
+      element ids or injected css.
+    </p>
+    <div id="chant-container-2"></div>
 
-  <!-- Drawing.js has a commented-out require() for the glyph font; this keeps a stray
+    <!-- Drawing.js has a commented-out require() for the glyph font; this keeps a stray
        one from blowing up the native module loader, exactly as in index.html -->
-  <script type="text/javascript">window.require = s => s.replace(/^url\?[^!]*\!/,'');</script>
+    <script type="text/javascript">
+      window.require = (s) => s.replace(/^url\?[^!]*\!/, "");
+    </script>
 
-  <script type="module">
-    import * as exsurge from '../src/index.js';
-    window.exsurge = exsurge;
+    <script type="module">
+      import * as exsurge from "../src/index.js";
+      window.exsurge = exsurge;
 
-    const SECOND_GABC = '(c3) Ju(e)bi(f)lá(h)te(h) De(hi)o,(h.) (;) o(h)mnis(g) ter(fe~)ra.(e.) (::)';
+      const SECOND_GABC =
+        "(c3) Ju(e)bi(f)lá(h)te(h) De(hi)o,(h.) (;) o(h)mnis(g) ter(fe~)ra.(e.) (::)";
 
-    function makeContext(noteIdPrefix) {
-      const ctxt = new exsurge.ChantContext();
-      ctxt.setFont("'Crimson Text', serif", 19.2);
-      ctxt.dropCapTextFont = ctxt.lyricTextFont;
-      ctxt.annotationTextFont = ctxt.lyricTextFont;
-      ctxt.textMeasuringStrategy = exsurge.TextMeasuringStrategy.Canvas;
-      ctxt.minLyricWordSpacing = ctxt.hyphenWidth * 0.7;
-      ctxt.noteIdPrefix = noteIdPrefix;
-      return ctxt;
-    }
+      function makeContext(noteIdPrefix) {
+        const ctxt = new exsurge.ChantContext();
+        ctxt.setFont("'Crimson Text', serif", 19.2);
+        ctxt.dropCapTextFont = ctxt.lyricTextFont;
+        ctxt.annotationTextFont = ctxt.lyricTextFont;
+        ctxt.textMeasuringStrategy = exsurge.TextMeasuringStrategy.Canvas;
+        ctxt.minLyricWordSpacing = ctxt.hyphenWidth * 0.7;
+        ctxt.noteIdPrefix = noteIdPrefix;
+        return ctxt;
+      }
 
-    //
-    // the main score
-    //
+      //
+      // the main score
+      //
 
-    const gabcSource = document.getElementById('gabcSource');
-    const container = document.getElementById('chant-container');
-    const nowPlaying = document.getElementById('nowPlaying');
+      const gabcSource = document.getElementById("gabcSource");
+      const container = document.getElementById("chant-container");
+      const nowPlaying = document.getElementById("nowPlaying");
 
-    const ui = {
-      speed: document.getElementById('speed'),
-      speedOut: document.getElementById('speedOut'),
-      tuning: document.getElementById('tuning'),
-      tuningOut: document.getElementById('tuningOut'),
-      transpose: document.getElementById('transpose'),
-      instrument: document.getElementById('instrument'),
-      volume: document.getElementById('volume')
-    };
-
-    // Middle C from A=440 in equal temperament. The tuning option is the
-    // frequency of Do, which under a do-clef is the note on the clef line.
-    const cFromA = a => a * Math.pow(2, -9 / 12);
-
-    let player = null;
-
-    function currentOptions() {
-      return {
-        speed: Number(ui.speed.value),
-        tuning: Number(ui.tuning.value),
-        transpose: Number(ui.transpose.value),
-        instrument: ui.instrument.value || 'piano',
-        volume: Number(ui.volume.value),
-        highlightColor: '#cc0000',
-        onNoteChange(noteIndex) {
-          nowPlaying.textContent =
-            noteIndex === null ? '—' : (noteIndex + 1) + ' / ' + player.noteCount;
-        },
-        onStop(_p, reason) {
-          nowPlaying.textContent = '— (' + reason + ')';
-        },
-        onError(err) {
-          console.error(err);
-          nowPlaying.textContent = 'error: ' + err.message;
-        }
+      const ui = {
+        speed: document.getElementById("speed"),
+        speedOut: document.getElementById("speedOut"),
+        tuning: document.getElementById("tuning"),
+        tuningOut: document.getElementById("tuningOut"),
+        transpose: document.getElementById("transpose"),
+        instrument: document.getElementById("instrument"),
+        volume: document.getElementById("volume")
       };
-    }
 
-    function build() {
-      if (player) player.destroy();
+      // Middle C from A=440 in equal temperament. The tuning option is the
+      // frequency of Do, which under a do-clef is the note on the clef line.
+      const cFromA = (a) => a * Math.pow(2, -9 / 12);
+
+      let player = null;
+
+      function currentOptions() {
+        return {
+          speed: Number(ui.speed.value),
+          tuning: Number(ui.tuning.value),
+          transpose: Number(ui.transpose.value),
+          instrument: ui.instrument.value || "piano",
+          volume: Number(ui.volume.value),
+          highlightColor: "#cc0000",
+          onNoteChange(noteIndex) {
+            nowPlaying.textContent =
+              noteIndex === null
+                ? "—"
+                : noteIndex + 1 + " / " + player.noteCount;
+          },
+          onStop(_p, reason) {
+            nowPlaying.textContent = "— (" + reason + ")";
+          },
+          onError(err) {
+            console.error(err);
+            nowPlaying.textContent = "error: " + err.message;
+          }
+        };
+      }
+
+      function build() {
+        if (player) player.destroy();
+
+        exsurge.createPlayableChant(
+          makeContext("note-"),
+          gabcSource.value,
+          container,
+          currentOptions(),
+          (p) => {
+            player = window.player = p;
+            console.log(
+              "main score:",
+              p.noteCount,
+              "notes,",
+              p.timeline.totalPulses.toFixed(1),
+              "pulses"
+            );
+          }
+        );
+      }
+
+      // populate the instrument list from the registry, so a newly registered
+      // instrument shows up here without editing this page
+      Object.keys(exsurge.Instruments).forEach((name) => {
+        const option = document.createElement("option");
+        option.value = option.textContent = name;
+        ui.instrument.appendChild(option);
+      });
+
+      ui.tuningOut.textContent = ui.tuning.value;
+
+      ui.speed.oninput = () => {
+        ui.speedOut.textContent = ui.speed.value;
+        if (player) player.setSpeed(Number(ui.speed.value));
+      };
+      ui.tuning.oninput = () => {
+        ui.tuningOut.textContent = ui.tuning.value;
+        if (player) player.setTuning(Number(ui.tuning.value));
+      };
+      ui.transpose.oninput = () =>
+        player && player.setTranspose(Number(ui.transpose.value));
+      ui.instrument.onchange = () =>
+        player && player.setInstrument(ui.instrument.value);
+      ui.volume.oninput = () =>
+        player && player.setVolume(Number(ui.volume.value));
+
+      document.querySelectorAll("button[data-a]").forEach((button) => {
+        button.onclick = () => {
+          const hz = cFromA(Number(button.dataset.a));
+          ui.tuning.value = hz.toFixed(1);
+          ui.tuningOut.textContent = ui.tuning.value;
+          if (player) player.setTuning(hz);
+        };
+      });
+
+      // driving playback from a host button rather than from a click on the
+      // score still counts as a user gesture, so the AudioContext is allowed to
+      // start -- but unlock() makes that explicit and works on Safari too
+      document.getElementById("playFromStart").onclick = () => {
+        if (!player) return;
+        player.unlock();
+        player.play(0);
+      };
+      document.getElementById("stop").onclick = () => player && player.stop();
+      document.getElementById("rebuild").onclick = build;
+
+      build();
+
+      //
+      // the second score, with its own everything
+      //
 
       exsurge.createPlayableChant(
-        makeContext('note-'),
-        gabcSource.value,
-        container,
-        currentOptions(),
-        p => {
-          player = window.player = p;
-          console.log('main score:', p.noteCount, 'notes,', p.timeline.totalPulses.toFixed(1), 'pulses');
+        makeContext("second-note-"),
+        SECOND_GABC,
+        document.getElementById("chant-container-2"),
+        {
+          useDropCap: false,
+          speed: 130,
+          highlightColor: "#1565c0",
+          highlightClass: "sounding"
+        },
+        (p) => {
+          window.player2 = p;
         }
       );
-    }
-
-    // populate the instrument list from the registry, so a newly registered
-    // instrument shows up here without editing this page
-    Object.keys(exsurge.Instruments).forEach(name => {
-      const option = document.createElement('option');
-      option.value = option.textContent = name;
-      ui.instrument.appendChild(option);
-    });
-
-    ui.tuningOut.textContent = ui.tuning.value;
-
-    ui.speed.oninput = () => {
-      ui.speedOut.textContent = ui.speed.value;
-      if (player) player.setSpeed(Number(ui.speed.value));
-    };
-    ui.tuning.oninput = () => {
-      ui.tuningOut.textContent = ui.tuning.value;
-      if (player) player.setTuning(Number(ui.tuning.value));
-    };
-    ui.transpose.oninput = () => player && player.setTranspose(Number(ui.transpose.value));
-    ui.instrument.onchange = () => player && player.setInstrument(ui.instrument.value);
-    ui.volume.oninput = () => player && player.setVolume(Number(ui.volume.value));
-
-    document.querySelectorAll('button[data-a]').forEach(button => {
-      button.onclick = () => {
-        const hz = cFromA(Number(button.dataset.a));
-        ui.tuning.value = hz.toFixed(1);
-        ui.tuningOut.textContent = ui.tuning.value;
-        if (player) player.setTuning(hz);
-      };
-    });
-
-    // driving playback from a host button rather than from a click on the
-    // score still counts as a user gesture, so the AudioContext is allowed to
-    // start -- but unlock() makes that explicit and works on Safari too
-    document.getElementById('playFromStart').onclick = () => {
-      if (!player) return;
-      player.unlock();
-      player.play(0);
-    };
-    document.getElementById('stop').onclick = () => player && player.stop();
-    document.getElementById('rebuild').onclick = build;
-
-    build();
-
-    //
-    // the second score, with its own everything
-    //
-
-    exsurge.createPlayableChant(
-      makeContext('second-note-'),
-      SECOND_GABC,
-      document.getElementById('chant-container-2'),
-      {
-        useDropCap: false,
-        speed: 130,
-        highlightColor: '#1565c0',
-        highlightClass: 'sounding'
-      },
-      p => { window.player2 = p; }
-    );
-  </script>
-</body>
+    </script>
+  </body>
 </html>
