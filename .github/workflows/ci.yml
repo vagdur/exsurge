@@ -65,7 +65,7 @@ jobs:
           npm install "$tarball" >/dev/null
           node -e '
             const e = require("@vagdur/exsurge");
-            if (Object.keys(e).length !== 135) throw new Error("CJS: wrong export count");
+            if (Object.keys(e).length !== 136) throw new Error("CJS: wrong export count");
             if (typeof e.ChantContext !== "function") throw new Error("CJS: no ChantContext");
           '
           node --input-type=module -e '
