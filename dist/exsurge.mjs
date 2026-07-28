@@ -453,22 +453,14 @@ class Latin extends Language {
       "éu",
       "úi"
     ]);
-    // a ring-marked vowel and leaves the ring outside the segment, while the
-    // "e̊" and "o̊" below are each two code points, a base vowel plus
-    // U+030A COMBINING RING ABOVE, so inside the character class they
-    // decompose into the separate members e, o and U+030A rather than matching
-    // as units. findVowelSegment therefore reports a length of 1 for a
-    // ring-marked vowel and leaves the ring outside the segment, while the
-    // precomposed "å" beside them matches correctly. This is a real bug.
-    //
-    // Not fixed here: the repair is to lift the multi-code-point vowels out
-    // into the alternation ahead of the class, which changes syllabification
-    // output and wants its own change with test coverage rather than riding
-    // along with a lint cleanup.
-    /* eslint-disable no-misleading-character-class */
+    // "e̊" and "o̊" are each two code points, a base vowel plus U+030A
+    // COMBINING RING ABOVE, so they cannot live in the character class below:
+    // there they would decompose into the separate members e, o and U+030A and
+    // never match as units. They lead the alternation instead, so that they are
+    // tried before the single-character class can consume the bare vowel and
+    // leave the ring outside the segment.
     this.regexVowel =
-      /(i|(?:[qg]|^)u)?([eé][iu]|[uú]i|[ao][eé]|[aá]u|[aeiouáéíóúäëïöüāēīōūăĕĭŏŭåe̊o̊ůæœǽyýÿ])/gi;
-    /* eslint-enable no-misleading-character-class */
+      /(i|(?:[qg]|^)u)?(e̊|o̊|[eé][iu]|[uú]i|[ao][eé]|[aá]u|[aeiouáéíóúäëïöüāēīōūăĕĭŏŭåůæœǽyýÿ])/gi;
 
     // some words that are simply exceptions to standard syllabification rules!
     var wordExceptions = new Object();
@@ -722,6 +714,7 @@ class Latin extends Language {
   /**
    * @param {String} s the string to search
    * @param {Number} startIndex The index at which to start searching for a vowel in the string
+   * @param {Array<{index: Number, endIndex: Number}>} [ignore] ranges, relative to startIndex, that a match may not overlap
    * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
    */
   findVowelSegment(s, startIndex, ignore) {
