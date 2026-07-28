@@ -46,7 +46,7 @@ npm install @vagdur/exsurge
 
 Note the scope. The unscoped `exsurge` on npm is the abandoned 2016 package and is not this code.
 
-Installing from git also works and gives you the same files, since `dist/` is committed:
+Installing from git also works and gives you the same files. `dist/` is not committed, but npm runs the `prepare` script for a git dependency, so the bundle is built during install:
 
 ```
 npm install github:vagdur/exsurge      # this fork
@@ -217,7 +217,11 @@ npm run typecheck    # tsc over src/ and over the declarations
 
 The toolchain is Rollup, ESLint 10 (flat config), Prettier and TypeScript in `checkJs` mode. There is no transpilation step: `src/` is bundled as authored.
 
-`npm run build` writes three files. `dist/exsurge.min.js` (UMD, minified) and `dist/exsurge.mjs` (ES modules) are **committed**, for two reasons and only two: `npm install github:vagdur/exsurge` has no build step, and downstream consumers vendor `dist/exsurge.min.js` straight out of the tree. The Pages demo is *not* one of them — `test/index.html` and `test/playback.html` import `src/index.js` directly, and the sole reference to `dist/` in any page is a commented-out `<script>` tag. `dist/exsurge.js` is the unminified UMD build and is gitignored. If you change anything in `src/`, rebuild and commit `dist/` in the same commit — CI checks that the committed bundle matches a fresh build.
+`npm run build` writes `dist/exsurge.min.js` (UMD, minified), `dist/exsurge.mjs` (ES modules) and `dist/exsurge.js` (unminified UMD, for debugging).
+
+**`dist/` is not tracked in git.** It used to be, and the whole directory is now gitignored — you never need to rebuild-and-commit alongside a `src/` change. A `prepare` script covers every case that previously required it: npm runs `prepare` on `npm install`, on installing this repo as a git dependency, and before `npm pack`/`npm publish`. Committing a 200 KB single-line minified bundle bought nothing that `prepare` does not, and cost a guaranteed merge conflict on any two branches that both touched `src/` — unresolvable by hand, since the only sane resolution is to discard both sides and rebuild.
+
+If you need a prebuilt bundle without installing from npm — vendoring it into a page, say — take it from a [GitHub release](https://github.com/vagdur/exsurge/releases) rather than from the tree. That gives a stable URL pinned to a version, instead of one that moves under you whenever `master` does.
 
 One constraint the build enforces deliberately: `rollup.config.mjs` has **no** `@rollup/plugin-node-resolve`, so every relative import in `src/` must keep its explicit `.js` extension. That is what the browser sandboxes below depend on, and leaving the plugin out turns a missing extension into a build failure rather than a demo that breaks after deploy.
 
@@ -232,7 +236,7 @@ npm run test:watch
 
 Vitest specs live in `test/`, named `*.test.js`. They import `../src/index.js` directly, so a source change is visible without rebuilding.
 
-The exception is `test/dist.test.js`, which loads the committed `dist/exsurge.min.js` through `createRequire` on purpose. It is the tripwire for any module-scope DOM access — if some module ever touches `document`, `window` or `AudioContext` while being loaded, requiring the bundle in a DOM-free node process breaks and nothing else in the suite would notice. Vitest runs with `environment: "node"` for the same reason; switching it to jsdom would silently disarm that.
+The exception is `test/dist.test.js`, which loads the built `dist/exsurge.min.js` through `createRequire` on purpose. It needs `dist/` to exist, which `prepare` guarantees after any `npm install` or `npm ci`; run `npm run build` first if you have cleaned the directory by hand. It is the tripwire for any module-scope DOM access — if some module ever touches `document`, `window` or `AudioContext` while being loaded, requiring the bundle in a DOM-free node process breaks and nothing else in the suite would notice. Vitest runs with `environment: "node"` for the same reason; switching it to jsdom would silently disarm that.
 
 To run a subset:
 
@@ -254,7 +258,15 @@ Because those pages need nothing but a static server, GitHub Pages serves them a
 
 ### Releasing
 
-`npm version <patch|minor|major>` builds, regenerates `CHANGELOG.md`, commits `dist/`, and pushes with tags. The changelog is generated from commit messages using the Angular convention, so commits should be written as `feat:`, `fix:`, and so on.
+`npm version <patch|minor|major>` validates, regenerates `CHANGELOG.md`, and pushes with tags. The changelog is generated from commit messages using the Angular convention, so commits should be written as `feat:`, `fix:`, and so on.
+
+The release commit no longer carries a rebuilt bundle, which removes a trap worth knowing about if you ever reintroduce one: the rollup banner interpolates `pkg.version`, and `preversion` runs *before* npm rewrites `package.json`. A build in that hook is stamped with the outgoing version.
+
+To attach bundles to the GitHub release, for anyone vendoring rather than installing:
+
+```
+npm run build && gh release create v1.26.0 dist/exsurge.min.js dist/exsurge.mjs --repo vagdur/exsurge --generate-notes
+```
 
 Publishing to npm is a separate, deliberate step — there is no `postpublish` automation:
 
