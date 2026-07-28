@@ -122,10 +122,27 @@ declare module "@vagdur/exsurge" {
     isPossibleDiphthong(s: string): boolean;
   }
   export class Spanish extends Language {}
+  export class Swedish extends Language {
+    vowels: string[];
+    onsetDigraphs: string[];
+    regexVowel: RegExp;
+    isVowel(c: string): boolean;
+
+    // Steps of syllabifyWord, exposed only because they are methods; the pair
+    // of indices findSyllableStart takes are into the array splitIntoLetters
+    // returns, lowercased.
+    splitIntoLetters(word: string): Array<{ text: string; index: number }>;
+    findSyllableStart(
+      letters: string[],
+      previousNucleus: number,
+      nucleus: number
+    ): number;
+  }
   export const language: {
     english: English;
     latin: Latin;
     spanish: Spanish;
+    swedish: Swedish;
   };
 
   export class TextSpan {

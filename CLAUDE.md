@@ -80,7 +80,7 @@ The rendering pipeline is: **gabc text → parse → notation elements → layou
 
 4. **Glyphs** (`Exsurge.Glyphs.js`, `greextraGlyphs.js`): generated tables of SVG path data + bounds/origin per glyph (from the ExsurgeChar font in `assets/fonts/`). Treat these as data; hand-edits are rare and deliberate.
 
-Supporting modules: `Exsurge.Core.js` (geometry primitives `Point`/`Rect`/`Margins`/`Size`, `Units`, `Pitch`/`Step`), `Exsurge.Text.js` (per-language syllabification: `Latin`, `English`, `Spanish`), `addAccent.js`/`makeLigature.js` (small vowel helpers).
+Supporting modules: `Exsurge.Core.js` (geometry primitives `Point`/`Rect`/`Margins`/`Size`, `Units`, `Pitch`/`Step`), `Exsurge.Text.js` (per-language syllabification: `Latin`, `English`, `Spanish`, `Swedish`), `addAccent.js`/`makeLigature.js` (small vowel helpers).
 
 Typical client flow: create a `ChantContext` → `Gabc.createMappingsFromSource(ctxt, gabc)` → `new ChantScore(ctxt, mappings, useDropCap)` → lay out → emit SVG with `score.createSvgNode(ctxt)` or `score.createSvgTree(ctxt, zoom)`.
 
