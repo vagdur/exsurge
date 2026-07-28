@@ -16,7 +16,7 @@ A JavaScript library for rendering Gregorian chant in square note notation. It t
 
 Fr. Spencer wrote the original and stopped committing in July 2016; that repository has seen no activity since April 2017 and has 191 commits. Benjamin Bloomfield forked it and has maintained it single-handedly for the decade since, authoring 703 of its 832 commits across 101 tagged releases from `v0.0.1` to `v1.25.2`. Essentially all of the neume shaping, layout, text handling, and rendering-backend work exists only in that fork.
 
-**This repository is a new fork of Bloomfield's fork.** It branches from `bbloomf/exsurge` at tag `v1.25.2` (commit `0c39f61`) and, at the time of writing, is identical to it — zero commits ahead. That will change as work lands here; until it does, treat Bloomfield's repository as the source of truth for behaviour, and expect the two to diverge from this point forward.
+**This repository is a new fork of Bloomfield's fork.** It branches from `bbloomf/exsurge` at tag `v1.25.2` (commit `0c39f61`) and has diverged since: Web Audio playback (`Exsurge.Playback*.js`, entirely new here), a fix giving notes nudged by the gabc `0` and `9` modifiers a real pitch, and a rebuilt toolchain — Rollup, Vitest, ESLint 10, Prettier and TypeScript `checkJs` in place of webpack, Babel and Mocha. For anything outside those areas, Bloomfield's repository remains the source of truth for behaviour.
 
 GitHub records the two-hop chain explicitly: this repository's `parent` is `bbloomf/exsurge` and its `source` — the root of the fork tree — is `frmatthew/exsurge`. If you are reading a copy of this file somewhere else, that pair is the quickest way to tell which of the three you actually have.
 
@@ -32,24 +32,39 @@ GitHub records the two-hop chain explicitly: this repository's `parent` is `bblo
 
 ### Three things that follow from that
 
-**Do not `npm install exsurge`.** That package is still at version 0.0.0, published in February 2016, owned by the original author, and pointing at the original repository. It predates essentially everything described here. Neither Bloomfield's fork nor this one is published to npm — `package.json` says `1.25.2`, but no such version exists on the registry. Install from git instead (see below).
+**Do not `npm install exsurge`.** The unscoped `exsurge` package is still at version 0.0.0, published in February 2016, owned by the original author, and pointing at the original repository. It predates essentially everything described here, and neither fork controls it. **This fork publishes as [`@vagdur/exsurge`](https://www.npmjs.com/package/@vagdur/exsurge)** — the scope is what distinguishes it. Bloomfield's mainline is not on the registry at all; install it from git if you want his work without this fork's changes.
 
-**`package.json` metadata is inherited and wrong.** Its `repository`, `author`, `homepage`, and `bugs` fields still point at `frmatthew/exsurge`, two forks up. They survived Bloomfield's fork unchanged and they are not a statement about where this code lives or where issues should go. Updating them is a reasonable early commit for this fork.
+**The version number is continuous with Bloomfield's tags, not with the registry.** This package starts on npm at `1.25.2` because that is the upstream tag it branches from; there are no `@vagdur/exsurge` versions below it. That number is inherited, not a claim of equivalence — `src/` has diverged since the branch point (see below), and the first release published from this fork will bump it.
 
 **The old live demo is not this code.** The original README linked to `frmatthew.github.io/exsurge/chant.html`, a GitHub Pages build from the *original* repository — it serves a 2016/2017 bundle and describes itself as "the simplest of test pages." It reflects neither fork. This fork publishes its own demos at [vagdur.github.io/exsurge](https://vagdur.github.io/exsurge/), which do track this code. For a substantial application built on this library, see **[jgabc](http://bbloomf.github.io/jgabc/)** ([source](https://github.com/bbloomf/jgabc)), a full gabc transcriber and chant editor by Bloomfield, which vendors the bundle from his fork.
 
 ## Installation
 
-Because the npm package is stale, depend on a git repository directly — this fork once it has a home, or Bloomfield's mainline if you want his work without this fork's changes:
+```
+npm install @vagdur/exsurge
+```
+
+Note the scope. The unscoped `exsurge` on npm is the abandoned 2016 package and is not this code.
+
+Installing from git also works and gives you the same files, since `dist/` is committed:
 
 ```
 npm install github:vagdur/exsurge      # this fork
-npm install github:bbloomf/exsurge     # the fork this one is based on
+npm install github:bbloomf/exsurge     # the fork this one is based on, not on npm
 ```
 
-The built bundle `dist/exsurge.min.js` is committed to the repository, so a git install needs no build step. It is UMD, so it works as a CommonJS/AMD module or as a browser global named `exsurge`.
+The built bundle `dist/exsurge.min.js` is UMD, so it works as a CommonJS/AMD module or as a browser global. **The global is named `exsurge`** — the scope is part of the package name, not the namespace.
 
-`package.json` declares `main` (`dist/exsurge.min.js`, UMD), `module` (`dist/exsurge.mjs`, ES modules) and `types` (`src/exsurge.d.ts`). Both bundles are committed, so a bundler honouring `module` gets a real build rather than raw source — earlier versions pointed `module` at `src/index.js`, which required `node_modules/exsurge/src` to be inside your own transpilation scope.
+`import` and `require` both give you the full 135-export surface:
+
+```javascript
+import { ChantContext, Gabc, ChantScore } from "@vagdur/exsurge";  // dist/exsurge.mjs
+const exsurge = require("@vagdur/exsurge");                        // dist/exsurge.min.js
+```
+
+An `exports` map routes those two conditions to the ESM and UMD bundles respectively, with `types` pointing at `src/exsurge.d.ts`. This matters more than it looks: `module` is a bundler convention that Node ignores, so without the map Node resolves `import` to the *CommonJS* bundle, and `cjs-module-lexer` cannot recover named exports from minified UMD — you would get a single `default` and `ChantContext is not a constructor`. `main`, `module` and a top-level `types` are all still declared for older bundlers and for TypeScript's legacy resolution.
+
+Subpaths stay reachable for the cases that need a concrete file — `@vagdur/exsurge/assets/fonts/ExsurgeChar.otf`, `@vagdur/exsurge/dist/*` and `@vagdur/exsurge/src/*`.
 
 The bundle is not transpiled to ES5. `src/` is shipped as authored: ES2015 syntax, and ES2019 library calls such as `Array.prototype.flatMap`. The effective browser floor is roughly 2019.
 
@@ -62,7 +77,7 @@ npm run build
 
 ## Usage
 
-Create a `ChantContext` holding your render settings, parse gabc into mappings, build a `ChantScore`, lay it out, then emit SVG. In a browser the bundle exposes a global named `exsurge`; under Node or a bundler, `const exsurge = require("exsurge")`.
+Create a `ChantContext` holding your render settings, parse gabc into mappings, build a `ChantScore`, lay it out, then emit SVG. In a browser the bundle exposes a global named `exsurge`; under Node or a bundler, `const exsurge = require("@vagdur/exsurge")`.
 
 ```javascript
 const gabc = "(f3) EC(ce!fg)CE(f) *(,) ad(fe~)vé(f!gwhf)nit(f) (,)";
@@ -105,7 +120,7 @@ A laid-out `ChantScore` can be emitted three ways:
 The whole pipeline runs headless, which is useful for build-time or server-side rendering:
 
 ```javascript
-const exsurge = require("exsurge");
+const exsurge = require("@vagdur/exsurge");
 
 const ctxt = new exsurge.ChantContext(); // falls back to opentype.js measuring
 const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
@@ -165,7 +180,7 @@ const player = new exsurge.ChantPlayer(score, score.createSvgNode(ctxt), options
 
 ### Fonts
 
-Special characters (℣, ℟, and similar) are rendered in a font family named `Exsurge Characters`. Ship `assets/fonts/ExsurgeChar.otf` with your application and declare a matching `@font-face`, or those glyphs will fall back to whatever the browser picks.
+Special characters (℣, ℟, and similar) are rendered in a font family named `Exsurge Characters`. Ship `ExsurgeChar.otf` with your application and declare a matching `@font-face`, or those glyphs will fall back to whatever the browser picks. The font is included in the published package at `node_modules/@vagdur/exsurge/assets/fonts/ExsurgeChar.otf`.
 
 ## Repository layout
 
@@ -202,7 +217,7 @@ npm run typecheck    # tsc over src/ and over the declarations
 
 The toolchain is Rollup, ESLint 10 (flat config), Prettier and TypeScript in `checkJs` mode. There is no transpilation step: `src/` is bundled as authored.
 
-`npm run build` writes three files. `dist/exsurge.min.js` (UMD, minified) and `dist/exsurge.mjs` (ES modules) are **committed**, because consumers install this package from git rather than npm. `dist/exsurge.js` is the unminified UMD build and is gitignored. If you change anything in `src/`, rebuild and commit `dist/` in the same commit — CI checks that the committed bundle matches a fresh build.
+`npm run build` writes three files. `dist/exsurge.min.js` (UMD, minified) and `dist/exsurge.mjs` (ES modules) are **committed**, for two reasons and only two: `npm install github:vagdur/exsurge` has no build step, and downstream consumers vendor `dist/exsurge.min.js` straight out of the tree. The Pages demo is *not* one of them — `test/index.html` and `test/playback.html` import `src/index.js` directly, and the sole reference to `dist/` in any page is a commented-out `<script>` tag. `dist/exsurge.js` is the unminified UMD build and is gitignored. If you change anything in `src/`, rebuild and commit `dist/` in the same commit — CI checks that the committed bundle matches a fresh build.
 
 One constraint the build enforces deliberately: `rollup.config.mjs` has **no** `@rollup/plugin-node-resolve`, so every relative import in `src/` must keep its explicit `.js` extension. That is what the browser sandboxes below depend on, and leaving the plugin out turns a missing extension into a build failure rather than a demo that breaks after deploy.
 
@@ -240,6 +255,18 @@ Because those pages need nothing but a static server, GitHub Pages serves them a
 ### Releasing
 
 `npm version <patch|minor|major>` builds, regenerates `CHANGELOG.md`, commits `dist/`, and pushes with tags. The changelog is generated from commit messages using the Angular convention, so commits should be written as `feat:`, `fix:`, and so on.
+
+Publishing to npm is a separate, deliberate step — there is no `postpublish` automation:
+
+```
+npm publish
+```
+
+`publishConfig.access` is set to `public`, so a scoped package does not need `--access public` and cannot be published private by accident. `files` in `package.json` restricts the tarball to `dist/`, `src/`, `assets/` and `CHANGELOG.md` (npm always adds `README.md`, `LICENSE` and `package.json`); `src/` has to stay in that list because `types` points into it. Check the contents before releasing:
+
+```
+npm pack --dry-run
+```
 
 ## Credits and license
 

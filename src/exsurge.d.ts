@@ -1,4 +1,11 @@
-declare module "exsurge" {
+declare module "@vagdur/exsurge" {
+  // A font object as produced by opentype.js `parse()`/`load()`, used only as
+  // an opaque value passed through to the text-measuring strategy. Deliberately
+  // NOT `import("opentype.js").Font`: @types/opentype.js is a devDependency, so
+  // referencing it here makes the published declarations fail to compile for any
+  // consumer that has not installed those types themselves.
+  type OpenTypeFont = unknown;
+
   // TODO: Add types for these:
   type ChantNotation = unknown;
   type ChantLine = unknown;
@@ -401,7 +408,7 @@ declare module "exsurge" {
       font: string,
       size: number,
       baseStyle?: any,
-      fontDictionary?: { [key: string]: import("opentype.js").Font }
+      fontDictionary?: { [key: string]: OpenTypeFont }
     ): void;
     setRubricColor(color: string): void;
     setMergeAnnotationWithTextLeft(merge: boolean): void;

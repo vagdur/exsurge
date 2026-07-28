@@ -1,10 +1,31 @@
 {
-  "name": "exsurge",
-  "version": "1.25.2",
+  "name": "@vagdur/exsurge",
+  "version": "1.26.0",
   "description": "A JavaScript library for rendering Gregorian Chant in square note notation",
   "main": "dist/exsurge.min.js",
   "types": "src/exsurge.d.ts",
   "module": "dist/exsurge.mjs",
+  "exports": {
+    ".": {
+      "types": "./src/exsurge.d.ts",
+      "import": "./dist/exsurge.mjs",
+      "require": "./dist/exsurge.min.js",
+      "default": "./dist/exsurge.min.js"
+    },
+    "./assets/*": "./assets/*",
+    "./dist/*": "./dist/*",
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "assets",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "rollup -c --failAfterWarnings",
     "build-dev": "rollup -c",
@@ -17,8 +38,8 @@
     "test:once": "vitest run",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "preversion": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
-    "version": "npm run changelog && git add CHANGELOG.md dist/",
+    "preversion": "npm run lint && npm run format:check && npm run typecheck && npm test",
+    "version": "npm run build && npm run changelog && git add CHANGELOG.md dist/",
     "postversion": "git push && git push --tags",
     "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
   },
@@ -41,7 +62,11 @@
     "type": "git",
     "url": "git+https://github.com/vagdur/exsurge.git"
   },
-  "author": "Fr. Matthew Spencer, O.S.J. <mspencer@osjusa.org> (http://marello.org)",
+  "author": "Vilhelm Agdur <vilhelm.agdur@gmail.com>",
+  "contributors": [
+    "Fr. Matthew Spencer, O.S.J. <mspencer@osjusa.org> (http://marello.org)",
+    "Benjamin Bloomfield (https://github.com/bbloomf)"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=20.19"
@@ -55,6 +80,10 @@
     "chant",
     "square",
     "note",
-    "solesmes"
+    "solesmes",
+    "gabc",
+    "neume",
+    "notation",
+    "svg"
   ]
 }
