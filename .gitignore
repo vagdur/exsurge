@@ -31,6 +31,11 @@ build/Release
 # Dependency directory
 node_modules
 
+# Claude Code nested checkouts (full repo copies under .claude/worktrees/).
+# Also listed in eslint/prettier ignores: those tools do not always honor
+# gitignore the same way, and without an explicit skip they walk the copies.
+.claude/worktrees/
+
 # Optional npm cache directory
 .npm
 

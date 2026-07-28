@@ -14,7 +14,11 @@ import prettier from "eslint-config-prettier";
 // now owns.
 export default [
   {
-    ignores: ["dist/**", "node_modules/**"]
+    // .claude/worktrees/ is a full nested checkout (Claude Code); without this,
+    // `eslint .` walks it and reports hundreds of errors from the copy's src/
+    // and dist/. Already in .git/info/exclude, but flat config does not read
+    // gitignore / exclude — only this list.
+    ignores: ["dist/**", "node_modules/**", ".claude/worktrees/**"]
   },
 
   js.configs.recommended,
