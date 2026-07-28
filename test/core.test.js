@@ -121,4 +121,68 @@ describe("Latin syllabification", function () {
     assertWordSyllables(words[1], ["na", "tus"]);
     assertWordSyllables(words[2], ["est"]);
   });
+
+  // "e̊" and "o̊" are a base vowel plus U+030A COMBINING RING ABOVE. Written
+  // out here as explicit escapes so that the two-code-point structure under
+  // test survives any editor or tool that would normalize the source file.
+  var RING = String.fromCharCode(0x30a);
+
+  it("Syllabify ring-marked vowels", function () {
+    var words = lang.syllabify("Do" + RING + "minus e" + RING + "st");
+    words.length.should.equal(2);
+
+    // The ring stays attached to the vowel it marks rather than being split
+    // off onto the following syllable.
+    assertWordSyllables(words[0], ["Do" + RING, "mi", "nus"]);
+    assertWordSyllables(words[1], ["e" + RING + "st"]);
+  });
+});
+
+describe("Latin vowel segments", function () {
+  var lang = new Exsurge.Latin();
+
+  // U+030A COMBINING RING ABOVE; see the note in the suite above.
+  var RING = String.fromCharCode(0x30a);
+
+  var assertVowelSegment = function (s, startIndex, expected) {
+    var result = lang.findVowelSegment(s, startIndex);
+    result.found.should.equal(true);
+    s.substr(result.startIndex, result.length).should.equal(expected);
+  };
+
+  // Lyric centering positions a syllable over its neume by the extent of this
+  // segment, so a ring left outside it shifts the text off centre.
+  it("Ring-marked vowels match as a whole unit", function () {
+    assertVowelSegment("e" + RING, 0, "e" + RING);
+    assertVowelSegment("o" + RING, 0, "o" + RING);
+    assertVowelSegment("Do" + RING + "minus", 0, "o" + RING);
+    assertVowelSegment("e" + RING + "st", 0, "e" + RING);
+    assertVowelSegment("glo" + RING + "ria", 0, "o" + RING);
+  });
+
+  it("Uppercase ring-marked vowels match as a whole unit", function () {
+    assertVowelSegment("E" + RING + "st", 0, "E" + RING);
+  });
+
+  it("A combining ring alone is not a vowel segment", function () {
+    // U+030A used to be a member of the character class in its own right,
+    // which made a bare ring match as though it were a vowel.
+    lang.findVowelSegment(RING, 0).found.should.equal(false);
+  });
+
+  it("Unmarked vowels are unaffected", function () {
+    // Precomposed å, which never had the two-code-point problem.
+    assertVowelSegment("å", 0, "å");
+
+    assertVowelSegment("Puer", 0, "u");
+    assertVowelSegment("Puer", 2, "e");
+    assertVowelSegment("natus", 0, "a");
+    assertVowelSegment("est", 0, "e");
+
+    // Diphthongs and the leading consonantal i/u group still take priority
+    // over the single-character class.
+    assertVowelSegment("caelum", 1, "ae");
+    assertVowelSegment("laus", 1, "au");
+    assertVowelSegment("quam", 0, "a");
+  });
 });
