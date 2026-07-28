@@ -217,7 +217,7 @@ npm run typecheck    # tsc over src/ and over the declarations
 
 The toolchain is Rollup, ESLint 10 (flat config), Prettier and TypeScript in `checkJs` mode. There is no transpilation step: `src/` is bundled as authored.
 
-`npm run build` writes three files. `dist/exsurge.min.js` (UMD, minified) and `dist/exsurge.mjs` (ES modules) are **committed**, so that a git install works without a build step and the GitHub Pages demo has something to serve. `dist/exsurge.js` is the unminified UMD build and is gitignored. If you change anything in `src/`, rebuild and commit `dist/` in the same commit — CI checks that the committed bundle matches a fresh build.
+`npm run build` writes three files. `dist/exsurge.min.js` (UMD, minified) and `dist/exsurge.mjs` (ES modules) are **committed**, for two reasons and only two: `npm install github:vagdur/exsurge` has no build step, and downstream consumers vendor `dist/exsurge.min.js` straight out of the tree. The Pages demo is *not* one of them — `test/index.html` and `test/playback.html` import `src/index.js` directly, and the sole reference to `dist/` in any page is a commented-out `<script>` tag. `dist/exsurge.js` is the unminified UMD build and is gitignored. If you change anything in `src/`, rebuild and commit `dist/` in the same commit — CI checks that the committed bundle matches a fresh build.
 
 One constraint the build enforces deliberately: `rollup.config.mjs` has **no** `@rollup/plugin-node-resolve`, so every relative import in `src/` must keep its explicit `.js` extension. That is what the browser sandboxes below depend on, and leaving the plugin out turns a missing extension into a build failure rather than a demo that breaks after deploy.
 
