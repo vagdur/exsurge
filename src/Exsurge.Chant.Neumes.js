@@ -23,6 +23,11 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 4 findings. firstAbove/firstBelow use false as a not-set sentinel and are
+// then assigned indices, so they are boolean|number and cannot index an array.
+// Worth a real look: index 0 is falsy, so `firstAbove || firstBelow || 0`
+// cannot distinguish a legitimate index of 0 from unset.
+
 import {
   LiquescentType,
   NoteShape,
@@ -30,9 +35,12 @@ import {
 } from "./Exsurge.Chant.js";
 import {
   ChantNotationElement,
-  GlyphCode, LineaVisualizer, MarkingPositionHint,
+  GlyphCode,
+  LineaVisualizer,
+  MarkingPositionHint,
   NeumeBeamVisualizer,
-  NeumeLineVisualizer, VirgaLineVisualizer
+  NeumeLineVisualizer,
+  VirgaLineVisualizer
 } from "./Exsurge.Drawing.js";
 import { Glyphs } from "./Exsurge.Glyphs.js";
 
@@ -94,13 +102,10 @@ class NeumeBuilder {
 
       if (!noteAlignsRight) this.x = line.bounds.x;
     }
-    
+
     let xOffset = 0;
     if (note.shapeModifiers & NoteShapeModifiers.Linea) {
-      var linea = new LineaVisualizer(
-        this.ctxt,
-        note
-      );
+      var linea = new LineaVisualizer(this.ctxt, note);
       this.neume.addVisualizer(linea);
       note.origin.x += linea.origin.x;
       xOffset = linea.origin.x;
@@ -126,7 +131,7 @@ class NeumeBuilder {
 
   // a special form of noteAdd that creates a virga
   // uses a punctum cuadratum and a line rather than the virga glyphs
-  virgaAt(note, withLineTo = true) {
+  virgaAt(note, _withLineTo = true) {
     // add the punctum for the virga
     this.noteAt(note, GlyphCode.PunctumQuadratum);
 
@@ -192,10 +197,15 @@ class NeumeBuilder {
       lowerGlyph = GlyphCode.PunctumQuadratum;
       upperGlyph = GlyphCode.PunctumQuadratumDesLiquescent;
     } else {
-      const diff = upperNote.staffPosition - lowerNote.staffPosition + (this.ctxt.glyphMultiplier <= 0.85 ? 1 : 0);
+      const diff =
+        upperNote.staffPosition -
+        lowerNote.staffPosition +
+        (this.ctxt.glyphMultiplier <= 0.85 ? 1 : 0);
       // standard shape
-      lowerGlyph = diff > 1 ? GlyphCode.PodatusLower : GlyphCode.PodatusLowerShort;
-      upperGlyph = diff > 1 ? GlyphCode.PodatusUpper : GlyphCode.PodatusUpperShort;
+      lowerGlyph =
+        diff > 1 ? GlyphCode.PodatusLower : GlyphCode.PodatusLowerShort;
+      upperGlyph =
+        diff > 1 ? GlyphCode.PodatusUpper : GlyphCode.PodatusUpperShort;
     }
 
     // allow a quilisma pes
@@ -250,7 +260,7 @@ class NeumeBuilder {
 
   // lays out a sequence of notes that are inclinata (e.g., climacus, pes subpunctis)
   withInclinata(notes) {
-    var staffPosition = notes[0].staffPosition,
+    var staffPosition,
       prevStaffPosition = notes[0].staffPosition;
 
     // it is important to advance by the width of the inclinatum glyph itself
@@ -264,7 +274,7 @@ class NeumeBuilder {
     // now add all the punctum inclinatum
     for (var i = 0; i < notes.length; i++, prevStaffPosition = staffPosition) {
       var note = notes[i];
-      let beams = notes.slice(i).find(note => note.inclinataFlags);
+      let beams = notes.slice(i).find((note) => note.inclinataFlags);
       beamCount = beamCount || (beams && beams.inclinataFlags);
 
       if (note.liquescent & LiquescentType.Small)
@@ -300,15 +310,22 @@ class NeumeBuilder {
     if (stemNotes.length) {
       const firstNote = stemNotes[0];
       const lastNote = stemNotes[stemNotes.length - 1];
-      const startCoord = { x: firstNote.bounds.x, staffPosition: firstNote.staffPosition + 4 };
-      const endCoord = { x: lastNote.bounds.x, staffPosition: lastNote.staffPosition + 4 };
+      const startCoord = {
+        x: firstNote.bounds.x,
+        staffPosition: firstNote.staffPosition + 4
+      };
+      const endCoord = {
+        x: lastNote.bounds.x,
+        staffPosition: lastNote.staffPosition + 4
+      };
       // Linear interpolation: y = y1 + (x - x1) * (y2 - y1) / (x2 - x1)
       const getStaffPositionForX = (x) =>
-        x === startCoord.x ? startCoord.staffPosition :
-        startCoord.staffPosition +
-        ((x - startCoord.x) / (endCoord.x - startCoord.x)) *
-          (endCoord.staffPosition - startCoord.staffPosition);
-      
+        x === startCoord.x
+          ? startCoord.staffPosition
+          : startCoord.staffPosition +
+            ((x - startCoord.x) / (endCoord.x - startCoord.x)) *
+              (endCoord.staffPosition - startCoord.staffPosition);
+
       for (const note of stemNotes) {
         var stem = new NeumeLineVisualizer(
           this.ctxt,
@@ -316,10 +333,18 @@ class NeumeBuilder {
           getStaffPositionForX(note.bounds.x)
         );
         this.neume.addVisualizer(stem);
-        stem.bounds.x = note.bounds.x + (note.bounds.width / 2) - (stem.bounds.width / 2);
+        stem.bounds.x =
+          note.bounds.x + note.bounds.width / 2 - stem.bounds.width / 2;
       }
       while (beamCount > 0) {
-        let beams = new NeumeBeamVisualizer(this.ctxt, startCoord.x + (firstNote.bounds.width / 2), endCoord.x + (lastNote.bounds.width / 2), startCoord.staffPosition, endCoord.staffPosition, --beamCount);
+        let beams = new NeumeBeamVisualizer(
+          this.ctxt,
+          startCoord.x + firstNote.bounds.width / 2,
+          endCoord.x + lastNote.bounds.width / 2,
+          startCoord.staffPosition,
+          endCoord.staffPosition,
+          --beamCount
+        );
         this.neume.addVisualizer(beams);
       }
     }
@@ -475,7 +500,8 @@ export class Neume extends ChantNotationElement {
       var note = this.notes[i];
       var staffPosition = note.staffPosition;
       if (staffPosition >= ledgerLinePositionAbove - 1) {
-        needsAbove = needsAbove || staffPosition >= ledgerLinePositionAbove - 0.9;
+        needsAbove =
+          needsAbove || staffPosition >= ledgerLinePositionAbove - 0.9;
         if (firstAbove === false) firstAbove = Math.max(0, i - 1);
         if (staffPosition >= ledgerLinePositionAbove) continue;
       } else if (staffPosition <= 0) {
@@ -1092,7 +1118,7 @@ export class Punctum extends Neume {
     super.performLayout(ctxt);
 
     var note = this.notes[0];
-    var glyph = GlyphCode.PunctumQuadratum;
+    var glyph;
 
     // determine the glyph to use
     if (note.liquescent !== LiquescentType.None) {

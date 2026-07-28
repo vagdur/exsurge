@@ -24,19 +24,26 @@ If the working tree is at or near `0c39f61` with no local commits, this fork has
 
 ## Commands
 
-- `npm run build` — production build (webpack + uglify → `dist/exsurge.min.js`)
-- `npm run build-dev` — unminified build → `dist/exsurge.js`
-- `npm run dev` — watch mode, rebuilds on save
-- `npm test` — mocha tests in `test/`. Note: the script runs mocha with `-w` (watch mode), so it does not exit on its own. Tests require `dist/exsurge.min.js` to exist (they `require('../dist/exsurge.min.js')`), so build first if the dist is stale.
+- `npm run build` — rollup, writes `dist/exsurge.min.js` (UMD, minified), `dist/exsurge.mjs` (ESM) and `dist/exsurge.js` (unminified UMD). Fails on any rollup warning.
+- `npm run build-dev` — same without `--failAfterWarnings`; `npm run dev` — watch mode.
+- `npm test` — vitest, runs once and exits. `npm run test:watch` to watch. Specs import `src/` directly, so no build is needed first — except `test/dist.test.js`, which loads the committed bundle on purpose.
+- `npm run lint` / `npm run format` / `npm run typecheck` — eslint, prettier, tsc.
+- **`dist/` is committed.** If you change `src/`, rebuild and commit `dist/` in the same commit; CI fails if the committed bundle does not match a fresh build.
 - Releases: `npm version <patch|minor|major>` — the preversion/version/postversion hooks build, regenerate `CHANGELOG.md` (conventional-changelog, angular preset), commit `dist/`, and push with tags. Commit messages follow Conventional Commits (`feat:`, `fix:`) since the changelog is generated from them.
 
-**GitHub Pages publishes `master` at `/`, so `test/` is public.** The demo site is [vagdur.github.io/exsurge](https://vagdur.github.io/exsurge/) — root `index.html` is a landing page linking to `test/playback.html` and `test/index.html`, and those pages are served exactly as they sit in the tree, importing `src/index.js` as native ES modules with no build step. Consequences: any push to `master` redeploys the demo within a minute or two, a commit that breaks the sandbox pages breaks the public demo, and every relative import in `src/` must keep its explicit `.js` extension or the browser's module loader (unlike webpack) will fail to resolve it. `.nojekyll` at the root disables Jekyll processing. There is no Pages workflow in `.github/`; the branch-and-path setting on the repository is the whole mechanism, and the stale `gh-pages` branch on `bbloomf`/`upstream` is unrelated to it.
+**GitHub Pages publishes `master` at `/`, so `test/` is public.** The demo site is [vagdur.github.io/exsurge](https://vagdur.github.io/exsurge/) — root `index.html` is a landing page linking to `test/playback.html` and `test/index.html`, and those pages are served exactly as they sit in the tree, importing `src/index.js` as native ES modules with no build step. Consequences: any push to `master` redeploys the demo within a minute or two, a commit that breaks the sandbox pages breaks the public demo, and every relative import in `src/` must keep its explicit `.js` extension or the browser's module loader will fail to resolve it (the rollup config is set up so this fails the build too). `.nojekyll` at the root disables Jekyll processing. There is no Pages workflow in `.github/`; the branch-and-path setting on the repository is the whole mechanism, and the stale `gh-pages` branch on `bbloomf`/`upstream` is unrelated to it.
 
-Toolchain is old: webpack 1, Babel 6 (`es2015` preset + `add-module-exports`), ESLint 1 run as a webpack loader during builds. Source is ES2015 modules and stays within what Babel 6 handles — array spread and default parameters appear, but there is no object spread, optional chaining, or async/await anywhere in `src/`. Don't introduce those without verifying the build. Formatting follows `.prettierrc` (2 spaces, no trailing commas), though most files predate it and are only partially formatted.
+Toolchain: Rollup, ESLint 10 (flat config in `eslint.config.mjs`), Prettier, TypeScript in `checkJs` mode, Vitest. **There is no transpilation step** — `src/` is bundled as authored, so whatever syntax you write ships. The real floor is ES2019, set by `Array.prototype.flatMap` in `Exsurge.Chant.ChantLine.js` and by the demo pages loading `src/` as native ES modules.
+
+`rollup.config.mjs` deliberately omits `@rollup/plugin-node-resolve` so that a relative import missing its `.js` extension fails the build instead of breaking the Pages demo silently. Don't add it.
+
+The whole tree is Prettier-formatted and `npm run format:check` runs in CI; markdown is excluded in `.prettierignore` because Prettier reflows fenced code blocks. A whole-tree reformat sits in history and is listed in `.git-blame-ignore-revs` — run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once locally.
+
+`npm run typecheck` must stay green. Eight files carry `// @ts-nocheck` with a note giving the finding count and reason (`grep -rl "@ts-nocheck" src/ test/`); almost all of it is properties assigned to instances outside the constructor, which JS cannot declare without changing runtime behaviour. `tsconfig.json` lists the strictness flags still switched off, in the order they are worth enabling.
 
 ## Architecture
 
-All source is in `src/`, re-exported flat from `src/index.js` (so everything is on the single `exsurge` UMD namespace). TypeScript declarations are hand-maintained in `src/index.d.ts` — update them when changing public APIs.
+All source is in `src/`, re-exported flat from `src/index.js` (so everything is on the single `exsurge` UMD namespace). TypeScript declarations are hand-maintained in `src/exsurge.d.ts` — update them when changing public APIs. The filename matters: as `src/index.d.ts` it shadowed `src/index.js` in TypeScript's resolution order, so the declarations and the implementation were never checked against each other, which is how they came to declare members that did not exist. They cover roughly 25 of the 135 runtime exports, so an undeclared export is an omission rather than a signal that it is private.
 
 The rendering pipeline is: **gabc text → parse → notation elements → layout → SVG**.
 

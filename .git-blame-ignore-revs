@@ -1,0 +1,7 @@
+# Revisions to skip in git blame. Enable locally with:
+#   git config blame.ignoreRevsFile .git-blame-ignore-revs
+# GitHub honours this file automatically in its blame view.
+
+# style: Format the tree with Prettier -- whole-tree reformat, no semantic
+# changes (the rebuilt bundle was byte-for-byte identical).
+012905ff3840ea18fc605e8ea837712071bbc1c3

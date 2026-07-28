@@ -6,4 +6,4 @@ export const makeLigature = (vowels) =>
     OE: "Œ",
     Oe: "Œ",
     oe: "œ"
-  }[vowels] || vowels);
+  })[vowels] || vowels;

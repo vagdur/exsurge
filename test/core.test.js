@@ -23,12 +23,15 @@
 // THE SOFTWARE.
 //
 
-var should = require('chai').should(), Exsurge = require('../dist/exsurge.min.js');
+import { describe, it, chai } from "vitest";
+import * as Exsurge from "../src/index.js";
 
+// Vitest bundles chai, so the should-style assertions this suite has always
+// used carry over unchanged.
+chai.should();
 
-describe('Core functionality', function() {
-
-  it('Point object', function() {
+describe("Core functionality", function () {
+  it("Point object", function () {
     var point = new Exsurge.Point(3.14, 159.26);
     point.x.should.equal(3.14);
     point.y.should.equal(159.26);
@@ -41,8 +44,7 @@ describe('Core functionality', function() {
     point.equals(new Exsurge.Point()).should.equal(false);
   });
 
-  it('Rect object', function() {
-
+  it("Rect object", function () {
     var rect = new Exsurge.Rect(3, 1, 4, 5);
     rect.x.should.equal(3);
     rect.y.should.equal(1);
@@ -70,7 +72,7 @@ describe('Core functionality', function() {
     // fixme: test Rect.contains and Rect.union
   });
 
-  it('Margins object', function() {
+  it("Margins object", function () {
     var margins = new Exsurge.Margins(10, 11, 12, 13);
     margins.left.should.equal(10);
     margins.top.should.equal(11);
@@ -86,7 +88,7 @@ describe('Core functionality', function() {
     margins.equals(clone).should.equal(true);
   });
 
-  it('Size object', function() {
+  it("Size object", function () {
     var size = new Exsurge.Size(3.14, 159.26);
     size.width.should.equal(3.14);
     size.height.should.equal(159.26);
@@ -100,25 +102,23 @@ describe('Core functionality', function() {
   });
 });
 
-describe('Latin syllabification', function() {
-
+describe("Latin syllabification", function () {
   var lang = new Exsurge.Latin();
 
-  var assertWordSyllables = function(word, syllables) {
+  var assertWordSyllables = function (word, syllables) {
     word.length.should.equal(syllables.length);
 
     for (var i = 0; i < word.length; i++) {
       word[i].should.equal(syllables[i]);
     }
-  }
+  };
 
-  it("Syllabify 'Puer natus est'", function() {
-
-    var words = lang.syllabify('Puer natus est');
+  it("Syllabify 'Puer natus est'", function () {
+    var words = lang.syllabify("Puer natus est");
     words.length.should.equal(3);
 
-    assertWordSyllables(words[0], ['Pu', 'er']);
-    assertWordSyllables(words[1], ['na', 'tus']);
-    assertWordSyllables(words[2], ['est']);
+    assertWordSyllables(words[0], ["Pu", "er"]);
+    assertWordSyllables(words[1], ["na", "tus"]);
+    assertWordSyllables(words[2], ["est"]);
   });
 });

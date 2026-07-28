@@ -1,0 +1,63 @@
+name: CI
+
+# Note: this does not gate the GitHub Pages deploy. Pages publishes master from
+# the branch-and-path setting on the repository, with no workflow involved, so
+# a push to master redeploys the demo whether or not this run is green. The
+# demo pages also load src/ directly as native ES modules rather than the
+# bundle, so nothing here exercises them -- check test/index.html and
+# test/playback.html by hand before merging anything that touches src/.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20 is the floor declared in engines; 22 is what development happens
+        # on. Running both catches accidental reliance on newer node's ESM
+        # syntax detection, which would otherwise only show up for consumers.
+        node: ["20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      # npm ci requires package-lock.json to be in step with package.json, so
+      # any commit changing dependencies has to regenerate the lock in the same
+      # commit or this fails on that commit alone.
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  dist-freshness:
+    # dist/exsurge.min.js is committed and vendored by downstream consumers, so
+    # the likeliest failure is not that it is broken but that it is stale.
+    #
+    # This is a byte comparison, which is only safe because rollup and
+    # @rollup/plugin-terser are pinned to exact versions in package.json -- a
+    # patch bump of either can shift a byte and would turn this red on an
+    # unrelated commit. Keep them exact, and keep this on one node version.
+    #
+    # pull_request only: the npm version release flow builds and commits dist
+    # in one step, and pushing the tag should not race this.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: dist/ must match a fresh build
+        run: git diff --exit-code -- dist/

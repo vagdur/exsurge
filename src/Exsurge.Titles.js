@@ -23,9 +23,17 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 6 findings: the titles bag is inferred as {} at its declaration, plus one
+// expando on Element.
+
 import { Rect } from "./Exsurge.Core.js";
 import {
-  ChantLayoutElement, QuickSvg, Subtitle, Supertitle, TextLeftRight, Title
+  ChantLayoutElement,
+  QuickSvg,
+  Subtitle,
+  Supertitle,
+  TextLeftRight,
+  Title
 } from "./Exsurge.Drawing.js";
 
 export class Titles extends ChantLayoutElement {
@@ -63,7 +71,7 @@ export class Titles extends ChantLayoutElement {
 
   /**
    * Lays out the titles, and returns their total height
-   * @param  {ChantContext} ctxt
+   * @param  {import("./Exsurge.Drawing.js").ChantContext} ctxt
    * @return {number}      the tottal height of titles laid out
    */
   layoutTitles(ctxt, width) {
@@ -142,19 +150,19 @@ export class Titles extends ChantLayoutElement {
       : null;
   }
 
-  hasSupertitle(ctxt, supertitle) {
+  hasSupertitle(_ctxt, _supertitle) {
     return !!this.supertitle;
   }
-  hasTitle(ctxt, title) {
+  hasTitle(_ctxt, _title) {
     return !!this.title;
   }
-  hasSubtitle(ctxt, subtitle) {
+  hasSubtitle(_ctxt, _subtitle) {
     return !!this.subtitle;
   }
-  hasTextLeft(ctxt, textLeft) {
+  hasTextLeft(_ctxt, _textLeft) {
     return !!this.textLeft;
   }
-  hasTextRight(ctxt, textRight) {
+  hasTextRight(_ctxt, _textRight) {
     return !!this.textRight;
   }
 

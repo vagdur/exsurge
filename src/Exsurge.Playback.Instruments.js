@@ -87,7 +87,7 @@ export class Voice {
 
     var self = this;
     if (parts.length) {
-      parts[0].osc.onended = function() {
+      parts[0].osc.onended = function () {
         self.dispose();
       };
     }
@@ -178,11 +178,7 @@ export class PianoInstrument {
       var gain = audioContext.createGain();
       gain.gain.setValueAtTime(0, when);
       gain.gain.linearRampToValueAtTime(partial.gain, when + PIANO_ATTACK);
-      gain.gain.setTargetAtTime(
-        0.0001,
-        when + PIANO_ATTACK,
-        partial.decay / 3
-      );
+      gain.gain.setTargetAtTime(0.0001, when + PIANO_ATTACK, partial.decay / 3);
 
       var osc = audioContext.createOscillator();
       osc.type = "sine";
@@ -217,7 +213,7 @@ export var Instruments = {
  * Resolves an instrument option, which may be a key into Instruments or an
  * object implementing the instrument interface directly.
  *
- * @param {string|object} spec
+ * @param {string|{createVoice: Function}} spec
  * @return {object} an instrument
  */
 export function resolveInstrument(spec) {

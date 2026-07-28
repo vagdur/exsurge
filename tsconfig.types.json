@@ -1,0 +1,17 @@
+// Checks the hand-maintained public declarations on their own.
+//
+// This needs its own project because tsconfig.json sets skipLibCheck, which
+// suppresses semantic errors inside .d.ts files -- exactly the ones worth
+// catching here. Turning skipLibCheck off across the whole program instead
+// would drag @types/node into the check for no benefit.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": false,
+    "checkJs": false,
+    "allowJs": false
+  },
+  // files alone is not enough: include is inherited from the base config.
+  "include": [],
+  "files": ["src/exsurge.d.ts"]
+}

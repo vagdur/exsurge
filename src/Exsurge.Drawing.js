@@ -23,10 +23,11 @@
 // THE SOFTWARE.
 //
 
-import {
-  getCssForProperties, Point,
-  Rect
-} from "./Exsurge.Core.js";
+// @ts-nocheck -- 62 checkJs findings, almost all TS2339 for fields
+// assigned to instances outside the constructor. Declaring them is tracked
+// separately; see the typecheck notes in CLAUDE.md.
+
+import { getCssForProperties, Point, Rect } from "./Exsurge.Core.js";
 import { Glyphs } from "./Exsurge.Glyphs.js";
 import { language } from "./Exsurge.Text.js";
 import { addAccent } from "./addAccent.js";
@@ -102,8 +103,7 @@ export const TextTypes = {
   annotation: {
     display: "Annotation",
     defaultSize: (size) => (size * 2) / 3,
-    containedInScore: (score) =>
-      !!score.annotation,
+    containedInScore: (score) => !!score.annotation,
     getFromScore: (score, { elementIndex = 0 }) =>
       score.annotation &&
       (score.annotation.annotations
@@ -112,7 +112,11 @@ export const TextTypes = {
     getFromSvgElem: (score, elem) =>
       score.annotation &&
       (score.annotation.annotations
-        ? score.annotation.annotations[Array.from(elem.parentElement.querySelectorAll("text.annotation")).indexOf(elem)]
+        ? score.annotation.annotations[
+            Array.from(
+              elem.parentElement.querySelectorAll("text.annotation")
+            ).indexOf(elem)
+          ]
         : score.annotation)
   },
   dropCap: {
@@ -136,7 +140,7 @@ export const TextTypes = {
   choralSign: {
     display: "Choral Sign",
     size: (ctxt) => ctxt.staffInterval * 1.5,
-    containedInScore: (score) => false,
+    containedInScore: (_score) => false,
     getFromScore: (score, elem) =>
       score.notes[elem.note.elementIndex].choralSign
   },
@@ -358,7 +362,7 @@ export var QuickSvg = {
     }
     for (var attr in attributes) {
       if (
-        attributes.hasOwnProperty(attr) &&
+        Object.prototype.hasOwnProperty.call(attributes, attr) &&
         typeof attributes[attr] !== "undefined"
       ) {
         var val = attributes[attr];
@@ -420,7 +424,7 @@ export var QuickSvg = {
 
     for (var attr in attributes) {
       if (
-        attributes.hasOwnProperty(attr) &&
+        Object.prototype.hasOwnProperty.call(attributes, attr) &&
         typeof attributes[attr] !== "undefined"
       )
         fragment += attr + '="' + attributes[attr] + '" ';
@@ -506,13 +510,13 @@ export class ChantContext {
     this.specialCharProperties = {
       "font-family": "'Exsurge Characters'",
       fill: this.rubricColor,
-      class: 'rubric'
+      class: "rubric"
     };
     this.textBeforeSpecialChar = "";
     this.textAfterSpecialChar = ".";
     this.specialCharMap = {
-      "℣": 'v',
-      "℟": 'r',
+      "℣": "v",
+      "℟": "r",
       "+": "+",
       "*": "*"
     };
@@ -525,7 +529,7 @@ export class ChantContext {
       i: { "font-style": "italic" },
       u: { "text-decoration": "underline" },
       ul: { "text-decoration": "underline" },
-      c: { fill: this.rubricColor, class: 'rubric' },
+      c: { fill: this.rubricColor, class: "rubric" },
       sc: { "font-variant": "small-caps" },
       v: {},
       e: { "font-style": "italic", "font-size": "90%" }
@@ -533,7 +537,7 @@ export class ChantContext {
 
     this.markupSymbolDictionary = {
       "*": "b",
-      "_": "i",
+      _: "i",
       "^": "c",
       "%": "sc"
     };
@@ -569,9 +573,7 @@ export class ChantContext {
 
     // calculate the pixel ratio for drawing to a canvas
     this.pixelRatio =
-      typeof window === 'undefined'
-        ? 1.0
-        : (window.devicePixelRatio || 1.0);
+      typeof window === "undefined" ? 1.0 : window.devicePixelRatio || 1.0;
 
     //this.canvasCtxt.scale(this.pixelRatio, this.pixelRatio);
 
@@ -640,7 +642,7 @@ export class ChantContext {
 
     this.useExtraTextOnly = true;
 
-    this.noteIdPrefix = 'note-';
+    this.noteIdPrefix = "note-";
 
     this.insertFontsInDoc();
     this.setMergeAnnotationWithTextLeft(true);
@@ -649,7 +651,7 @@ export class ChantContext {
   /**
    * convert a staff position counting from the first space below the staff (gabc notation "c")
    * into a position counting from the middle space (variable based on how many staff lines there are)
-   * @param {number} staffPosition 
+   * @param {number} staffPosition
    * @returns {number}
    */
   convertStaffPositionToSymmetric(staffPosition) {
@@ -661,14 +663,16 @@ export class ChantContext {
   }
 
   /**
-   * 
-   * @param {*} properties 
-   * @param {string} fontFamily 
+   *
+   * @param {*} properties
+   * @param {string} fontFamily
    * @returns {import('opentype.js').Font | import('fontkit').Font | undefined}
    */
   getFontForProperties(properties = {}, fontFamily) {
-    let key = this.getFontFilenameForProperties(properties),
-      keyWithFontFamily = this.getFontFilenameForProperties(properties, fontFamily);
+    let keyWithFontFamily = this.getFontFilenameForProperties(
+      properties,
+      fontFamily
+    );
     return (
       this.fontDictionary &&
       (this.fontDictionary[keyWithFontFamily] ||
@@ -678,11 +682,11 @@ export class ChantContext {
   }
 
   /**
-   * 
+   *
    * @param {string} font : ;
-   * @param {number} size 
-   * @param {any} baseStyle 
-   * @param {{ [key: string]: import('opentype.js').Font }} fontDictionary 
+   * @param {number} size
+   * @param {any} baseStyle
+   * @param {{ [key: string]: import('opentype.js').Font }} fontDictionary
    */
   setFont(font, size = 16, baseStyle = {}, fontDictionary) {
     for (let [key, textType] of Object.entries(TextTypes)) {
@@ -709,7 +713,9 @@ export class ChantContext {
   }
 
   setMergeAnnotationWithTextLeft(merge) {
-    this.mergeAnnotationWithTextLeft = merge ? __mergeAnnotationWithTextLeft : undefined;
+    this.mergeAnnotationWithTextLeft = merge
+      ? __mergeAnnotationWithTextLeft
+      : undefined;
   }
 
   setScaleDefs(scaleDefs) {
@@ -854,17 +860,17 @@ export class ChantLayoutElement {
   }
 
   // draws the element on an html5 canvas
-  draw(ctxt) {
+  draw(_ctxt) {
     throw "ChantLayout Elements must implement draw(ctxt)";
   }
 
   // returns svg element
-  createSvgNode(ctxt) {
+  createSvgNode(_ctxt) {
     throw "ChantLayout Elements must implement createSvgNode(ctxt)";
   }
 
   // returns svg code for the element, used for printing support
-  createSvgFragment(ctxt) {
+  createSvgFragment(_ctxt) {
     throw "ChantLayout Elements must implement createSvgFragment(ctxt)";
   }
 }
@@ -1027,20 +1033,19 @@ export class NeumeLineVisualizer extends ChantLayoutElement {
 export class NeumeBeamVisualizer extends ChantLayoutElement {
   constructor(ctxt, x0, x1, staffPosition0, staffPosition1, yOffset = 0) {
     super();
-    
+
     var y0 = ctxt.calculateHeightFromStaffPosition(staffPosition0);
     var y1 = ctxt.calculateHeightFromStaffPosition(staffPosition1);
-    
+
     if (y0 === y1 && x0 === x1) {
       y0 -= ctxt.staffInterval / 2;
-      x0 -= ctxt.staffInterval * 2 / 3;
+      x0 -= (ctxt.staffInterval * 2) / 3;
     }
 
     this.bounds.x = x0;
-    this.bounds.y = y0 + (yOffset * ctxt.neumeLineWeight * 6);
+    this.bounds.y = y0 + yOffset * ctxt.neumeLineWeight * 6;
     this.bounds.width = x1 - x0;
     this.bounds.height = y1 - y0;
-
 
     this.origin.x = 0;
     this.origin.y = 0;
@@ -1155,7 +1160,8 @@ export class LineaVisualizer extends ChantLayoutElement {
 
     var staffPosition = note.staffPosition;
 
-    var y0 = ctxt.calculateHeightFromStaffPosition(staffPosition) - note.origin.y;
+    var y0 =
+      ctxt.calculateHeightFromStaffPosition(staffPosition) - note.origin.y;
     var y1 = y0 + note.bounds.height;
 
     this.bounds.x = 0;
@@ -1197,24 +1203,35 @@ export class LineaVisualizer extends ChantLayoutElement {
   }
 
   createSvgNode(ctxt) {
-    return QuickSvg.createNode("g", null, [
-      this.bounds.x,
-      this.bounds.x + this.bounds.width - ctxt.neumeLineWeight
-    ].map(x => QuickSvg.createNode("rect", this.getSvgProps(ctxt, x))));
+    return QuickSvg.createNode(
+      "g",
+      null,
+      [
+        this.bounds.x,
+        this.bounds.x + this.bounds.width - ctxt.neumeLineWeight
+      ].map((x) => QuickSvg.createNode("rect", this.getSvgProps(ctxt, x)))
+    );
   }
 
   createSvgTree(ctxt) {
-    return QuickSvg.createSvgTree("g", {}, ...[
-      this.bounds.x,
-      this.bounds.x + this.bounds.width - ctxt.neumeLineWeight
-    ].map(x => QuickSvg.createSvgTree("rect", this.getSvgProps(ctxt, x))));
+    return QuickSvg.createSvgTree(
+      "g",
+      {},
+      ...[
+        this.bounds.x,
+        this.bounds.x + this.bounds.width - ctxt.neumeLineWeight
+      ].map((x) => QuickSvg.createSvgTree("rect", this.getSvgProps(ctxt, x)))
+    );
   }
 
   createSvgFragment(ctxt) {
-    return QuickSvg.createFragment("g", null, [
-      this.bounds.x,
-      this.bounds.x + this.bounds.width - ctxt.neumeLineWeight
-    ].map(x => QuickSvg.createFragment("rect", this.getSvgProps(ctxt, x))).join(''));
+    return QuickSvg.createFragment(
+      "g",
+      null,
+      [this.bounds.x, this.bounds.x + this.bounds.width - ctxt.neumeLineWeight]
+        .map((x) => QuickSvg.createFragment("rect", this.getSvgProps(ctxt, x)))
+        .join("")
+    );
   }
 }
 
@@ -1237,10 +1254,10 @@ export class GlyphVisualizer extends ChantLayoutElement {
         glyphCode = this.glyphCode = GlyphCode.None;
       else this.glyphCode = glyphCode;
 
-      let glyph = this.glyph = Glyphs[glyphCode];
+      let glyph = (this.glyph = Glyphs[glyphCode]);
 
       // if this glyph hasn't been used yet, then load it up in the defs section for sharing
-      if (!ctxt.defs.hasOwnProperty(glyphCode)) {
+      if (!Object.prototype.hasOwnProperty.call(ctxt.defs, glyphCode)) {
         var getDefProps = () => {
           var options = {
             id: glyphCode,
@@ -1262,11 +1279,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
 
           if (ctxt.defsNode)
             ctxt.defsNode.appendChild(
-              QuickSvg.createNode(
-                "g",
-                options,
-                QuickSvg.nodesForGlyph(glyph)
-              )
+              QuickSvg.createNode("g", options, QuickSvg.nodesForGlyph(glyph))
             );
         };
         makeDef.makeSvgTree = () => {
@@ -1303,7 +1316,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
 
     const porrectusResult = /^Porrectus([1-9])$/.exec(this.glyphCode);
     const porrectusNoteDiff = porrectusResult ? Number(porrectusResult[1]) : 0;
-    
+
     var x = this.bounds.x + this.origin.x;
     var y = this.bounds.y + this.origin.y;
     var scaleX = ctxt.glyphScaling;
@@ -1327,7 +1340,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
   }
 
   getSvgAttributes(ctxt, source) {
-    let className = "";
+    let className;
     const porrectusResult = /^Porrectus([1-9])$/.exec(this.glyphCode);
     const porrectusNoteDiff = porrectusResult ? Number(porrectusResult[1]) : 0;
     if (porrectusNoteDiff) {
@@ -1339,8 +1352,8 @@ export class GlyphVisualizer extends ChantLayoutElement {
           ? "selected"
           : "selectedA"
         : nextNote.selected
-        ? "selectedB"
-        : "";
+          ? "selectedB"
+          : "";
     } else {
       let isSelected =
         source && (source.selected || (source.model && source.model.selected));
@@ -1353,15 +1366,15 @@ export class GlyphVisualizer extends ChantLayoutElement {
     if (source) {
       result["source-index"] = source.sourceIndex;
       result["element-index"] = source.elementIndex;
-      if ('noteIndex' in source) {
-        result.class += ' note';
+      if ("noteIndex" in source) {
+        result.class += " note";
         result.id = ctxt.noteIdPrefix + (source.noteIndex + 1);
         if (source.neume) {
           const glyphCode = source.glyphVisualizer.glyphCode;
           if (porrectusNoteDiff) {
-            result.class += ' porrectus porrectus-start';
-          } else if (glyphCode === 'None') {
-            result.class += ' porrectus porrectus-end';
+            result.class += " porrectus porrectus-start";
+          } else if (glyphCode === "None") {
+            result.class += " porrectus porrectus-end";
           }
         }
       }
@@ -1711,15 +1724,18 @@ export class TextSpan {
     this.activeTags = activeTags || [];
     this.index = index;
     if (extraProps) {
-      if ('xOffset' in extraProps) this.xOffset = extraProps.xOffset;
-      if ('newLine' in extraProps) this.newLine = extraProps.newLine;
+      if ("xOffset" in extraProps) this.xOffset = extraProps.xOffset;
+      if ("newLine" in extraProps) this.newLine = extraProps.newLine;
     }
   }
 
   get properties() {
-    const result = Object.assign.apply(null, [{}].concat(this.propertyArray).concat());
-    if ('xOffset' in this) result.xOffset = this.xOffset;
-    if ('newLine' in this) result.newLine = this.newLine;
+    const result = Object.assign.apply(
+      null,
+      [{}].concat(this.propertyArray).concat()
+    );
+    if ("xOffset" in this) result.xOffset = this.xOffset;
+    if ("newLine" in this) result.newLine = this.newLine;
     return result;
   }
 
@@ -1730,8 +1746,8 @@ export class TextSpan {
       this.activeTags,
       this.index
     );
-    if ('xOffset' in this) result.xOffset = this.xOffset;
-    if ('newLine' in this) result.newLine = this.newLine;
+    if ("xOffset" in this) result.xOffset = this.xOffset;
+    if ("newLine" in this) result.newLine = this.newLine;
     return result;
   }
 }
@@ -1748,7 +1764,13 @@ class MarkupStackFrame {
     return Object.assign.apply(null, [{}].concat(this.propertyArray));
   }
 
-  static createStackFrame(ctxt, tagName, startIndex, extraProperties = {}, symbol = '') {
+  static createStackFrame(
+    ctxt,
+    tagName,
+    startIndex,
+    extraProperties = {},
+    symbol = ""
+  ) {
     return new MarkupStackFrame(
       tagName,
       startIndex,
@@ -1813,8 +1835,8 @@ export class TextElement extends ChantLayoutElement {
         text === "*"
           ? [ctxt.asteriskProperties]
           : text === "+"
-          ? [ctxt.plusProperties]
-          : null;
+            ? [ctxt.plusProperties]
+            : null;
       text = ctxt.specialCharText(text) || text;
       this.spans.push(new TextSpan(text, properties));
       return;
@@ -1848,11 +1870,12 @@ export class TextElement extends ChantLayoutElement {
         span.newLine = newLineInNextSpan;
         newLineInNextSpan = 0;
       }
-
     };
 
-    var markupRegex = /(<br\/?>)|<v>([\s\S]*?)(?:<\/v>|$)|(\*)(?=\s*\*|[^*]*(?:$|<v>))|(\+)|<sp>(?:(~)|(')?([ao]e|[æœaeiouy])|([arv])\/)<\/sp>|([arv])\/\.|([℣℟])\.?|(?:([*_^%])|<(\/)?([bceiuv]|ul|sc|font)(?:\s+(?:family="([^"]+)"|fill="([^"]+)"|class="([^"]+)"))*>)(?=(?:(.+?)(?:\11|<\/\13>))?)/gi;
-    var vTagRegex = /(\\grecross)|\{greextra\}\{([^}]*)\}|\{?(\\?')?(?:\\([ao]e|æœaeiouy))\}?/gi;
+    var markupRegex =
+      /(<br\/?>)|<v>([\s\S]*?)(?:<\/v>|$)|(\*)(?=\s*\*|[^*]*(?:$|<v>))|(\+)|<sp>(?:(~)|(')?([ao]e|[æœaeiouy])|([arv])\/)<\/sp>|([arv])\/\.|([℣℟])\.?|(?:([*_^%])|<(\/)?([bceiuv]|ul|sc|font)(?:\s+(?:family="([^"]+)"|fill="([^"]+)"|class="([^"]+)"))*>)(?=(?:(.+?)(?:\11|<\/\13>))?)/gi;
+    var vTagRegex =
+      /(\\grecross)|\{greextra\}\{([^}]*)\}|\{?(\\?')?(?:\\([ao]e|æœaeiouy))\}?/gi;
     var match = null;
     var openedAsterisk = false;
     var closeCurrentSpan = () =>
@@ -1894,24 +1917,29 @@ export class TextElement extends ChantLayoutElement {
         let iOffset = 0;
         while ((vMatch = vTagRegex.exec(vTag))) {
           if (lastIndex < vMatch.index) {
-            closeSpan(vTag.slice(lastIndex, vMatch.index), match.index + lastIndex + iOffset);
+            closeSpan(
+              vTag.slice(lastIndex, vMatch.index),
+              match.index + lastIndex + iOffset
+            );
             iOffset = 3; // length of '<v>'
           }
           let [, grecross, greextra, accent, diphthong] = vMatch;
-          let char = '';
+          let char;
           if (diphthong) {
             char = makeLigature(diphthong);
             if (accent) char = addAccent(char);
-            closeSpan(char, match.index + vMatch.index + iOffset)
+            closeSpan(char, match.index + vMatch.index + iOffset);
           } else {
             if (grecross) {
               // grecross is just the command for the Cross:
               // set up greextra so it will get handled with it below:
-              greextra = 'Cross';
-            }    
+              greextra = "Cross";
+            }
             char = greextraGlyphs[greextra];
             if (char) {
-              closeSpan(char, match.index + vMatch.index + iOffset, { 'font-family': 'greextra' })
+              closeSpan(char, match.index + vMatch.index + iOffset, {
+                "font-family": "greextra"
+              });
             }
           }
           lastIndex = vTagRegex.lastIndex;
@@ -1931,14 +1959,22 @@ export class TextElement extends ChantLayoutElement {
           markupStack.pop();
         } else {
           // add special asterisk:
-          closeSpan(ctxt.specialCharText(asterisk) || '*', match.index, ctxt.asteriskProperties);
+          closeSpan(
+            ctxt.specialCharText(asterisk) || "*",
+            match.index,
+            ctxt.asteriskProperties
+          );
         }
       } else if (plus) {
         closeCurrentSpan();
-        closeSpan(ctxt.specialCharText(plus) || '+', match.index, ctxt.plusProperties);
+        closeSpan(
+          ctxt.specialCharText(plus) || "+",
+          match.index,
+          ctxt.plusProperties
+        );
       } else if (tilde) {
         closeCurrentSpan();
-        closeSpan('∼', match.index);
+        closeSpan("∼", match.index);
       } else if (vowelLigature) {
         let vowel = makeLigature(vowelLigature);
         if (accent) vowel = addAccent(vowel);
@@ -2004,11 +2040,17 @@ export class TextElement extends ChantLayoutElement {
           } else {
             // group open
             const extraProperties = {};
-            if (family) extraProperties['font-family'] = family;
+            if (family) extraProperties["font-family"] = family;
             if (fill) extraProperties.fill = fill;
             if (cssClass) extraProperties.class = cssClass;
             markupStack.push(
-              MarkupStackFrame.createStackFrame(ctxt, tagName, match.index, extraProperties, markupSymbol)
+              MarkupStackFrame.createStackFrame(
+                ctxt,
+                tagName,
+                match.index,
+                extraProperties,
+                markupSymbol
+              )
             );
           }
         }
@@ -2044,10 +2086,10 @@ export class TextElement extends ChantLayoutElement {
 
   /**
    * if length is undefined and this.rightAligned === true, then offsets will be marked for each newLine span
-   * 
-   * @param {ChantContext} ctxt 
-   * @param {number} length 
-   * @param {boolean} returnBBox 
+   *
+   * @param {ChantContext} ctxt
+   * @param {number} length
+   * @param {boolean} returnBBox
    * @returns measured substring, as a simple width unless returnBBox == true
    */
   measureSubstring(ctxt, length, returnBBox = false) {
@@ -2128,16 +2170,10 @@ export class TextElement extends ChantLayoutElement {
           spanFontSize *= fontSize / 100;
         }
         const y = fontSize * (numLines - 1);
-        if ('getPath' in font) {
+        if ("getPath" in font) {
           // opentype.js
           let subBbox = font
-            .getPath(
-              myText,
-              width,
-              y,
-              spanFontSize,
-              options
-            )
+            .getPath(myText, width, y, spanFontSize, options)
             .getBoundingBox();
           let subWidth = font.getAdvanceWidth(myText, spanFontSize, options);
           bbox.union(
@@ -2155,7 +2191,7 @@ export class TextElement extends ChantLayoutElement {
         } else {
           // fontkit
           const run = font.layout(myText, options.features);
-          const { unitsPerEm }= font;
+          const { unitsPerEm } = font;
           const multiplier = spanFontSize / unitsPerEm;
           let subBbox = run.bbox;
           let subWidth = run.advanceWidth * multiplier;
@@ -2164,14 +2200,14 @@ export class TextElement extends ChantLayoutElement {
               width + subBbox.minX * multiplier,
               y - subBbox.maxY * multiplier,
               subWidth - subBbox.minX * multiplier,
-              (subBbox.height) * multiplier
+              subBbox.height * multiplier
             )
           );
           width += subWidth;
           if (this instanceof DropCap) {
             width -= subBbox.minX * multiplier;
           }
-        }        
+        }
       }
       subStringLength += myText.length;
       if (subStringLength === length) break;
@@ -2239,8 +2275,7 @@ export class TextElement extends ChantLayoutElement {
     }
     this.numLines = this.spans.reduce(
       (result, span) =>
-        result +
-        (span.newLine ? parseInt(span.newLine) || 1 : 0),
+        result + (span.newLine ? parseInt(span.newLine) || 1 : 0),
       1
     );
   }
@@ -2258,8 +2293,7 @@ export class TextElement extends ChantLayoutElement {
       } else {
         if (firstLineMaxWidth < 0) firstLineMaxWidth = maxWidth;
         this.firstLineMaxWidth = firstLineMaxWidth;
-        var lastWidth = 0,
-          lastMatch = null,
+        var lastMatch = null,
           regex = /\s+|$/g,
           max = firstLineMaxWidth,
           match;
@@ -2316,10 +2350,8 @@ export class TextElement extends ChantLayoutElement {
               this.measureSubstring(ctxt) <= maxWidth
             )
               break;
-            width = 0;
-            match = lastMatch = null;
+            match = null;
           }
-          lastWidth = width;
           lastMatch = match;
         }
       }
@@ -2453,7 +2485,7 @@ export class TextElement extends ChantLayoutElement {
     const extraStyleProperties = this.getExtraStyleProperties(ctxt);
     options.style = getCssForProperties(extraStyleProperties);
     if (extraStyleProperties.class) {
-      options.class = extraStyleProperties.class + ' ' + options.class;
+      options.class = extraStyleProperties.class + " " + options.class;
     }
     options.source = this;
 
@@ -2472,7 +2504,7 @@ export class TextElement extends ChantLayoutElement {
     let options = this.getSvgProps();
     options.style = this.getExtraStyleProperties(ctxt);
     if (options.style.class) {
-      options.class = options.style.class + ' ' + options.class;
+      options.class = options.style.class + " " + options.class;
     }
     options.source = this;
 
@@ -2494,10 +2526,10 @@ export class TextElement extends ChantLayoutElement {
     }
 
     let options = this.getSvgProps();
-    const extraStyleProperties = this.getExtraStyleProperties(ctxt)
+    const extraStyleProperties = this.getExtraStyleProperties(ctxt);
     options.style = getCssForProperties(extraStyleProperties);
     if (extraStyleProperties.class) {
-      options.class = extraStyleProperties.class + ' ' + options.class;
+      options.class = extraStyleProperties.class + " " + options.class;
     }
     if (ctxt.setFontFamilyAttributes) {
       options["font-size"] = this.fontSize(ctxt);
@@ -2764,17 +2796,24 @@ export class Lyric extends TextElement {
         let indexOffset = startIndex;
         for (var span of this.spans) {
           let endIndex = index + span.text.length;
-          if (span.activeTags.includes('e')) {
+          if (span.activeTags.includes("e")) {
             if (index <= startIndex) {
               startIndex = endIndex;
             } else {
-              ignore.push({ index: index - indexOffset, endIndex: endIndex - indexOffset });
+              ignore.push({
+                index: index - indexOffset,
+                endIndex: endIndex - indexOffset
+              });
             }
           }
           index = endIndex;
         }
         // Non-directive elements are lined up to the chant notation based on vowel segments,
-        var result = activeLanguage.findVowelSegment(this.text, startIndex, ignore);
+        var result = activeLanguage.findVowelSegment(
+          this.text,
+          startIndex,
+          ignore
+        );
 
         if (result.found !== true) {
           var match = this.text.slice(startIndex).match(/[a-z]+/i);
@@ -2816,7 +2855,10 @@ export class Lyric extends TextElement {
   generateDropCap(ctxt) {
     if (this.dropCap) return this.dropCap;
     // disallow special characters:
-    if (this.spans[0].properties['font-family'] === ctxt.specialCharProperties['font-family']) {
+    if (
+      this.spans[0].properties["font-family"] ===
+      ctxt.specialCharProperties["font-family"]
+    ) {
       return null;
     }
     let dropCapSpan = this.spans[0].clone();
@@ -3007,9 +3049,10 @@ export class Supertitle extends TitleTextElement {
     );
     this.textType = TextTypes.supertitle;
 
-    this.padding = (ctxt) => (
-      (Number(ctxt.textStyles.supertitle.padding) || 1) * ctxt.textStyles.supertitle.size / 3
-    );
+    this.padding = (ctxt) =>
+      ((Number(ctxt.textStyles.supertitle.padding) || 1) *
+        ctxt.textStyles.supertitle.size) /
+      3;
   }
 }
 
@@ -3026,9 +3069,10 @@ export class Title extends TitleTextElement {
     );
     this.textType = TextTypes.title;
 
-    this.padding = (ctxt) => (
-      (Number(ctxt.textStyles.title.padding) || 1) * ctxt.textStyles.title.size / 3
-    );
+    this.padding = (ctxt) =>
+      ((Number(ctxt.textStyles.title.padding) || 1) *
+        ctxt.textStyles.title.size) /
+      3;
   }
 }
 
@@ -3045,9 +3089,10 @@ export class Subtitle extends TitleTextElement {
     );
     this.textType = TextTypes.subtitle;
 
-    this.padding = (ctxt) => (
-      (Number(ctxt.textStyles.subtitle.padding) || 1) * ctxt.textStyles.subtitle.size / 3
-    );
+    this.padding = (ctxt) =>
+      ((Number(ctxt.textStyles.subtitle.padding) || 1) *
+        ctxt.textStyles.subtitle.size) /
+      3;
   }
 }
 
@@ -3065,9 +3110,10 @@ export class TextLeftRight extends TitleTextElement {
     this.textType = TextTypes.leftRight;
     this.extraClass = type === "textLeft" ? "textLeft" : "textRight";
     this.headerKey = type === "textLeft" ? "text-left" : "text-right";
-    this.padding = (ctxt) => (
-      (Number(ctxt.textStyles.leftRight.padding) || 1) * ctxt.textStyles.leftRight.size / 5
-    );
+    this.padding = (ctxt) =>
+      ((Number(ctxt.textStyles.leftRight.padding) || 1) *
+        ctxt.textStyles.leftRight.size) /
+      5;
   }
 
   getCssClasses() {
@@ -3088,7 +3134,7 @@ export class Annotation extends TextElement {
       "middle"
     );
     this.sourceGabc = text;
-    if (typeof elementIndex === 'number') this.elementIndex = elementIndex;
+    if (typeof elementIndex === "number") this.elementIndex = elementIndex;
     this.textType = TextTypes.annotation;
     this.padding = ctxt.staffInterval * ctxt.textStyles.annotation.padding;
     this.dominantBaseline = "hanging"; // so that annotations can be aligned at the top.
@@ -3141,7 +3187,8 @@ export class Annotations extends ChantLayoutElement {
       annotation.bounds.y += y;
       this.bounds.height = annotation.bounds.bottom();
       this.origin.y = this.origin.y || annotation.origin.y;
-      y += annotation.fontSize(ctxt) * (annotation.resize || 1) * this.lineHeight;
+      y +=
+        annotation.fontSize(ctxt) * (annotation.resize || 1) * this.lineHeight;
     }
   }
 
@@ -3195,12 +3242,12 @@ export class ChantNotationElement extends ChantLayoutElement {
     this.lyrics = [];
 
     /**
-     * @type {ChantScore}
+     * @type {import("./Exsurge.Chant.js").ChantScore}
      */
     this.score = null; // the ChantScore
 
     /**
-     * @type {ChantLine}
+     * @type {import("./Exsurge.Chant.ChantLine.js").ChantLine}
      */
     this.line = null; // the ChantLine
 
@@ -3402,12 +3449,12 @@ export class ChantNotationElement extends ChantLayoutElement {
 
 const __connectorSpan = new TextSpan(" • ");
 const __mergeAnnotationWithTextLeft = (...annotationSpans) =>
-    annotationSpans.reduce((result, spans) => {
-      if (result && result.length) {
-        if (spans && spans.length) return result.concat(__connectorSpan, spans);
-        else return result;
-      } else if (spans && spans.length) {
-        return spans;
-      }
-      return [];
-    });
+  annotationSpans.reduce((result, spans) => {
+    if (result && result.length) {
+      if (spans && spans.length) return result.concat(__connectorSpan, spans);
+      else return result;
+    } else if (spans && spans.length) {
+      return spans;
+    }
+    return [];
+  });

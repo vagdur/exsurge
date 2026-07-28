@@ -117,6 +117,7 @@ export var PlaybackVelocities = {
 //
 // This must stay instanceof-based. Matching on constructor.name would break in
 // dist/exsurge.min.js, where UglifyJS mangles class names.
+/** @type {[Function, string|null][]} */
 var __dividerKinds = [
   [InsertionCursor, null],
   [Virgula, "virgula"],
@@ -130,7 +131,7 @@ var __dividerKinds = [
 /**
  * Identifies which kind of bar line a divider is, for rest length purposes.
  *
- * @param {Divider} divider
+ * @param {import("./Exsurge.Chant.Signs.js").Divider} divider
  * @return {string|null} a key into PlaybackRests, or null if it never sounds
  */
 export function classifyDivider(divider) {
@@ -177,8 +178,7 @@ export function pitchToFrequency(pitch, tuning, transpose) {
  * @return {number} seconds
  */
 export function secondsPerPulse(speedPercent, basePulseSeconds) {
-  var base =
-    typeof basePulseSeconds === "number" ? basePulseSeconds : 0.4;
+  var base = typeof basePulseSeconds === "number" ? basePulseSeconds : 0.4;
   var percent = typeof speedPercent === "number" ? speedPercent : 100;
   if (percent <= 0) percent = 100;
   return (base * 100) / percent;
@@ -250,9 +250,29 @@ function makeNoteSlot(note, durations, velocities) {
  * positions. Gabc bakes the active clef and accidental into note.pitch at parse
  * time, so mid-score clef changes and accidentals are already accounted for.
  *
- * @param {ChantScore} score
- * @param {object} [options] durations, restWeights, velocities, classifyDivider
- * @return {object} { events, totalPulses, eventIndexByNoteIndex }
+ * @typedef {object} PlaybackEvent
+ * @property {"note"|"rest"} kind
+ * @property {object|null} note the source note, or null for a rest
+ * @property {number|null} noteIndex index into score.notes, null for a rest
+ * @property {number|null} elementIndex
+ * @property {number|null} pitchInt absolute semitone, null when unpitched
+ * @property {string|undefined} dividerKind set on rests produced by a bar line
+ * @property {number} velocity 0 for silent events
+ * @property {number} startPulse cumulative pulse offset of this event
+ * @property {number} pulses duration of this event in pulses
+ */
+
+/**
+ * @typedef {object} PlaybackTimeline
+ * @property {PlaybackEvent[]} events dense and monotonic in startPulse
+ * @property {number} totalPulses
+ * @property {number[]} eventIndexByNoteIndex maps a note index to its event
+ */
+
+/**
+ * @param {import("./Exsurge.Chant.js").ChantScore} score
+ * @param {{durations?: {beforeDivider?: object}, restWeights?: object, velocities?: object, classifyDivider?: Function}} [options]
+ * @return {PlaybackTimeline}
  */
 export function createPlaybackEvents(score, options) {
   var opts = options || {};
@@ -264,11 +284,7 @@ export function createPlaybackEvents(score, options) {
     (opts.durations || {}).beforeDivider || {}
   );
   var rests = Object.assign({}, PlaybackRests, opts.restWeights || {});
-  var velocities = Object.assign(
-    {},
-    PlaybackVelocities,
-    opts.velocities || {}
-  );
+  var velocities = Object.assign({}, PlaybackVelocities, opts.velocities || {});
   var classify = opts.classifyDivider || classifyDivider;
 
   var notations = (score && score.notations) || [];
@@ -349,7 +365,8 @@ export function createPlaybackEvents(score, options) {
     if (s.kind === "rest" && pulses <= 0) continue;
     if (pulses < 0) pulses = 0;
 
-    if (s.noteIndex !== null) eventIndexByNoteIndex[s.noteIndex] = events.length;
+    if (s.noteIndex !== null)
+      eventIndexByNoteIndex[s.noteIndex] = events.length;
 
     events.push({
       kind: s.kind,

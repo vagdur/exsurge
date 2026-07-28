@@ -23,20 +23,15 @@
 // THE SOFTWARE.
 //
 
-import {
-  Units,
-  Pitch,
-  Point,
-  Rect,
-  Margins,
-  Size,
-  Step
-} from "./Exsurge.Core.js";
+// @ts-nocheck -- 43 checkJs findings, almost all TS2339 for fields
+// assigned to instances outside the constructor. Declaring them is tracked
+// separately; see the typecheck notes in CLAUDE.md.
+
+import { Step } from "./Exsurge.Core.js";
 import {
   MarkingPositionHint,
   LyricType,
   Lyric,
-  LyricArray,
   AboveLinesText,
   ChoralSign,
   TranslationText,
@@ -49,8 +44,6 @@ import {
   NoteShape,
   NoteShapeModifiers,
   ChantMapping,
-  ChantScore,
-  ChantDocument,
   Clef,
   DoClef,
   FaClef,
@@ -64,10 +57,11 @@ import * as Signs from "./Exsurge.Chant.Signs.js";
 import * as Neumes from "./Exsurge.Chant.Neumes.js";
 
 // reusable reg exps
-var __syllablesRegex = /(?=\S)((?:<v>[\s\S]*?<\/v>|[^(])*)(?:\(?([^)]*)\)?)?/g
+var __syllablesRegex = /(?=\S)((?:<v>[\s\S]*?<\/v>|[^(])*)(?:\(?([^)]*)\)?)?/g;
 var __altTranslationRegex = /<alt>(.*?)<\/alt>|\[(alt:)?(.*?)\]/g;
 
-var __notationsRegex = /z0|z|Z|(::|(?::|[,;][1-8]?|`)_?)|(?:[cfg]|cb|treble-?|xp-?)[1-5]|\/+| |\!|-?[a-nA-N][oOwWvVrRsxy#~\+><_\.'0123459|]*(?:\[[^\]]*\]?)*|\{([^}]+)\}?/g;
+var __notationsRegex =
+  /z0|z|Z|(::|(?::|[,;][1-8]?|`)_?)|(?:[cfg]|cb|treble-?|xp-?)[1-5]|\/+| |!|-?[a-nA-N][oOwWvVrRsxy#~+><_.'0123459|]*(?:\[[^\]]*\]?)*|\{([^}]+)\}?/g;
 var __notationsRegex_group_bar = 1;
 var __notationsRegex_group_insideBraces = 2;
 
@@ -82,9 +76,9 @@ var __bracketedCommandRegex = /^([a-z]+):(.*)/;
 //  5. a float indicating the millimeter length of the brace (not supported yet)
 var __braceSpecRegex = /([ou])(b|cb|cba):([01])(?:([{}])|;(\d*(?:\.\d+)?)mm)/;
 
-const TrailingSpaceForAccidental = ctxt =>
+const TrailingSpaceForAccidental = (ctxt) =>
   ctxt.intraNeumeSpacing * ctxt.accidentalSpaceMultiplier;
-const TrailingSpaceMultiple = multiplier => ctxt =>
+const TrailingSpaceMultiple = (multiplier) => (ctxt) =>
   ctxt.intraNeumeSpacing * multiplier;
 
 const regexHeaderEnd = /(?:^|\n)%%\s?\n/;
@@ -112,7 +106,7 @@ export class GabcHeader {
         let line = lines[i],
           match = regexHeaderLine.exec(line);
         if (match) {
-          var key = match[1].replace(/-([a-z])/g, function(a, letter) {
+          var key = match[1].replace(/-([a-z])/g, function (a, letter) {
             return letter.toUpperCase();
           });
           if (this[match[1]]) {
@@ -125,11 +119,11 @@ export class GabcHeader {
             this[match[1]] = match[2];
           }
           if (key !== match[1]) this[key] = this[match[1]];
-        } else if ((match = regexHeaderComment.exec(line))) {
+        } else if (regexHeaderComment.exec(line)) {
           if (line !== "%%") {
             match = regexHeaderLine.exec(line.slice(1));
             if (match) {
-              let key = match[1].replace(/-([a-z])/g, function(a, letter) {
+              let key = match[1].replace(/-([a-z])/g, function (a, letter) {
                 return letter.toUpperCase();
               });
               this.cValues[match[1]] = match[2];
@@ -152,7 +146,7 @@ export class GabcHeader {
       ) {
         continue;
       }
-      var alternateKey = key.replace(/[A-Z]/g, function(letter) {
+      var alternateKey = key.replace(/[A-Z]/g, function (letter) {
         return "-" + letter.toLowerCase();
       });
       if (alternateKey !== key && alternateKey in this) continue;
@@ -166,11 +160,15 @@ export class GabcHeader {
       }
     }
     for (let key in this.cValues) {
-      if (key.length === 0 || !this.cValues.hasOwnProperty(key)) continue;
+      if (
+        key.length === 0 ||
+        !Object.prototype.hasOwnProperty.call(this.cValues, key)
+      )
+        continue;
       result.push("%" + key + ": " + this.cValues[key] + ";");
     }
     for (let i in this.comments) {
-      if (!this.comments.hasOwnProperty(i)) continue;
+      if (!Object.prototype.hasOwnProperty.call(this.comments, i)) continue;
       try {
         result.splice(i, 0, this.comments[i]);
       } catch (e) {
@@ -181,7 +179,7 @@ export class GabcHeader {
   }
 }
 
-var elementCountForNotations = items =>
+var elementCountForNotations = (items) =>
   items.reduce((sum, item) => sum + (item.notes ? item.notes.length : 1), 0);
 
 export class Gabc {
@@ -200,7 +198,7 @@ export class Gabc {
     var mappings = this.createMappingsFromWords(
       ctxt,
       words,
-      clef => (ctxt.activeClef = clef)
+      (clef) => (ctxt.activeClef = clef)
     );
 
     // always set the last notation to have a trailingSpace of 0. This makes layout for the last chant line simpler
@@ -324,7 +322,7 @@ export class Gabc {
       k,
       l,
       sourceIndex = 0,
-      wordLength = 0,
+      wordLength,
       mapping,
       elementIndex = 0;
 
@@ -423,7 +421,7 @@ export class Gabc {
                     this.needToEndBrace.isAbove,
                     this.needToEndBrace.shape,
                     this.needToEndBrace.attachment ===
-                    Markings.BraceAttachment.Left
+                      Markings.BraceAttachment.Left
                       ? Markings.BraceAttachment.Right
                       : Markings.BraceAttachment.Left
                   );
@@ -619,7 +617,9 @@ export class Gabc {
         break;
       }
 
-      var m = __altTranslationRegex.exec();
+      // the regex is global, so reset it before the loop below walks it
+      __altTranslationRegex.lastIndex = 0;
+      let m;
       let indexOffset = 0;
       while ((m = __altTranslationRegex.exec(lyricText))) {
         let index = m.index;
@@ -746,7 +746,9 @@ export class Gabc {
         let index = match.index;
         let length = match[0].length;
         vtags[index] = length;
-        lyricTextWithoutVTags = lyricTextWithoutVTags.slice(0, index) + lyricTextWithoutVTags.slice(index + length);
+        lyricTextWithoutVTags =
+          lyricTextWithoutVTags.slice(0, index) +
+          lyricTextWithoutVTags.slice(index + length);
       }
       var centerStartIndex = lyricTextWithoutVTags.indexOf("{");
       var centerLength = 0;
@@ -762,14 +764,17 @@ export class Gabc {
             // map indices back to the lyricText with the V tags:
             let accum = 0;
             for (let index in vtags) {
-              if (vtags.hasOwnProperty(index) && indexWithoutVTags >= index) {
+              if (
+                Object.prototype.hasOwnProperty.call(vtags, index) &&
+                indexWithoutVTags >= index
+              ) {
                 accum += vtags[index];
               } else {
                 break;
               }
             }
             return indexWithoutVTags + accum;
-          }
+          };
           centerStartIndex = getTrueIndex(centerStartIndex);
           indexClosingBracket = getTrueIndex(indexClosingBracket);
           centerLength = indexClosingBracket - centerStartIndex - 1;
@@ -882,17 +887,17 @@ export class Gabc {
     if (!data) return [new TextOnly(sourceIndex, 0)];
 
     var baseSourceIndex = sourceIndex;
-    var sourceLength = 0;
+    var sourceLength;
     var notations = [];
     var notes = [];
     var trailingSpace = DefaultTrailingSpace;
 
-    var addToLastSourceGabc = gabc => {
+    var addToLastSourceGabc = (gabc) => {
       if (notes.length > 0) {
         notes[notes.length - 1].sourceGabc += gabc;
       }
     };
-    var addNotation = notation => {
+    var addNotation = (notation) => {
       // first, if we have any notes left over, we create a neume out of them
       if (notes.length > 0) {
         // create neume(s)
@@ -943,7 +948,7 @@ export class Gabc {
       var atom = match[0];
       var bar = match[__notationsRegex_group_bar];
 
-      let barWithCarryover = !!bar && bar.endsWith('_');
+      let barWithCarryover = !!bar && bar.endsWith("_");
       if (barWithCarryover) {
         atom = atom.slice(0, -1);
       }
@@ -990,14 +995,18 @@ export class Gabc {
         case "c3":
         case "c4":
         case "c5":
-          addNotation((ctxt.activeClef = new DoClef(2 * parseInt(atom[1], 10) - 1, 2)));
+          addNotation(
+            (ctxt.activeClef = new DoClef(2 * parseInt(atom[1], 10) - 1, 2))
+          );
           break;
         case "f1":
         case "f2":
         case "f3":
         case "f4":
         case "f5":
-          addNotation((ctxt.activeClef = new FaClef(2 * parseInt(atom[1], 10) - 1, 2)));
+          addNotation(
+            (ctxt.activeClef = new FaClef(2 * parseInt(atom[1], 10) - 1, 2))
+          );
           break;
         case "treble1":
         case "treble2":
@@ -1009,7 +1018,14 @@ export class Gabc {
         case "treble-3":
         case "treble-4":
         case "treble-5":
-          addNotation((ctxt.activeClef = new TrebleClef(2 * parseInt(atom.slice(-1), 10) - 1, 2, null, atom[6] === '-')));
+          addNotation(
+            (ctxt.activeClef = new TrebleClef(
+              2 * parseInt(atom.slice(-1), 10) - 1,
+              2,
+              null,
+              atom[6] === "-"
+            ))
+          );
           break;
         case "xp1":
         case "xp2":
@@ -1021,7 +1037,14 @@ export class Gabc {
         case "xp-3":
         case "xp-4":
         case "xp-5":
-          addNotation((ctxt.activeClef = new ChiRhoClef(2 * parseInt(atom.slice(-1), 10) - 1, 2, null, atom.slice(-2, -1) === '-')));
+          addNotation(
+            (ctxt.activeClef = new ChiRhoClef(
+              2 * parseInt(atom.slice(-1), 10) - 1,
+              2,
+              null,
+              atom.slice(-2, -1) === "-"
+            ))
+          );
           break;
         case "cb1":
         case "cb2":
@@ -1123,7 +1146,7 @@ export class Gabc {
               sourceIndex + 1
             );
             // Set the width of these notations to 0
-            bracketedNotations.forEach(neume => {
+            bracketedNotations.forEach((neume) => {
               neume.hasNoWidth = true;
               neume.firstWithNoWidth = bracketedNotations[0];
             });
@@ -1166,7 +1189,11 @@ export class Gabc {
     // determine what to do...either transition to a different neume/state, or
     // continue building the neume of that state. handle() returns the next state
 
-    var createNeume = function(neume, includeCurrNote, includePrevNote = true) {
+    var createNeume = function (
+      neume,
+      includeCurrNote,
+      includePrevNote = true
+    ) {
       // add the notes to the neume
       var lastNoteIndex;
       if (includeCurrNote) lastNoteIndex = currNoteIndex;
@@ -1205,10 +1232,10 @@ export class Gabc {
     };
 
     var unknownState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Punctum();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, _prevNote) {
         if (currNote.shape === NoteShape.Virga) return virgaState;
         else if (currNote.shape === NoteShape.Stropha) return apostrophaState;
         else if (currNote.shape === NoteShape.Oriscus) return oriscusState;
@@ -1221,10 +1248,10 @@ export class Gabc {
     };
 
     var punctumState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Punctum();
       },
-      handle: function(currNote, prevNote, notesRemaining) {
+      handle: function (currNote, prevNote, _notesRemaining) {
         if (currNote.shape || prevNote.liquescent === LiquescentType.Small) {
           var neume = new Neumes.Punctum();
           var state = createNeume(neume, false);
@@ -1261,10 +1288,10 @@ export class Gabc {
     };
 
     var punctaInclinataState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.PunctaInclinata();
       },
-      handle: function() {
+      handle: function () {
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.PunctaInclinata(), false);
         else return punctaInclinataState;
@@ -1272,10 +1299,10 @@ export class Gabc {
     };
 
     var oriscusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Oriscus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (currNote.shape === NoteShape.Default) {
           if (currNote.staffPosition > prevNote.staffPosition) {
             prevNote.shapeModifiers |= NoteShapeModifiers.Ascending;
@@ -1304,10 +1331,10 @@ export class Gabc {
     };
 
     var podatusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Podatus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (currNote.staffPosition > prevNote.staffPosition) {
           if (currNote.ictus)
             currNote.ictus.positionHint = MarkingPositionHint.Above;
@@ -1325,10 +1352,10 @@ export class Gabc {
     };
 
     var clivisState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Clivis();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition > prevNote.staffPosition
@@ -1348,10 +1375,10 @@ export class Gabc {
     };
 
     var climacusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Climacus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, _prevNote) {
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.Climacus(), false);
         else return state;
@@ -1359,10 +1386,10 @@ export class Gabc {
     };
 
     var porrectusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Porrectus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition < prevNote.staffPosition
@@ -1373,10 +1400,10 @@ export class Gabc {
     };
 
     var pesSubpunctisState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.PesSubpunctis();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, _prevNote) {
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.PesSubpunctis(), false);
         else return state;
@@ -1384,10 +1411,10 @@ export class Gabc {
     };
 
     var salicusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Salicus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (currNote.staffPosition < prevNote.staffPosition)
           return salicusFlexusState;
         else return createNeume(new Neumes.Salicus(), false);
@@ -1395,19 +1422,19 @@ export class Gabc {
     };
 
     var salicusFlexusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.SalicusFlexus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (_currNote, _prevNote) {
         return createNeume(new Neumes.SalicusFlexus(), false);
       }
     };
 
     var scandicusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Scandicus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (
           prevNote.shape === NoteShape.Virga &&
           currNote.shape === NoteShape.Inclinatum &&
@@ -1426,19 +1453,19 @@ export class Gabc {
     };
 
     var scandicusFlexusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.ScandicusFlexus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (_currNote, _prevNote) {
         return createNeume(new Neumes.ScandicusFlexus(), false);
       }
     };
 
     var virgaState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Virga();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (
           currNote.shape === NoteShape.Inclinatum &&
           currNote.staffPosition < prevNote.staffPosition
@@ -1454,10 +1481,10 @@ export class Gabc {
     };
 
     var bivirgaState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Bivirga();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (
           currNote.shape === NoteShape.Virga &&
           currNote.staffPosition === prevNote.staffPosition
@@ -1468,10 +1495,10 @@ export class Gabc {
     };
 
     var apostrophaState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Apostropha();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (currNote.staffPosition === prevNote.staffPosition)
           return distrophaState;
         else return createNeume(new Neumes.Apostropha(), false);
@@ -1479,10 +1506,10 @@ export class Gabc {
     };
 
     var distrophaState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Distropha();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (currNote.staffPosition === prevNote.staffPosition) {
           if (prevNote.morae && prevNote.morae.length) {
             return createNeume(new Neumes.Distropha(), false);
@@ -1494,10 +1521,10 @@ export class Gabc {
     };
 
     var tristrophaState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Tristropha();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (_currNote, _prevNote) {
         // we only create a tristropha when the note run ends after three
         // and the neume() function of this state is called. Otherwise
         // we always interpret the third note to belong to the next sequence
@@ -1513,10 +1540,10 @@ export class Gabc {
     };
 
     var torculusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.Torculus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition > prevNote.staffPosition
@@ -1536,10 +1563,10 @@ export class Gabc {
     };
 
     var torculusResupinusState = {
-      neume: function() {
+      neume: function () {
         return new Neumes.TorculusResupinus();
       },
-      handle: function(currNote, prevNote) {
+      handle: function (currNote, prevNote) {
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition < prevNote.staffPosition
@@ -1620,8 +1647,6 @@ export class Gabc {
       switch (c) {
         // rhythmic markings
         case ".":
-          mark = null;
-
           // gabc supports putting up to two morae on each note, by repeating the
           // period. here, we check to see if we've already created a mora for the
           // note, and if so, we simply force the second one to have an Above
@@ -1705,7 +1730,7 @@ export class Gabc {
 
           note.ictus = mark;
           break;
-        
+
         case "|":
           note.inclinataFlags = (note.inclinataFlags || 0) + 1;
           break;
@@ -1754,7 +1779,7 @@ export class Gabc {
             i++;
           } else note.shapeModifiers |= NoteShapeModifiers.Cavum;
           break;
-        
+
         case "R":
           note.shapeModifiers |= NoteShapeModifiers.Linea;
           break;
@@ -1792,7 +1817,7 @@ export class Gabc {
 
           note.shape = NoteShape.Virga;
           break;
-        
+
         case "V":
           note.shape = NoteShape.Virga;
           note.shapeModifers |= NoteShapeModifiers.Reverse;
@@ -1984,7 +2009,7 @@ export class Gabc {
     gabcNotations = gabcNotations
       // .trim()
       // .replace(/\s/g, " ")
-      .replace(/\)\s(?=[^\)]*(?:\(|$))/g, ")\n");
+      .replace(/\)\s(?=[^)]*(?:\(|$))/g, ")\n");
     return gabcNotations.split(/\n/g);
   }
 
@@ -2029,7 +2054,7 @@ export class Gabc {
   }
 
   /**
-   * 
+   *
    * @param {*} gabcHeight gabc letter a through m
    * @returns pitch
    */
@@ -2038,7 +2063,7 @@ export class Gabc {
   }
 
   /**
-   * 
+   *
    * @param {*} staffPosition
    * @param {*} zeroOrNine 0 or 9 or nothing, to shift a little down or up
    * @returns staffposition offset
@@ -2053,13 +2078,16 @@ export class Gabc {
   }
 
   /**
-   * 
+   *
    * @param {*} note to set staffPosition and staffPositionOffset on
    * @param {*} gabcAtom gabc letter from a to m with modifiers
    */
   static setStaffPositionAndOffset(note, gabcAtom) {
     const staffPosition = this.gabcHeightToExsurgeHeight(gabcAtom[0]);
-    note.staffPositionOffset = this.getStaffPositionOffset(staffPosition, gabcAtom[1]);
+    note.staffPositionOffset = this.getStaffPositionOffset(
+      staffPosition,
+      gabcAtom[1]
+    );
     note.staffPosition = staffPosition + note.staffPositionOffset;
   }
 

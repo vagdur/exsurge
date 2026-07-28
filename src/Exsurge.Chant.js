@@ -23,15 +23,21 @@
 // THE SOFTWARE.
 //
 
+// @ts-nocheck -- 30 checkJs findings, almost all TS2339 for fields
+// assigned to instances outside the constructor. Declaring them is tracked
+// separately; see the typecheck notes in CLAUDE.md.
+
 import { ChantLine } from "./Exsurge.Chant.ChantLine.js";
 import { InsertionCursor } from "./Exsurge.Chant.Signs.js";
 import { Pitch, Rect, Step } from "./Exsurge.Core.js";
 import {
-  Annotation, ChantLayoutElement,
+  Annotation,
+  ChantLayoutElement,
   ChantNotationElement,
   GlyphCode,
-  GlyphVisualizer, QuickSvg, TextLeftRight,
-  TextSpan
+  GlyphVisualizer,
+  QuickSvg,
+  TextLeftRight
 } from "./Exsurge.Drawing.js";
 import { Gabc } from "./Exsurge.Gabc.js";
 import { Titles } from "./Exsurge.Titles.js";
@@ -180,7 +186,7 @@ export class Clef extends ChantNotationElement {
     this.activeAccidental = this.defaultAccidental;
   }
 
-  pitchToStaffPosition(pitch) {}
+  pitchToStaffPosition(_pitch) {}
 
   performLayout(ctxt) {
     ctxt.activeClef = this;
@@ -344,7 +350,10 @@ export class TrebleClef extends Clef {
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
-    var glyph = new GlyphVisualizer(ctxt, this.small ? GlyphCode.TrebleClefSmall : GlyphCode.TrebleClef);
+    var glyph = new GlyphVisualizer(
+      ctxt,
+      this.small ? GlyphCode.TrebleClefSmall : GlyphCode.TrebleClef
+    );
     glyph.setStaffPosition(ctxt, this.staffPosition);
     this.addVisualizer(glyph);
 
@@ -389,7 +398,10 @@ export class ChiRhoClef extends Clef {
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
-    var glyph = new GlyphVisualizer(ctxt, this.sans ? GlyphCode.ChiRhoClefSans : GlyphCode.ChiRhoClef);
+    var glyph = new GlyphVisualizer(
+      ctxt,
+      this.sans ? GlyphCode.ChiRhoClefSans : GlyphCode.ChiRhoClef
+    );
     glyph.setStaffPosition(ctxt, this.staffPosition);
     this.addVisualizer(glyph);
 
@@ -429,7 +441,7 @@ export class ChantLineBreak extends ChantNotationElement {
     this.justify = justify;
   }
 
-  performLayout(ctxt) {
+  performLayout(_ctxt) {
     // reset the bounds before doing a layout
     this.bounds = new Rect(0, 0, 0, 0);
   }
@@ -528,9 +540,8 @@ export class ChantScore {
       let element = this.notes[i];
       element.selected = selectedIndices.includes(i);
     }
-    (
-      this.startingClef.model || this.startingClef
-    ).selected = selectedIndices.includes(-1);
+    (this.startingClef.model || this.startingClef).selected =
+      selectedIndices.includes(-1);
     for (let i = 0; i < this.lines.length; ++i) {
       this.lines[i].insertionCursor = null;
     }
@@ -551,7 +562,8 @@ export class ChantScore {
           this.insertionElement = this.insertionElement.neume;
         }
         if (!insertionLine) {
-          insertionLine = this.insertionElement.line || this.lines[this.lines.length - 1];
+          insertionLine =
+            this.insertionElement.line || this.lines[this.lines.length - 1];
         }
         insertionLine.insertionCursor = new InsertionCursor();
       }
@@ -610,7 +622,7 @@ export class ChantScore {
           } else {
             ++nonNoteElementCount;
           }
-          
+
           element.selected = selectedIndices.includes(elementIndex);
         }
       }
@@ -655,7 +667,7 @@ export class ChantScore {
 
   /**
    * Shared layout initialization method for performLayout() and performLayoutAsync()
-   * @param  {ChantContext} ctxt
+   * @param  {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   initializeLayout(ctxt) {
     // setup the context
@@ -763,7 +775,9 @@ export class ChantScore {
           : [annotation.spans];
       this.overrideTextLeft = new TextLeftRight(ctxt, "", "textLeft");
       if (ctxt.mapAnnotationSpansToTextLeft) {
-        annotationSpans = annotationSpans.map(ctxt.mapAnnotationSpansToTextLeft);
+        annotationSpans = annotationSpans.map(
+          ctxt.mapAnnotationSpansToTextLeft
+        );
       }
       this.overrideTextLeft.spans = ctxt.mergeAnnotationWithTextLeft(
         ...annotationSpans,
@@ -853,15 +867,16 @@ export class ChantScore {
         typeof zoom === "number"
           ? zoom * this.bounds.width
           : zoom
-          ? undefined
-          : this.bounds.width,
+            ? undefined
+            : this.bounds.width,
       height = zoom ? undefined : this.bounds.height;
 
     return {
       xmlns: QuickSvg.ns,
       "xmlns:xlink": QuickSvg.xlink,
       version: "1.1",
-      class: "Exsurge ChantScore" + (ctxt.editable ? " EditableChantScore" : ""),
+      class:
+        "Exsurge ChantScore" + (ctxt.editable ? " EditableChantScore" : ""),
       width,
       height,
       viewBox: [0, 0, this.bounds.width, this.bounds.height].join(" ")
@@ -917,7 +932,8 @@ export class ChantScore {
 
     // create defs section
     for (var def in ctxt.defs)
-      if (ctxt.defs.hasOwnProperty(def)) fragment += ctxt.defs[def];
+      if (Object.prototype.hasOwnProperty.call(ctxt.defs, def))
+        fragment += ctxt.defs[def];
     fragment += ctxt.createStyle();
 
     fragment = QuickSvg.createFragment("defs", {}, fragment);
@@ -970,7 +986,8 @@ export class ChantScore {
 
     // create defs section
     for (var def in ctxt.defs)
-      if (ctxt.defs.hasOwnProperty(def)) fragmentDefs += ctxt.defs[def];
+      if (Object.prototype.hasOwnProperty.call(ctxt.defs, def))
+        fragmentDefs += ctxt.defs[def];
     fragmentDefs += ctxt.createStyle();
 
     fragmentDefs = QuickSvg.createFragment("defs", {}, fragmentDefs);
