@@ -20,7 +20,19 @@ Running `gh repo set-default vagdur/exsurge` once would record the choice in git
 
 If the working tree is at or near `0c39f61` with no local commits, this fork has not diverged yet and Bloomfield's repo is still the behavioural source of truth.
 
-**Not published to npm.** The `exsurge` package on npm is still version 0.0.0 from February 2016, owned by the original author — neither fork publishes. `package.json` here says `1.25.2`, but that version has never been on the registry, and its `repository`, `author`, `homepage`, and `bugs` fields still point at `frmatthew/exsurge` two hops up; they are inherited metadata, not provenance. Consumers install from git or vendor the committed `dist/exsurge.min.js`. The main downstream consumer is `bbloomf/jgabc` (live at bbloomf.github.io/jgabc), which vendors the bundle rather than depending on it via npm.
+**Published to npm as `@vagdur/exsurge`.** The scope matters: unscoped `exsurge` is a different package — version 0.0.0 from February 2016, owned by the original author, not controlled by either fork. Bloomfield's mainline is not on the registry at all, so there is no unscoped package anywhere that corresponds to current code.
+
+Two consequences for editing:
+
+- **The package name is written into `src/exsurge.d.ts`**, which wraps every declaration in `declare module "@vagdur/exsurge"`. `types` points at that file, so if the package is ever renamed the string has to move with it or consumers silently get no types at all.
+- **`package.json` has a `files` allowlist** (`dist`, `src`, `assets`, `CHANGELOG.md`). A new top-level directory that consumers need at runtime will not be published unless it is added there. `src/` is in the list only because `types` resolves into it.
+- **There is an `exports` map, and it is load-bearing.** `import` must resolve to `dist/exsurge.mjs` and `require` to `dist/exsurge.min.js`. Node ignores `module`, so if the map is removed, `import` falls back to `main` — the minified UMD — and `cjs-module-lexer` cannot recover named exports from it, leaving consumers with a bare `default` and a confusing `ChantContext is not a constructor`. The map also gates subpaths: `./assets/*`, `./dist/*`, `./src/*` and `./package.json` are listed explicitly, and anything not listed becomes unreachable to consumers.
+
+Neither of these is exercised by `npm test`, which imports `src/` directly. The check that catches them is `npm pack` followed by installing the tarball into a throwaway project and importing it both ways.
+
+Version numbering is continuous with Bloomfield's tags rather than with the registry: the fork branched at his `v1.25.2` and kept the number, so the first npm release starts there despite being the package's first version. Publishing is manual (`npm publish`) and deliberately not wired into the `npm version` hooks. `publishConfig.access` is `public`.
+
+Consumers can equally install from git or vendor the committed `dist/exsurge.min.js`. The main downstream consumer is `bbloomf/jgabc` (live at bbloomf.github.io/jgabc), which vendors the bundle from Bloomfield's fork rather than depending on it via npm.
 
 ## Commands
 
