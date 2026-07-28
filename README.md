@@ -196,7 +196,7 @@ Everything is in `src/`, re-exported flat from `src/index.js` onto a single name
 | `Exsurge.Chant.ChantLine.js` | staff systems, line breaking, justification |
 | `Exsurge.Drawing.js` | `ChantContext`, visualizers, text elements, `QuickSvg` |
 | `Exsurge.Glyphs.js` | generated SVG path data per glyph |
-| `Exsurge.Text.js` | syllabification (Latin, English, Spanish) |
+| `Exsurge.Text.js` | syllabification (Latin, English, Spanish, Swedish) |
 | `Exsurge.Core.js` | geometry and unit primitives |
 | `Exsurge.Playback.js` | `ChantPlayer`, `createPlayableChant` |
 | `Exsurge.Playback.Timeline.js` | note → pulse extraction and the rhythm tables (pure) |

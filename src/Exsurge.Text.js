@@ -687,8 +687,314 @@ export class Spanish extends Language {
   }
 }
 
+// Combining diacritical marks. Swedish å, ä and ö are single code points when
+// they arrive precomposed (NFC) but a base vowel plus U+030A or U+0308 when
+// they arrive decomposed (NFD), which is what macOS filesystems and a number of
+// text pipelines hand out. Every pattern below that matches a vowel allows the
+// marks to trail it, so that both forms are treated as one letter.
+const COMBINING_MARKS = "[\\u0300-\\u036f]*";
+
+// Inflectional endings that may follow the -tion/-sion suffix. Used to keep the
+// rule for its non-syllabic i (see Swedish.syllabifyWord) to that suffix rather
+// than to any word that happens to contain the same letters.
+const ION_ENDINGS =
+  "(?:er(?:na)?|en|ens|ers|s|ell(?:a|t)?|är(?:a|en)?|ism|ist(?:er)?)?";
+
+/**
+ * @class
+ *
+ * Swedish. The vowel side of the problem is unusually simple: Swedish has no
+ * diphthongs, so every vowel letter is the nucleus of its own syllable, and
+ * <y> is a full vowel that never doubles as a consonant the way Latin <i> and
+ * <u> do — that job belongs to <j>. All of the difficulty is on the consonant
+ * side, in deciding where between two vowels the break falls.
+ *
+ * The one thing no rule here can get right is the compound word, which Swedish
+ * forms freely and writes solid. A compound divides at its seam, and finding
+ * the seam needs a dictionary: this class will divide *hus-jungfru* as
+ * *hu-sjungfru*, because <sj> spelling a single sound is the better guess in
+ * every word that is not a compound. Where a compound matters, hyphenate it in
+ * the source text and the hyphen will be honoured as a break.
+ */
+export class Swedish extends Language {
+  constructor() {
+    super("Swedish");
+
+    // The nine vowels of Swedish, followed by the accented and foreign vowel
+    // letters that turn up in loanwords and names: idé, kafé, à la, Müller,
+    // Møller.
+    this.vowels = [
+      "a",
+      "e",
+      "i",
+      "o",
+      "u",
+      "y",
+      "å",
+      "ä",
+      "ö",
+      "á",
+      "à",
+      "â",
+      "é",
+      "è",
+      "ê",
+      "í",
+      "ì",
+      "ó",
+      "ò",
+      "ô",
+      "ú",
+      "ù",
+      "û",
+      "ý",
+      "ø",
+      "æ",
+      "œ",
+      "ü"
+    ];
+
+    // Consonant groups that are not divided, and so begin a syllable as a unit,
+    // longest first. Deliberately absent:
+    //
+    //   - <sk>, which is divided even where it spells /ɧ/: män-nis-ka, fis-ken.
+    //   - <ck>, which is divided c-k: flic-ka, bac-ken.
+    //   - <gn>, which is divided g-n: reg-na, väl-sig-na.
+    //   - <dj>, <lj>, <hj> and <gj>, whose first letter is silent only at the
+    //     start of a word (djup, ljus, hjärta), where no division is at stake.
+    //     Between vowels they are divided like any other cluster: vil-ja,
+    //     ol-ja, gläd-je, tred-je.
+    //   - <stj> and <skj>, so that the two-letter groups inside them win. The
+    //     trigraphs are all but confined to the start of a word (stjärna,
+    //     skjorta), while medially the sequence is nearly always a compound
+    //     seam with the <s> closing the first element: guds-tjänst.
+    this.onsetDigraphs = ["sch", "sj", "tj", "kj", "ch"];
+
+    const vowelClass = "[" + this.vowels.join("") + "]";
+
+    // One base character plus any combining marks that follow it.
+    this.regexLetterUnit = new RegExp("[\\s\\S]" + COMBINING_MARKS, "g");
+
+    this.regexIsVowel = new RegExp(
+      "^" + vowelClass + COMBINING_MARKS + "$",
+      "i"
+    );
+
+    // <ti>, <si>, <ssi> and <xi> spell /ɧ/ in the borrowed suffix -tion, whose
+    // <i> is therefore not a vowel: na-tion, mis-sion, sta-tio-ner. The pattern
+    // is narrow on purpose — the group may not start the word, and only a
+    // known inflectional ending may follow it — so that words where the same
+    // letters really are two syllables are left alone: ti-on-de, år-ti-on-de.
+    // Group 1 is everything up to the <i>, so its length is the index of the i.
+    this.regexNonSyllabicI = new RegExp(
+      "^(.+?(?:ss|[tsx]))ion" + ION_ENDINGS + "$"
+    );
+
+    // Group 1, when it matches, is skipped over: it is the non-syllabic <i>
+    // above together with the consonant that spells /ɧ/ with it, which must not
+    // be mistaken for the vowel of the syllable. Group 2 is the vowel segment
+    // itself — a single vowel, since Swedish has no diphthongs, plus any
+    // combining marks belonging to it.
+    this.regexVowel = new RegExp(
+      "((?:ss|[tsx])i(?=on" +
+        ION_ENDINGS +
+        "$))?(" +
+        vowelClass +
+        COMBINING_MARKS +
+        ")",
+      "gi"
+    );
+  }
+
+  /**
+   * @param {String} c The character to test, with any combining marks that
+   *                   belong to it; case is not significant
+   * @return {boolean} true if c is a vowel
+   */
+  isVowel(c) {
+    return this.regexIsVowel.test(c);
+  }
+
+  /**
+   * Splits a word into letter units of one base character plus any combining
+   * marks that follow it, each with its index into the original string.
+   *
+   * @param {String} word
+   * @return {{text: String, index: Number}[]}
+   */
+  splitIntoLetters(word) {
+    var letters = [];
+
+    this.regexLetterUnit.lastIndex = 0;
+
+    var match;
+    while ((match = this.regexLetterUnit.exec(word)) !== null)
+      letters.push({ text: match[0], index: match.index });
+
+    return letters;
+  }
+
+  /**
+   * Finds where the syllable whose vowel is at `nucleus` begins, given that the
+   * previous syllable's vowel is at `previousNucleus`.
+   *
+   * @param {String[]} letters the whole word, lowercased, one letter per entry
+   * @param {Number} previousNucleus index of the previous syllable's vowel
+   * @param {Number} nucleus index of this syllable's vowel
+   * @return {Number} index of the letter this syllable starts on
+   */
+  findSyllableStart(letters, previousNucleus, nucleus) {
+    // Two vowels in a row are two syllables, since nothing here is a diphthong:
+    // be-ak-ta, ti-on-de, Le-a.
+    if (nucleus === previousNucleus + 1) return nucleus;
+
+    var lastConsonant = nucleus - 1;
+
+    // A vowel letter here is one that is not a nucleus: the non-syllabic <i> of
+    // -tion. It and the consonant it spells /ɧ/ with are one sound and go with
+    // the following syllable together: na-tion, mis-sion.
+    if (this.isVowel(letters[lastConsonant]))
+      return Math.max(lastConsonant - 1, previousNucleus + 1);
+
+    // <x> spells /ks/, half of which belongs to the syllable it closes, so it
+    // never moves right: väx-a, box-en, tax-ar.
+    if (letters[lastConsonant] === "x") return nucleus;
+
+    // <ng> spells a single /ŋ/ closing the preceding syllable. Dividing it n-g
+    // would put a /g/ on the second syllable that is not pronounced there:
+    // sjung-a, ing-en, ung-e-fär.
+    if (
+      letters[lastConsonant] === "g" &&
+      letters[lastConsonant - 1] === "n" &&
+      lastConsonant - 1 > previousNucleus
+    )
+      return nucleus;
+
+    // An undivided group carries over whole: du-schen, guds-tjänst,
+    // för-sjunken.
+    for (var i = 0; i < this.onsetDigraphs.length; i++) {
+      var digraph = this.onsetDigraphs[i];
+      var start = nucleus - digraph.length;
+
+      if (
+        start > previousNucleus &&
+        letters.slice(start, nucleus).join("") === digraph
+      )
+        return start;
+    }
+
+    // Otherwise the enkonsonantsregeln: however many consonants stand between
+    // the two vowels, exactly one of them goes with the following syllable.
+    // hu-set, vand-ra, kris-ten-dom, tack-sä-gel-se.
+    return lastConsonant;
+  }
+
+  /**
+   * Rules for Swedish syllabification (Svenska skrivregler, §§ on avstavning)
+   *
+   * 1. Every vowel letter is a syllable nucleus. Swedish has no diphthongs, so
+   *    adjacent vowels always belong to different syllables (be-ak-ta).
+   * 2. Between two vowels, exactly one consonant goes with the second syllable
+   *    — the enkonsonantsregeln (hu-set, flyt-ta, vand-ra, kris-ten-dom).
+   *
+   * Exceptions:
+   *   1. A consonant group that is not divided starts the second syllable as a
+   *      unit: sch, sj, tj, kj, ch (du-schen, guds-tjänst). <ck>, <sk>, <gn>,
+   *      <dj> and <lj> are divided normally.
+   *   2. <ng> spells a single /ŋ/ that closes the first syllable, so it is not
+   *      divided and does not move: sjung-a, ing-en.
+   *   3. <x> spells /ks/ and stays with the first syllable: väx-a, box-en.
+   *   4. In the borrowed suffix -tion (and -sion, -ssion, -xion) the <i> is
+   *      part of the /ɧ/ spelling rather than a vowel: na-tion, mis-sion.
+   *
+   * A hyphen in the source forces a break wherever it stands, and is dropped
+   * from the syllables — the way to divide a compound at its seam.
+   */
+  syllabifyWord(word) {
+    // an explicit hyphen forces a break
+    if (word.indexOf("-") >= 0)
+      return word
+        .split("-")
+        .filter((part) => part.length > 0)
+        .reduce(
+          (syllables, part) => syllables.concat(this.syllabifyWord(part)),
+          []
+        );
+
+    if (word.length === 0) return [];
+
+    var letters = this.splitIntoLetters(word);
+    var lowercased = letters.map((letter) => letter.text.toLowerCase());
+
+    // the -tion suffix, whose i is not a vowel. The suffix is all ASCII, so the
+    // index of group 1's end is an index into the original string too.
+    var suffix = this.regexNonSyllabicI.exec(word.toLowerCase());
+    var nonSyllabicIndex = suffix ? suffix[1].length : -1;
+
+    var nuclei = [];
+    for (var i = 0; i < letters.length; i++)
+      if (this.isVowel(lowercased[i]) && letters[i].index !== nonSyllabicIndex)
+        nuclei.push(i);
+
+    // nothing to divide: no vowel at all, or a single syllable
+    if (nuclei.length < 2) return [word];
+
+    var starts = [0];
+    for (var n = 1; n < nuclei.length; n++)
+      starts.push(this.findSyllableStart(lowercased, nuclei[n - 1], nuclei[n]));
+
+    var syllables = [];
+    for (n = 0; n < starts.length; n++) {
+      var from = letters[starts[n]].index;
+      var to =
+        n + 1 < starts.length ? letters[starts[n + 1]].index : word.length;
+      syllables.push(word.substring(from, to));
+    }
+
+    return syllables;
+  }
+
+  /**
+   * @param {String} s the string to search
+   * @param {Number} startIndex The index at which to start searching for a vowel in the string
+   * @param {Array<{index: Number, endIndex: Number}>} [ignore] ranges, relative to startIndex, that a match may not overlap
+   * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
+   */
+  findVowelSegment(s, startIndex, ignore) {
+    this.regexVowel.lastIndex = 0;
+    let stringSlice = s.slice(startIndex);
+    var match = this.regexVowel.exec(stringSlice);
+    var isIgnoredMatch = ({ index, endIndex }) =>
+      (index <= match.index && endIndex > match.index) ||
+      (index < this.regexVowel.lastIndex &&
+        endIndex >= this.regexVowel.lastIndex);
+    let inIgnore =
+      match && ignore && ignore.length && ignore.find(isIgnoredMatch);
+    while (inIgnore) {
+      match = this.regexVowel.exec(stringSlice);
+      inIgnore = match && ignore.find(isIgnoredMatch);
+    }
+    if (match) {
+      if (match[1]) {
+        // the first group should be ignored: it is the consonant plus the
+        // non-syllabic i of the -tion suffix, not the vowel of the syllable.
+        match.index += match[1].length;
+      }
+      return {
+        found: true,
+        startIndex: startIndex + match.index,
+        length: match[2].length
+      };
+    }
+
+    // no vowels sets found after startIndex!
+    return { found: false, startIndex: -1, length: -1 };
+  }
+}
+
 export const language = {
   english: new English(),
   latin: new Latin(),
-  spanish: new Spanish()
+  spanish: new Spanish(),
+  swedish: new Swedish()
 };

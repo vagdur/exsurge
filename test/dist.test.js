@@ -66,7 +66,7 @@ describe("dist bundle", function () {
   // shape matters. These are the properties the UMD wrapper is supposed to
   // guarantee, independent of which bundler produced it.
   it("keeps the whole public surface", function () {
-    Object.keys(Exsurge).length.should.equal(135);
+    Object.keys(Exsurge).length.should.equal(136);
   });
 
   it("still renders without a DOM", function () {
