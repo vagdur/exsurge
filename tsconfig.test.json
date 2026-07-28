@@ -1,0 +1,14 @@
+// Checks the specs, in a program of their own.
+//
+// Separate from tsconfig.json because test/chai-should.d.ts declares the
+// `should` getter that chai installs on Object.prototype at runtime, and a
+// global augmentation applies to every file in its program. Keeping the specs
+// here means src/ is checked without it, so a stray `.should` in production
+// code is still an error.
+//
+// src/ is still pulled in, by the imports in the specs -- it just is not
+// checked as part of this project's own include.
+{
+  "extends": "./tsconfig.json",
+  "include": ["test/**/*.js", "test/**/*.d.ts"]
+}

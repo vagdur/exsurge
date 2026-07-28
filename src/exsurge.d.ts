@@ -38,8 +38,18 @@ declare module "exsurge" {
     static staffOffsetToStep(offset: number): number;
   }
 
-  export class Titles {
-    constructor(ctxt: ChantContext, score: ChantScore);
+  export class Titles extends ChantLayoutElement {
+    constructor(
+      ctxt: ChantContext,
+      score: ChantScore,
+      titles?: {
+        supertitle?: string;
+        title?: string;
+        subtitle?: string;
+        textLeft?: string;
+        textRight?: string;
+      }
+    );
     score: ChantScore;
     setSupertitle(ctxt: ChantContext, supertitle: string): Supertitle;
     setTitle(ctxt: ChantContext, title: string): Title;
@@ -55,6 +65,10 @@ declare module "exsurge" {
     createSvgNode(ctxt: ChantContext): SVGElement;
     draw(ctxt: ChantContext, scale?: number): void;
   }
+
+  // Base class of every drawable element. Declared only so that the classes
+  // below can extend it, as they do at runtime; its members are not covered.
+  export class ChantLayoutElement {}
 
   // The title block elements the setters above return.
   export class Supertitle {}
@@ -75,6 +89,20 @@ declare module "exsurge" {
   }
   export class English extends Language {
     regexLetter: RegExp;
+
+    // English implements only findVowelSegment. It never supplied
+    // syllabifyWord, so the inherited syllabify walks straight into
+    // Language's abstract syllabifyWord and throws at runtime.
+    //
+    // The parameters are typed never rather than string so that calling
+    // either one is a compile error instead of a runtime throw. Method
+    // parameters are compared bivariantly, so English stays assignable to
+    // Language and its working members are unaffected.
+
+    /** @deprecated Not implemented on English; always throws. */
+    syllabifyWord(word: never): never;
+    /** @deprecated Not implemented on English; always throws, because syllabifyWord is missing. */
+    syllabify(text: never): never;
   }
   export class Latin extends Language {
     diphthongs: string[];

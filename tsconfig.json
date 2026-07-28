@@ -39,7 +39,13 @@
     "strictBindCallApply": false,
     "strictPropertyInitialization": false
   },
-  "include": ["src/**/*.js", "test/**/*.js", "test/**/*.d.ts", "*.mjs"],
+  // src/ only. The specs are checked by tsconfig.test.json instead, because
+  // test/chai-should.d.ts declares a global augmentation putting `should` on
+  // Object, Number, String and friends -- and a global augmentation applies to
+  // every file in the program it belongs to. Checking both here would mean a
+  // stray `.should` in production code typechecks clean, which is exactly what
+  // this project is meant to catch.
+  "include": ["src/**/*.js", "*.mjs"],
 
   // dist/ is generated and minified. test/dist.test.js deliberately loads it
   // to check the built bundle, which otherwise drags 200 KB of one-line
