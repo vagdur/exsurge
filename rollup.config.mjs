@@ -3,9 +3,16 @@ import terser from "@rollup/plugin-terser";
 
 const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
 
+// pkg.version is read at build time, so this banner is why dist/ has to be
+// rebuilt *after* npm rewrites package.json during a release -- see the
+// "version" script, not "preversion".
+//
+// The copyright line mirrors LICENSE. For a vendored copy of this bundle the
+// banner is the only notice that travels with the code, which is what MIT
+// actually requires be preserved, so keep the two in step.
 const banner =
-  `/*! exsurge ${pkg.version} | ` +
-  `(c) 2008-2016 Fr. Matthew Spencer, OSJ | MIT | ` +
+  `/*! @vagdur/exsurge ${pkg.version} | ` +
+  `(c) 2016 Fr. Matthew Spencer, OSJ; (c) 2026 Vilhelm Agdur | MIT | ` +
   `https://github.com/vagdur/exsurge */`;
 
 // The UMD shape downstream depends on. bbloomf/jgabc vendors

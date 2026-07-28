@@ -1,4 +1,4 @@
-/*! exsurge 1.25.2 | (c) 2008-2016 Fr. Matthew Spencer, OSJ | MIT | https://github.com/vagdur/exsurge */
+/*! @vagdur/exsurge 1.26.0 | (c) 2016 Fr. Matthew Spencer, OSJ; (c) 2026 Vilhelm Agdur | MIT | https://github.com/vagdur/exsurge */
 //
 // Author(s):
 // Fr. Matthew Spencer, OSJ <mspencer@osjusa.org>
