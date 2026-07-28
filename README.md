@@ -274,7 +274,7 @@ Publishing to npm is a separate, deliberate step — there is no `postpublish` a
 npm publish
 ```
 
-`publishConfig.access` is set to `public`, so a scoped package does not need `--access public` and cannot be published private by accident. `files` in `package.json` restricts the tarball to `dist/`, `src/`, `assets/` and `CHANGELOG.md` (npm always adds `README.md`, `LICENSE` and `package.json`); `src/` has to stay in that list because `types` points into it. Check the contents before releasing:
+`publishConfig.access` is set to `public`, so a scoped package does not need `--access public` and cannot be published private by accident. `files` in `package.json` restricts the tarball to the two shipped bundles and their maps, `src/`, `assets/` and `CHANGELOG.md` (npm always adds `README.md`, `LICENSE` and `package.json`). Two things about that list are deliberate: `src/` has to stay in it because `types` points into it, and the bundles are named individually rather than as `dist` so that the unminified `dist/exsurge.js` debug build is not published. Check the contents before releasing:
 
 ```
 npm pack --dry-run
