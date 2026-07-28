@@ -61,7 +61,8 @@ declare module "exsurge" {
     hasSubtitle(): boolean;
     hasTextLeft(): boolean;
     hasTextRight(): boolean;
-    layoutTitles(ctxt: ChantContext): number;
+    /** @returns the total height of the titles laid out */
+    layoutTitles(ctxt: ChantContext, width: number): number;
     createSvgNode(ctxt: ChantContext): SVGElement;
     draw(ctxt: ChantContext, scale?: number): void;
   }
