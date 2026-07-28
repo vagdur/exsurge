@@ -1,9 +1,14 @@
-# [1.26.0](https://github.com/vagdur/exsurge/compare/v1.25.2...v1.26.0) (2026-07-28)
+# [1.27.0](https://github.com/vagdur/exsurge/compare/v1.26.0...v1.27.0) (2026-07-28)
 
 
 ### Bug Fixes
 
+* align package-lock name with scoped package ([5e204fe](https://github.com/vagdur/exsurge/commit/5e204fe6dac632bf07d9a375265d22d5df2ef549))
+* **build:** Keep the unminified debug bundle out of the tarball ([aed1ff8](https://github.com/vagdur/exsurge/commit/aed1ff8cafcb0063645c87785efab9c7e977ca82))
+* **ci:** Update the packed export count for the new Swedish class ([03624e2](https://github.com/vagdur/exsurge/commit/03624e21b1c96c45777be96a4b96b4c6327c7b20))
 * Give notes nudged by the gabc 0 and 9 modifiers a real pitch ([7e0b9f5](https://github.com/vagdur/exsurge/commit/7e0b9f5cf84fbc254198ec63e48cd88b1132e9a2))
+* **lint:** ignore Claude Code worktrees in eslint and prettier ([193130d](https://github.com/vagdur/exsurge/commit/193130d782ed77e3b86105acb219bfbd783985f7))
+* **text:** Match ring-marked Latin vowels as whole units ([bfab0aa](https://github.com/vagdur/exsurge/commit/bfab0aad4457f707712a01abf3b39d36938df769))
 * **types:** Address three review findings in the declarations ([dce2816](https://github.com/vagdur/exsurge/commit/dce2816692b4e827b89a97328c856ca5137ee379))
 * **types:** Correct the layoutTitles signature ([d7190be](https://github.com/vagdur/exsurge/commit/d7190be931f8010f147921c213de857441ae1721))
 * **types:** Correct the public declarations ([2aff4fb](https://github.com/vagdur/exsurge/commit/2aff4fb0ae3ba8261e8ea187359c98c09d153426))
@@ -12,6 +17,7 @@
 ### Features
 
 * Add Web Audio playback for rendered chant ([66f4923](https://github.com/vagdur/exsurge/commit/66f4923ff7871b7c31d1b74fb3f01d9c077df1c8))
+* **text:** Add Swedish syllabification and vowel identification ([d6ff45d](https://github.com/vagdur/exsurge/commit/d6ff45d3745da4fdac0151ebf6109fef0514ecfe))
 
 ## [1.25.2](https://github.com/vagdur/exsurge/compare/v1.25.1...v1.25.2) (2026-07-08)
 
