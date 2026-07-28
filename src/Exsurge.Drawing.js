@@ -2777,18 +2777,17 @@ export class Lyric extends TextElement {
       // if it's a directive with no manual centering override, then
       // just center the text.
       if (this.lyricType !== LyricType.Directive) {
-        // only consider text content after the last space (if any)
-        var startIndex = this.text.lastIndexOf(" ") + 1;
-
-        // unless there are no text characters following the space:
-        if (
-          startIndex > 0 &&
-          !this.text
-            .slice(startIndex)
-            .match(/[a-záéíóúýäëïöüÿàèìòùỳāēīōūȳăĕĭŏŭ]/i)
-        ) {
-          startIndex = 0;
-        }
+        // Center on the first vowel segment of the whole syllable text,
+        // spaces and all, which is what Gregorio does -- it has no notion of
+        // word boundaries inside a syllable. A syllable whose text spans
+        // several words is a recitation: gabc hangs all of the recited text
+        // off the one note that carries the reciting tone, as in
+        // "Pás(h)sio Dómini nostri(jr0) Ie(i)su(h)", and the note belongs over
+        // the first word of that text with the rest running off to the right.
+        // Aligning on the last word instead (which this did until July 2026)
+        // drags the note to the far end of the recitation and leaves any
+        // divider before it stranded in the middle of the text.
+        var startIndex = 0;
 
         // find indices of e tags to ignore when finding vowel segment:
         var ignore = [];
