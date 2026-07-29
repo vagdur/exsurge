@@ -2539,6 +2539,40 @@ export class TextElement extends ChantLayoutElement {
   }
 }
 
+// Splits an array of TextSpans into the part before `start` and the part from
+// `end` on, dropping the characters in between -- the whitespace at a word
+// boundary. A span straddling either edge is cloned and sliced, so markup
+// (bold, small caps, rubrics) carries into both halves.
+function splitSpansAt(spans, start, end) {
+  var head = [],
+    tail = [],
+    position = 0;
+
+  for (var i = 0; i < spans.length; i++) {
+    var span = spans[i],
+      length = span.text.length,
+      headLength = Math.min(Math.max(start - position, 0), length),
+      tailStart = Math.min(Math.max(end - position, 0), length);
+
+    if (headLength > 0) {
+      let clone = span.clone();
+      clone.text = span.text.slice(0, headLength);
+      head.push(clone);
+    }
+
+    if (tailStart < length) {
+      let clone = span.clone();
+      clone.text = span.text.slice(tailStart);
+      clone.index = span.index + tailStart;
+      tail.push(clone);
+    }
+
+    position += length;
+  }
+
+  return { head: head, tail: tail };
+}
+
 export var LyricType = {
   SingleSyllable: 0,
   BeginningSyllable: 1,
@@ -2712,6 +2746,83 @@ export class Lyric extends TextElement {
 
   getRight() {
     return this.notation.bounds.x + this.bounds.x + this.bounds.width;
+  }
+
+  // Cuts this lyric at the last word boundary whose text still fits within
+  // maxWidth and returns a Lyric holding the rest, or null when not even the
+  // first word leaves anything over to break off. Only recitations are ever
+  // broken this way -- see Neume.isRecitationTone -- because only there does a
+  // single syllable carry text that a line cannot hold.
+  //
+  // The lyric keeps enough state to put itself back together, since where the
+  // break falls depends on the width the score is laid out at and that changes
+  // whenever the window does.
+  splitToWidth(ctxt, maxWidth) {
+    // a maxWidth set from a previous layout would leave newLine markers in the
+    // spans, which do not correspond to characters of this.text
+    if (this.spans.some((span) => span.newLine)) this.recalculateMetrics(ctxt);
+
+    var breaks = [],
+      regex = /\s+/g,
+      match;
+
+    while ((match = regex.exec(this.text)))
+      breaks.push([match.index, match.index + match[0].length]);
+
+    if (breaks.length === 0) return null;
+
+    var chosen = null;
+    for (var i = 0; i < breaks.length; i++) {
+      if (this.measureSubstring(ctxt, breaks[i][0]) > maxWidth) break;
+      chosen = breaks[i];
+    }
+
+    if (chosen === null) return null;
+
+    if (this.unsplitSpans === undefined) {
+      this.unsplitSpans = this.spans.map((span) => span.clone());
+      this.unsplitText = this.text;
+    }
+
+    var split = splitSpansAt(this.spans, chosen[0], chosen[1]);
+
+    var tail = new Lyric(
+      ctxt,
+      "",
+      LyricType.SingleSyllable,
+      this.notation,
+      this.notations,
+      this.sourceIndex + chosen[1]
+    );
+    tail.spans = split.tail;
+    tail.text = this.text.slice(chosen[1]);
+    // originalText is what the positioning pass checks to decide a lyric is
+    // worth placing, so it has to be non-empty
+    tail.originalText = tail.text;
+    tail.language = this.language;
+    tail.recalculateMetrics(ctxt);
+
+    this.spans = split.head;
+    this.text = this.text.slice(0, chosen[0]);
+    this.recalculateMetrics(ctxt);
+
+    return tail;
+  }
+
+  // undoes splitToWidth, so that laying the score out at a new width starts
+  // from the syllable as it was written rather than from the last break.
+  // Returns whether there was anything to undo.
+  restoreUnsplit(ctxt) {
+    if (this.unsplitSpans === undefined) return false;
+
+    this.spans = this.unsplitSpans.map((span) => span.clone());
+    this.text = this.unsplitText;
+    delete this.unsplitSpans;
+    delete this.unsplitText;
+
+    this.recalculateMetrics(ctxt);
+
+    return true;
   }
 
   recalculateMetrics(ctxt, resetNewLines = true) {
@@ -3333,10 +3444,12 @@ export class ChantNotationElement extends ChantLayoutElement {
   // depedencies
   resetDependencies() {}
 
-  // a helper function for subclasses to call after they are done performing layout...
-  finishLayout(ctxt) {
-    this.bounds.x = 0;
-
+  // Places this element's lyrics horizontally with respect to the element
+  // itself. Recalculating a lyric's metrics resets its bounds to the lyric's
+  // own frame, so anything that does that outside of a full layout -- breaking
+  // a recitation across chant lines, and putting it back together again --
+  // has to call this afterwards.
+  positionLyrics(ctxt) {
     let language =
       (this.lyrics[0] && this.lyrics[0].language) || ctxt.defaultLanguage;
     // center the neume itself over the syllable, or just the first punctum
@@ -3349,6 +3462,13 @@ export class ChantNotationElement extends ChantLayoutElement {
               : this.origin.x - lyric.origin.x)
       : (lyric) => (lyric.bounds.x = this.origin.x - lyric.origin.x);
     this.lyrics.forEach(calculateLyricX);
+  }
+
+  // a helper function for subclasses to call after they are done performing layout...
+  finishLayout(ctxt) {
+    this.bounds.x = 0;
+
+    this.positionLyrics(ctxt);
 
     this.needsLayout = false;
   }

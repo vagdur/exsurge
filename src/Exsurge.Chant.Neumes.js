@@ -432,6 +432,18 @@ export class Neume extends ChantNotationElement {
     this.notes.push(note);
   }
 
+  // gabc's reciting tones -- the linea punctum and linea punctum cavum written
+  // R and r0 -- are markers meaning "recite what follows on this pitch", not
+  // notes that are sung once, so a single one of them can carry a whole
+  // stretch of text. That makes them the one neume whose syllable may be
+  // broken across chant lines; see ChantLine.splitRecitation.
+  get isRecitationTone() {
+    return (
+      this.notes.length === 1 &&
+      (this.notes[0].shapeModifiers & NoteShapeModifiers.Linea) !== 0
+    );
+  }
+
   performLayout(ctxt) {
     super.performLayout(ctxt);
   }

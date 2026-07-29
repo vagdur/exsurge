@@ -51,9 +51,7 @@ function stubFontDictionary() {
   };
 }
 
-// lays a score out on a single line wide enough that nothing wraps, and
-// returns the notations of that line in reading order
-function layoutNotations(gabc, width = 800) {
+function buildScore(gabc) {
   var ctxt = new Exsurge.ChantContext();
   // the stub implements only the two methods that get called, not all of
   // opentype.js's Font, so it cannot satisfy the declared dictionary type
@@ -63,19 +61,27 @@ function layoutNotations(gabc, width = 800) {
   var score = new Exsurge.ChantScore(ctxt, mappings, false);
 
   score.performLayout(ctxt);
+
+  return { ctxt: ctxt, score: score };
+}
+
+function notationsOnLine(score, line) {
+  return score.notations.slice(
+    line.notationsStartIndex,
+    line.notationsStartIndex + line.numNotationsOnLine
+  );
+}
+
+// lays a score out on a single line wide enough that nothing wraps, and
+// returns the notations of that line in reading order
+function layoutNotations(gabc, width = 800) {
+  var { ctxt, score } = buildScore(gabc);
+
   score.layoutChantLines(ctxt, width, () => {});
 
   score.lines.length.should.equal(1);
 
-  var line = score.lines[0];
-
-  return {
-    ctxt: ctxt,
-    notations: score.notations.slice(
-      line.notationsStartIndex,
-      line.notationsStartIndex + line.numNotationsOnLine
-    )
-  };
+  return { ctxt: ctxt, notations: notationsOnLine(score, score.lines[0]) };
 }
 
 function findByLyric(notations, text) {
@@ -133,5 +139,188 @@ describe("Lyric alignment", function () {
 
     neume.bounds.x.should.be.above(lyric.getLeft());
     neume.bounds.right().should.be.below(lyric.getRight());
+  });
+});
+
+describe("Recitation line breaking", function () {
+  // Three long recitations. On a wide enough staff each is one syllable on one
+  // reciting tone; narrow the staff and the recited text has to break, which
+  // is where exsurge parts company with Gregorio and supplies a reciting tone
+  // of its own at the start of each continuation.
+  var gabc =
+    "(c4) Ä(f)ra(g) vare Fadern, och Sonen, och den Helige Ande,(hr0) (,) " +
+    "såsom det var av begynnelsen, nu är, och skall vara,(hr0) " +
+    "från evighet till evighet(hr0) A(g)men.(h)";
+
+  var recitedText = [
+    "vare Fadern, och Sonen, och den Helige Ande,",
+    "såsom det var av begynnelsen, nu är, och skall vara,",
+    "från evighet till evighet"
+  ];
+
+  function layoutAt(width) {
+    var { ctxt, score } = buildScore(gabc);
+
+    score.layoutChantLines(ctxt, width, () => {});
+
+    return { ctxt: ctxt, score: score };
+  }
+
+  // every notation on every line, tagged with the line it landed on, so a
+  // whole layout can be compared with another one
+  function snapshot(score) {
+    return score.lines
+      .map((line, index) =>
+        notationsOnLine(score, line)
+          .map((notation) =>
+            [
+              index,
+              notation.constructor.name,
+              notation.bounds.x.toFixed(3),
+              notation.hasLyrics() ? notation.lyrics[0].text : ""
+            ].join("|")
+          )
+          .join("\n")
+      )
+      .join("\n");
+  }
+
+  function recitationTones(score) {
+    return score.notations.filter((notation) => notation.isRecitationTone);
+  }
+
+  it("leaves a recitation alone when it fits on the line", function () {
+    var { score } = layoutAt(1200);
+
+    score.lines.length.should.equal(1);
+    recitationTones(score).length.should.equal(3);
+    score.notations
+      .filter((notation) => notation.isRecitationContinuation)
+      .length.should.equal(0);
+    recitationTones(score)
+      .map((notation) => notation.lyrics[0].text)
+      .should.deep.equal(recitedText);
+  });
+
+  it("breaks the recited text and repeats the reciting tone", function () {
+    var { score } = layoutAt(220);
+
+    var continuations = score.notations.filter(
+      (notation) => notation.isRecitationContinuation
+    );
+
+    continuations.length.should.be.above(0);
+
+    // every continuation is itself a reciting tone, at the pitch of the
+    // syllable it continues, and starts a line
+    for (var continuation of continuations) {
+      continuation.isRecitationTone.should.equal(true);
+      continuation.line.notationsStartIndex.should.equal(
+        score.notations.indexOf(continuation)
+      );
+    }
+
+    // nothing of the text is lost or duplicated in the breaking
+    var recited = recitationTones(score).map(
+      (notation) => notation.lyrics[0].text
+    );
+    var rejoined = [];
+    var next = 0;
+    for (var text of recited) {
+      if (recitedText[next].startsWith(text)) rejoined.push(text);
+      else {
+        rejoined[rejoined.length - 1] += " " + text;
+        continue;
+      }
+      if (rejoined[rejoined.length - 1] === recitedText[next]) next++;
+    }
+    rejoined.join(" ").should.equal(recitedText.join(" "));
+  });
+
+  it("repeats the pitch of the syllable it continues", function () {
+    var { score } = layoutAt(220);
+
+    var notations = score.notations;
+    for (var i = 0; i < notations.length; i++) {
+      if (!notations[i].isRecitationContinuation) continue;
+
+      // the notation before a continuation is the recitation it belongs to,
+      // whether that is the syllable as written or an earlier continuation
+      var previous = notations[i - 1];
+      previous.isRecitationTone.should.equal(true);
+      notations[i].notes[0].staffPosition.should.equal(
+        previous.notes[0].staffPosition
+      );
+      notations[i].notes[0].shapeModifiers.should.equal(
+        previous.notes[0].shapeModifiers
+      );
+    }
+  });
+
+  it("keeps the recited text inside the staff", function () {
+    // the whole point of breaking the text: unbroken, a recitation this long
+    // runs off the right hand end of a narrow staff
+    var width = 220;
+    var { score } = layoutAt(width);
+
+    for (var line of score.lines)
+      for (var notation of notationsOnLine(score, line))
+        for (var lyric of notation.lyrics)
+          if (lyric)
+            lyric
+              .getRight()
+              .should.be.at.most(
+                width,
+                JSON.stringify(lyric.text) + " runs past the end of the staff"
+              );
+  });
+
+  it("lays out the same after a resize as it does from scratch", function () {
+    var { ctxt, score } = buildScore(gabc);
+    var widths = [400, 300, 220, 1200, 300, 220];
+
+    for (var width of widths) {
+      score.layoutChantLines(ctxt, width, () => {});
+      snapshot(score).should.equal(
+        snapshot(layoutAt(width).score),
+        "relayout at width " + width + " differs from a fresh layout"
+      );
+    }
+  });
+
+  it("puts the syllables back together when the staff widens", function () {
+    var { ctxt, score } = buildScore(gabc);
+
+    score.layoutChantLines(ctxt, 220, () => {});
+    score.notations
+      .filter((notation) => notation.isRecitationContinuation)
+      .length.should.be.above(0);
+
+    score.layoutChantLines(ctxt, 1200, () => {});
+    score.notations
+      .filter((notation) => notation.isRecitationContinuation)
+      .length.should.equal(0);
+    recitationTones(score)
+      .map((notation) => notation.lyrics[0].text)
+      .should.deep.equal(recitedText);
+    score.notations
+      .every((notation, index) => notation.notationIndex === index)
+      .should.equal(true);
+  });
+
+  it("does not add the repeated reciting tones to playback", function () {
+    var wide = layoutAt(1200);
+    var narrow = layoutAt(220);
+
+    narrow.score.notations
+      .filter((notation) => notation.isRecitationContinuation)
+      .length.should.be.above(0);
+
+    var notesOf = (score) =>
+      Exsurge.createPlaybackEvents(score, {})
+        .events.filter((event) => event.kind === "note")
+        .map((event) => [event.noteIndex, event.pitchInt]);
+
+    notesOf(narrow.score).should.deep.equal(notesOf(wide.score));
   });
 });

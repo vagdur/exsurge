@@ -27,7 +27,8 @@
 // assigned to instances outside the constructor. Declaring them is tracked
 // separately; see the typecheck notes in CLAUDE.md.
 
-import { ChantLineBreak, NoteShape, TextOnly } from "./Exsurge.Chant.js";
+import { ChantLineBreak, Note, NoteShape, TextOnly } from "./Exsurge.Chant.js";
+import { Punctum } from "./Exsurge.Chant.Neumes.js";
 import {
   BraceAttachment,
   BracePoint,
@@ -993,6 +994,23 @@ export class ChantLine extends ChantLayoutElement {
         if (firstOnLine)
           firstOnLine.lyrics[extraTextOnlyLyricIndex].lineWidth =
             curr.lyrics[extraTextOnlyLyricIndex].getRight();
+      } else if (
+        fitsOnLine === false &&
+        this.splitRecitation(
+          ctxt,
+          curr,
+          prevNeume,
+          condensableSpaces,
+          actualRightBoundary
+        )
+      ) {
+        // the head of the broken recitation ends this line; the continuation
+        // spliced in after it begins the next one
+        curr.line = this;
+        this.numNotationsOnLine++;
+        this.findNeumesToJustify(prevLyrics);
+        this.lastLyrics = prevLyrics;
+        break;
       } else if (fitsOnLine === false) {
         const isTextOnlyBeforeDivider = (i) => {
           const curr = notations[i];
@@ -1360,14 +1378,20 @@ export class ChantLine extends ChantLayoutElement {
           //if (prev instanceof TextOnly || next instanceof TextOnly) continue;
           var oldBoundsX = curr.bounds.x;
           var barWidth = curr.bounds.width;
-          var leftPoint =
-              prev instanceof TextOnly && prev.hasLyrics()
-                ? prev.lyrics[0].getRight()
-                : prev.bounds.right(),
-            rightPoint =
-              next instanceof TextOnly && next.hasLyrics()
-                ? next.lyrics[0].getLeft()
-                : next.bounds.x;
+          // A divider is centered in the gap between what is on either side of
+          // it. For most notations the glyph is as wide as the syllable under
+          // it, but text-only notations have no glyph at all and reciting
+          // tones carry a whole stretch of recited text off to one side, so
+          // for those the text is what the divider has to clear.
+          var spansItsText = (notation) =>
+            (notation instanceof TextOnly || notation.isRecitationTone) &&
+            notation.hasLyrics();
+          var leftPoint = spansItsText(prev)
+              ? prev.lyrics[0].getRight()
+              : prev.bounds.right(),
+            rightPoint = spansItsText(next)
+              ? next.lyrics[0].getLeft()
+              : next.bounds.x;
           if (prev instanceof TextOnly) {
             let prev = this.score.notations
               .slice(this.notationsStartIndex, i)
@@ -1903,6 +1927,86 @@ export class ChantLine extends ChantLayoutElement {
     if (this.custos) processElementForLedgerLine(this.custos);
   }
 
+  // A reciting tone carries a whole stretch of text on a single note, and gabc
+  // written for the web cannot know where the lines will fall -- resizing the
+  // window moves them. So when the recited text runs off the end of a line we
+  // break it at the last word boundary that fits and begin the next line with
+  // a fresh reciting tone, which is what a printed edition does with one
+  // placed by hand. Gregorio has no equivalent, since it engraves to a fixed
+  // measure.
+  //
+  // Returns the synthesized notation, already spliced into the score's
+  // notation list just after `index` so that the next line picks it up in the
+  // ordinary way, or null when the syllable cannot usefully be broken.
+  splitRecitation(
+    ctxt,
+    notation,
+    prevNeume,
+    condensableSpaces,
+    rightNotationBoundary
+  ) {
+    if (
+      !notation.isRecitationTone ||
+      notation.lyrics.length !== 1 ||
+      !notation.lyrics[0]
+    )
+      return null;
+
+    // if the note itself is already past the boundary then there is no room
+    // for even one word of the recitation, and the whole syllable is better
+    // off starting the next line
+    if (notation.bounds.right() > rightNotationBoundary) return null;
+
+    var lyric = notation.lyrics[0];
+
+    // Cutting the tail off does not move the vowel segment the note is
+    // centered on -- that is in the first word -- so the lyric's left edge is
+    // the same before and after the break.
+    var tail = lyric.splitToWidth(ctxt, this.staffRight - lyric.getLeft());
+    if (tail === null) return null;
+
+    notation.positionLyrics(ctxt);
+
+    var note = notation.notes[0],
+      continuationNote = new Note(note.pitch);
+
+    continuationNote.staffPosition = note.staffPosition;
+    continuationNote.staffPositionOffset = note.staffPositionOffset;
+    continuationNote.shape = note.shape;
+    continuationNote.shapeModifiers = note.shapeModifiers;
+    continuationNote.liquescent = note.liquescent;
+
+    // episemata, morae, icti, accents and braces are deliberately not carried
+    // over: they belong to the note as it was written, and repeating them
+    // would perform them twice
+    var continuation = new Punctum([continuationNote]);
+
+    continuation.isRecitationContinuation = true;
+    continuation.score = notation.score;
+    continuation.mapping = notation.mapping;
+    continuation.sourceIndex = notation.sourceIndex;
+    continuation.firstOfSyllable = true;
+    continuation.performLayout(ctxt);
+
+    LyricArray.setNotation([tail], continuation);
+    continuation.positionLyrics(ctxt);
+
+    this.score.insertRecitationContinuation(continuation, notation);
+
+    // the head is narrower than what was measured a moment ago, so place it
+    // again from scratch
+    this.positionNotationElement(
+      ctxt,
+      this.lastLyrics,
+      prevNeume,
+      notation,
+      rightNotationBoundary,
+      condensableSpaces
+    );
+
+    return continuation;
+  }
+
   // this is where the real core of positioning neumes takes place
   // returns true if positioning was able to fit the neume before rightNotationBoundary.
   // returns false if cannot fit before given right margin.
@@ -2017,10 +2121,30 @@ export class ChantLine extends ChantLayoutElement {
       condensableSpaces.sum += space.condensable;
       return true;
     } else {
-      if (curr.firstOfSyllable && prevLyrics.length && !curr.hasLyrics()) {
-        curr.bounds.x = Math.max(curr.bounds.x, prevLyrics[0].getRight());
+      // A lyric-less notation is placed off the previous notation's glyph,
+      // which is fine when the lyric under it is roughly the width of that
+      // glyph. After a reciting tone it is not: the recited text runs far to
+      // the right of the note, and a divider placed off the note alone lands
+      // in the middle of the words it is supposed to follow.
+      var previousLyric = prevLyrics[0],
+        recitationOverhang = !!(
+          previousLyric &&
+          previousLyric.notation &&
+          previousLyric.notation.isRecitationTone
+        );
+
+      if (
+        (curr.firstOfSyllable || recitationOverhang) &&
+        prevLyrics.length &&
+        !curr.hasLyrics()
+      ) {
+        curr.bounds.x = Math.max(curr.bounds.x, previousLyric.getRight());
         space.total = curr.bounds.x - prev.bounds.right();
-        space.condensable = space.total * ctxt.condensingTolerance;
+        // the space a recitation opens up is full of words, so unlike ordinary
+        // spacing between notations it is not the condenser's to reclaim
+        space.condensable = recitationOverhang
+          ? 0
+          : space.total * ctxt.condensingTolerance;
       }
     }
 

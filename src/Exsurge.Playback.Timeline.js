@@ -303,6 +303,11 @@ export function createPlaybackEvents(score, options) {
     // sound elsewhere; playing them would double every note they cover
     if (notation.hasNoWidth) continue;
 
+    // reciting tones synthesized when a recitation breaks across chant lines
+    // are engraving marks -- the pitch they carry is already in the timeline
+    // from the notation they continue
+    if (notation.isRecitationContinuation) continue;
+
     // clefs and accidentals affect pitch, but Gabc already applied them to
     // note.pitch at parse time, so there is nothing left to do here
     if (notation.isClef || notation.isAccidental) continue;

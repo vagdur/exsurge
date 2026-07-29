@@ -765,8 +765,64 @@ export class ChantScore {
     );
   }
 
+  // Splices a reciting tone synthesized by ChantLine.splitRecitation into the
+  // notation list directly after the notation it continues, so that the next
+  // chant line picks it up like any other notation. notationIndex has to be
+  // repaired because the editor maps svg nodes back through it.
+  insertRecitationContinuation(continuation, after) {
+    var index = this.notations.indexOf(after) + 1;
+
+    this.notations.splice(index, 0, continuation);
+
+    for (var i = index; i < this.notations.length; i++)
+      this.notations[i].notationIndex = i;
+  }
+
+  // Where a recitation breaks depends on the width the score is laid out at,
+  // so the continuations from the last layout are thrown away and the
+  // syllables they were split off from are made whole again before the lines
+  // are rebuilt. Without this a narrower relayout would split the already
+  // split text a second time.
+  resetRecitationContinuations(ctxt) {
+    var i,
+      j,
+      notation,
+      found = false;
+
+    for (i = 0; i < this.notations.length; i++) {
+      notation = this.notations[i];
+
+      if (notation.isRecitationContinuation) {
+        found = true;
+        continue;
+      }
+
+      var restored = false;
+      for (j = 0; j < notation.lyrics.length; j++)
+        if (notation.lyrics[j] && notation.lyrics[j].restoreUnsplit(ctxt))
+          restored = true;
+
+      if (restored) notation.positionLyrics(ctxt);
+    }
+
+    if (!found) return;
+
+    // spliced in place rather than filtered into a new array: ChantContext
+    // keeps its own reference to this exact array and looks ahead through it
+    // to give each line's custos the pitch of the next line's first neume, so
+    // replacing the array would leave the custos reading a stale list
+    for (i = this.notations.length - 1; i >= 0; i--)
+      if (this.notations[i].isRecitationContinuation)
+        this.notations.splice(i, 1);
+
+    for (i = 0; i < this.notations.length; i++)
+      this.notations[i].notationIndex = i;
+  }
+
   layoutChantLines(ctxt, width, finishedCallback) {
     this.lines = [];
+
+    this.resetRecitationContinuations(ctxt);
 
     if (ctxt.mergeAnnotationWithTextLeft && this.annotation && !this.dropCap) {
       let annotation = this.annotation,
