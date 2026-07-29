@@ -45,6 +45,7 @@ import {
   QuarterBar,
   Virgula
 } from "./Exsurge.Chant.Signs.js";
+import { language } from "./Exsurge.Text.js";
 
 // Gabc clefs are always constructed at octave 2 (see Gabc.parseNotations), so
 // Pitch(Step.Do, 2) is the Do that the clef itself names, whichever staff line
@@ -77,6 +78,12 @@ export var PlaybackDurations = {
 
   stropha: 1.0, // apostropha/distropha/tristropha are equal repeated notes
   oriscus: 1.0,
+
+  // A reciting tone with no text under it stands in for a stretch of
+  // recitation that has not been written out -- psalm tone templates are
+  // engraved this way -- so it is held rather than sounded once. With text
+  // under it there is nothing to guess: it sounds once per recited syllable.
+  recitationWithoutText: 3.5,
 
   finalNote: 1.5, // last sounding note, when no bar line closes the piece
 
@@ -239,6 +246,55 @@ function makeNoteSlot(note, durations, velocities) {
   };
 }
 
+// The text a reciting tone carries, as it was written. Laying the score out
+// narrow enough breaks a long recitation across chant lines, which moves part
+// of the text onto a synthesized continuation; the timeline reads through that
+// so playback does not depend on how wide the score happens to be.
+function recitedText(notation) {
+  var lyric = notation.lyrics && notation.lyrics[0];
+
+  if (!lyric) return "";
+
+  return typeof lyric.unsplitText === "string"
+    ? lyric.unsplitText
+    : lyric.text || "";
+}
+
+// How many syllables of text a reciting tone carries, which is how many times
+// it sounds. Zero means it carries no text at all.
+function recitedSyllableCount(notation, defaultLanguage) {
+  var text = recitedText(notation);
+
+  if (!/\S/.test(text)) return 0;
+
+  var lyric = notation.lyrics[0];
+  var words = (lyric.language || defaultLanguage).syllabify(text);
+  var count = 0;
+
+  for (var i = 0; i < words.length; i++) count += words[i].length;
+
+  // a syllabifier that made nothing of the text still leaves us with text to
+  // sing, so fall back to sounding the tone once
+  return count || 1;
+}
+
+// A syllable of recitation that is not the last one: the written note's
+// ornaments -- a mora, an episema -- belong to the end of the recitation, not
+// to every syllable of it, so these are plain notes at the reciting pitch.
+function makeRecitedSlot(note, durations, velocities) {
+  return {
+    kind: "note",
+    note: note,
+    noteIndex: note.noteIndex,
+    elementIndex: note.elementIndex,
+    pitchInt: note.pitch ? note.pitch.toInt() : null,
+    dividerKind: null,
+    mult: durations.base,
+    add: 0,
+    velocity: velocities.base
+  };
+}
+
 /**
  * Walks a ChantScore and produces the ordered list of playback events.
  *
@@ -271,7 +327,7 @@ function makeNoteSlot(note, durations, velocities) {
 
 /**
  * @param {import("./Exsurge.Chant.js").ChantScore} score
- * @param {{durations?: {beforeDivider?: object}, restWeights?: object, velocities?: object, classifyDivider?: Function}} [options]
+ * @param {{durations?: {beforeDivider?: object}, restWeights?: object, velocities?: object, classifyDivider?: Function, language?: import("./Exsurge.Text.js").Language}} [options]
  * @return {PlaybackTimeline}
  */
 export function createPlaybackEvents(score, options) {
@@ -286,6 +342,13 @@ export function createPlaybackEvents(score, options) {
   var rests = Object.assign({}, PlaybackRests, opts.restWeights || {});
   var velocities = Object.assign({}, PlaybackVelocities, opts.velocities || {});
   var classify = opts.classifyDivider || classifyDivider;
+
+  // Counting the syllables under a reciting tone needs a syllabifier. There is
+  // no ChantContext here to read defaultLanguage from -- a score can be played
+  // without ever being laid out -- so the caller passes one, and the fallback
+  // is the same Latin that ChantContext defaults to. A lyric that names its
+  // own language still wins, as it does in layout.
+  var defaultLanguage = opts.language || language.latin;
 
   var notations = (score && score.notations) || [];
   var slots = [];
@@ -339,6 +402,32 @@ export function createPlaybackEvents(score, options) {
     // neume, none of them has notes, and none of them sounds
     if (!notation.isNeume || !notation.notes) continue;
 
+    // A reciting tone is a direction rather than a note: everything written
+    // under it is recited on the one pitch, a syllable to a pulse, exactly as
+    // if each syllable carried its own punctum. With nothing written under it
+    // the recitation is left to the singer, so all that can be done is to hold
+    // the pitch.
+    if (notation.isRecitationTone) {
+      var recited = notation.notes[0];
+
+      if (typeof recited.noteIndex !== "number") continue;
+
+      var syllables = recitedSyllableCount(notation, defaultLanguage);
+
+      for (j = 0; j + 1 < syllables; j++)
+        slots.push(makeRecitedSlot(recited, durations, velocities));
+
+      // the written note itself is the last syllable, so that a mora or an
+      // episema on it lengthens the end of the recitation rather than all of
+      // it, and a following bar line lengthens that same last syllable
+      var lastSlot = makeNoteSlot(recited, durations, velocities);
+      if (syllables === 0) lastSlot.mult *= durations.recitationWithoutText;
+
+      slots.push(lastSlot);
+      previousNote = lastSlot;
+      continue;
+    }
+
     for (j = 0; j < notation.notes.length; j++) {
       var note = notation.notes[j];
       if (typeof note.noteIndex !== "number") continue;
@@ -370,7 +459,13 @@ export function createPlaybackEvents(score, options) {
     if (s.kind === "rest" && pulses <= 0) continue;
     if (pulses < 0) pulses = 0;
 
-    if (s.noteIndex !== null)
+    // A reciting tone contributes one event per recited syllable, all of them
+    // the same note, so this keeps the first: seeking to that note should put
+    // you at the start of the recitation rather than at its last syllable.
+    if (
+      s.noteIndex !== null &&
+      eventIndexByNoteIndex[s.noteIndex] === undefined
+    )
       eventIndexByNoteIndex[s.noteIndex] = events.length;
 
     events.push({

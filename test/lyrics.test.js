@@ -84,6 +84,19 @@ function layoutNotations(gabc, width = 800) {
   return { ctxt: ctxt, notations: notationsOnLine(score, score.lines[0]) };
 }
 
+// the sounding shape of a score: what is heard, in order, and for how long
+function timelineOf(score, options) {
+  return Exsurge.createPlaybackEvents(score, options || {}).events.map(
+    (event) => [event.kind, event.pitchInt, event.pulses]
+  );
+}
+
+function soundingPulses(gabc, options) {
+  return Exsurge.createPlaybackEvents(buildScore(gabc).score, options || {})
+    .events.filter((event) => event.kind === "note")
+    .map((event) => event.pulses);
+}
+
 function findByLyric(notations, text) {
   var found = notations.find(
     (notation) => notation.hasLyrics() && notation.lyrics[0].text === text
@@ -308,7 +321,7 @@ describe("Recitation line breaking", function () {
       .should.equal(true);
   });
 
-  it("does not add the repeated reciting tones to playback", function () {
+  it("sounds the same however the score has been laid out", function () {
     var wide = layoutAt(1200);
     var narrow = layoutAt(220);
 
@@ -316,11 +329,91 @@ describe("Recitation line breaking", function () {
       .filter((notation) => notation.isRecitationContinuation)
       .length.should.be.above(0);
 
-    var notesOf = (score) =>
-      Exsurge.createPlaybackEvents(score, {})
-        .events.filter((event) => event.kind === "note")
-        .map((event) => [event.noteIndex, event.pitchInt]);
+    // breaking a recitation across chant lines is an engraving decision; the
+    // performance it stands for is the same either way
+    timelineOf(narrow.score).should.deep.equal(timelineOf(wide.score));
+  });
+});
 
-    notesOf(narrow.score).should.deep.equal(notesOf(wide.score));
+describe("Recitation playback", function () {
+  it("sounds once per recited syllable", function () {
+    // the reciting tone is a direction to sing the text that follows on one
+    // pitch, so it performs exactly as writing that text out note by note
+    timelineOf(
+      buildScore("(c4) och med din(fr0) An(g)de(h)").score
+    ).should.deep.equal(
+      timelineOf(buildScore("(c4) och(f) med(f) din(f) An(g)de(h)").score)
+    );
+  });
+
+  it("counts syllables rather than words", function () {
+    // "si-o Dó-mi-ni no-stri" is seven syllables on the reciting tone
+    var { score } = buildScore("(c4) Pás(h)sio Dómini nostri(jr0) Ie(i)su(h)");
+    var reciting = score.notations.find(
+      (notation) => notation.isRecitationTone
+    );
+
+    var events = Exsurge.createPlaybackEvents(score, {}).events.filter(
+      (event) => event.noteIndex === reciting.notes[0].noteIndex
+    );
+
+    events.length.should.equal(7);
+    events
+      .every((event) => event.pitchInt === events[0].pitchInt)
+      .should.equal(true);
+  });
+
+  it("syllabifies with the language it is given", function () {
+    // "va-re Fa-dern och So-nen" is seven syllables in Swedish
+    var gabc = "(c4) Ä(f)ra(g) vare Fadern och Sonen(hr0) A(g)men.(h)";
+    var recitingNoteIndex = (score) =>
+      score.notations.find((notation) => notation.isRecitationTone).notes[0]
+        .noteIndex;
+
+    var { score } = buildScore(gabc);
+    var index = recitingNoteIndex(score);
+    var soundings = (options) =>
+      Exsurge.createPlaybackEvents(score, options).events.filter(
+        (event) => event.noteIndex === index
+      ).length;
+
+    soundings({ language: Exsurge.language.swedish }).should.equal(7);
+
+    // and the Latin default, which is what a caller that says nothing gets,
+    // makes its own count of the same text
+    soundings({}).should.equal(soundings({ language: Exsurge.language.latin }));
+  });
+
+  it("holds a reciting tone that carries no text", function () {
+    // nothing is written to recite, so the length of the recitation is the
+    // singer's; all the timeline can do is hold the pitch
+    var held = soundingPulses("(c4) Dó(f)mi(g)nus(h) (hr0) A(g)men.(h)");
+    var plain = soundingPulses("(c4) Dó(f)mi(g)nus(h) (h) A(g)men.(h)");
+
+    held.length.should.equal(plain.length);
+    held[3].should.equal(
+      plain[3] * Exsurge.PlaybackDurations.recitationWithoutText
+    );
+  });
+
+  it("lengthens the last recited syllable before a bar line", function () {
+    var pulses = soundingPulses("(c4) och med din(fr0) (::) A(g)men.(h)");
+
+    // the three syllables of "och med din", the last one held into the bar
+    pulses
+      .slice(0, 3)
+      .should.deep.equal([
+        1,
+        1,
+        Exsurge.PlaybackDurations.beforeDivider.doubleBar
+      ]);
+  });
+
+  it("puts a mora at the end of a recitation, not on every syllable", function () {
+    var pulses = soundingPulses("(c4) och med din(fr0.) A(g)men.(h)");
+
+    pulses
+      .slice(0, 3)
+      .should.deep.equal([1, 1, 1 + Exsurge.PlaybackDurations.perMora]);
   });
 });

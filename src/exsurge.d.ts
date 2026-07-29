@@ -591,6 +591,8 @@ declare module "@vagdur/exsurge" {
     initioDebilis: number;
     stropha: number;
     oriscus: number;
+    /** multiplier for a reciting tone with no text written under it */
+    recitationWithoutText: number;
     finalNote: number;
     beforeDivider: { [K in DividerKind]: number };
   }
@@ -696,6 +698,11 @@ declare module "@vagdur/exsurge" {
     durations: Partial<PlaybackDurationTable> | null;
     restWeights: Partial<{ [K in DividerKind]: number }> | null;
     velocities: Partial<typeof PlaybackVelocities> | null;
+    /**
+     * Syllabifies the text under a reciting tone, which is how many times it
+     * sounds. Defaults to Latin, as ChantContext's defaultLanguage does.
+     */
+    language: Language | null;
     onStart: ((player: ChantPlayer) => void) | null;
     onStop:
       | ((player: ChantPlayer, reason: "user" | "end" | "destroy") => void)
