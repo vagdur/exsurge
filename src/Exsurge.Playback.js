@@ -99,6 +99,11 @@ export var PlaybackDefaults = {
   restWeights: null,
   velocities: null,
 
+  // Syllabifies the text under a reciting tone, which is how many times that
+  // tone sounds. Null means Latin, the same default ChantContext uses; set it
+  // to match the language of the score, e.g. exsurge.language.swedish.
+  language: null,
+
   onStart: null, // (player)
   onStop: null, // (player, reason) reason: 'user' | 'end' | 'destroy'
   onEnd: null, // (player) fired before onStop when playback runs out
@@ -133,6 +138,18 @@ function removeClass(element, className) {
 function hasClass(element, className) {
   var existing = element.getAttribute("class") || "";
   return (" " + existing + " ").indexOf(" " + className + " ") >= 0;
+}
+
+// Compares the two glyph lists a note can be drawn as. Highlighting is keyed
+// on identity so that moving between notes that share a glyph -- the two notes
+// of a porrectus -- does not toggle the class off and back on.
+function sameElements(a, b) {
+  if (a === b) return true;
+  if (!a || !b || a.length !== b.length) return false;
+
+  for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+
+  return true;
 }
 
 /**
@@ -800,23 +817,36 @@ export class ChantPlayer {
   }
 
   __applyHighlight(noteIndex) {
-    var element = noteIndex === null ? null : this.__noteElements[noteIndex];
+    var elements =
+      (noteIndex === null ? null : this.__noteElements[noteIndex]) || null;
 
     // the two notes of a porrectus share one drawn glyph, so moving between
     // them must not toggle the class off and back on
-    if (element !== this.__currentElement) {
-      if (this.__currentElement)
-        removeClass(this.__currentElement, this.options.highlightClass);
-      if (element) addClass(element, this.options.highlightClass);
-      this.__currentElement = element || null;
+    if (!sameElements(elements, this.__currentElement)) {
+      this.__eachCurrentElement((element) =>
+        removeClass(element, this.options.highlightClass)
+      );
+      if (elements)
+        for (var i = 0; i < elements.length; i++)
+          addClass(elements[i], this.options.highlightClass);
+      this.__currentElement = elements;
     }
 
     this.__currentNoteIndex = noteIndex;
   }
 
+  // the glyphs currently lit. Normally one, but a reciting tone that continues
+  // onto further chant lines is drawn once per line and lights all at once.
+  __eachCurrentElement(fn) {
+    var elements = this.__currentElement;
+    if (!elements) return;
+    for (var i = 0; i < elements.length; i++) fn(elements[i]);
+  }
+
   __clearHighlight() {
-    if (this.__currentElement)
-      removeClass(this.__currentElement, this.options.highlightClass);
+    this.__eachCurrentElement((element) =>
+      removeClass(element, this.options.highlightClass)
+    );
 
     this.__currentElement = null;
 
@@ -848,7 +878,13 @@ export class ChantPlayer {
             element = previous;
         }
 
-        this.__noteElements[owner.noteIndex] = element;
+        // A note is usually drawn once, but a reciting tone whose recited text
+        // breaks across chant lines is drawn again at the head of every line
+        // it continues onto, and all of those glyphs belong to this one note.
+        var drawn = this.__noteElements[owner.noteIndex];
+
+        if (!drawn) this.__noteElements[owner.noteIndex] = [element];
+        else if (drawn.indexOf(element) < 0) drawn.push(element);
       }
     }
   }
@@ -880,12 +916,13 @@ export class ChantPlayer {
 
   __refreshStyle(previousHighlightClass) {
     if (
-      this.__currentElement &&
       previousHighlightClass &&
       previousHighlightClass !== this.options.highlightClass
     ) {
-      removeClass(this.__currentElement, previousHighlightClass);
-      addClass(this.__currentElement, this.options.highlightClass);
+      this.__eachCurrentElement((element) => {
+        removeClass(element, previousHighlightClass);
+        addClass(element, this.options.highlightClass);
+      });
     }
 
     var i;
