@@ -97,6 +97,28 @@ function soundingPulses(gabc, options) {
     .map((event) => event.pulses);
 }
 
+// Every glyph the score draws with the "note" class -- what ChantPlayer looks
+// for when it maps a rendered score back onto its notes. createSvgTree is used
+// rather than createSvgNode because the specs run without a DOM.
+function noteGlyphs(score, ctxt) {
+  var found = [];
+
+  (function walk(node) {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) return node.forEach(walk);
+
+    var props = node.props || {};
+    var className = props.className || props.class;
+
+    if (typeof className === "string" && /(^| )note( |$)/.test(className))
+      found.push({ id: props.id, elementIndex: props["element-index"] });
+
+    walk(node.children);
+  })(score.createSvgTree(ctxt));
+
+  return found;
+}
+
 function findByLyric(notations, text) {
   var found = notations.find(
     (notation) => notation.hasLyrics() && notation.lyrics[0].text === text
@@ -333,6 +355,70 @@ describe("Recitation line breaking", function () {
     // performance it stands for is the same either way
     timelineOf(narrow.score).should.deep.equal(timelineOf(wide.score));
   });
+
+  it("keeps a divider that begins a line ahead of what follows it", function () {
+    // A divider is centered against what is on either side of it, but
+    // notations[i - 1] is only on this line when the divider is not the first
+    // thing on it. Continuations often take a line to themselves, which is how
+    // a divider comes to begin one, and centering it against the recited text
+    // on the line above used to put it to the right of its own successor.
+    var { score } = layoutAt(205);
+
+    for (var line of score.lines) {
+      var onLine = notationsOnLine(score, line);
+
+      for (var i = 0; i < onLine.length - 1; i++)
+        if (onLine[i].isDivider)
+          onLine[i].bounds
+            .right()
+            .should.be.at.most(
+              onLine[i + 1].bounds.x,
+              "divider overtook the notation after it"
+            );
+    }
+  });
+
+  it("draws the continuation as the same note it continues", function () {
+    var { ctxt, score } = buildScore(gabc);
+
+    score.layoutChantLines(ctxt, 220, () => {});
+
+    var continuations = score.notations.filter(
+      (notation) => notation.isRecitationContinuation
+    );
+
+    continuations.length.should.be.above(0);
+
+    for (var continuation of continuations) {
+      var written = score.notations[score.notations.indexOf(continuation) - 1];
+
+      // sharing the indices is what lets the player find every glyph a note is
+      // drawn as, so that clicking any of them seeks to the recitation and all
+      // of them light together
+      continuation.notes[0].noteIndex.should.equal(written.notes[0].noteIndex);
+      continuation.notes[0].elementIndex.should.equal(
+        written.notes[0].elementIndex
+      );
+
+      // but it is not a note of the score: nothing may count it twice
+      score.notes.includes(continuation.notes[0]).should.equal(false);
+    }
+
+    // an id may appear only once in a document, so only the written note
+    // carries one
+    var ids = noteGlyphs(score, ctxt)
+      .map((glyph) => glyph.id)
+      .filter((id) => id !== undefined);
+
+    // score.notes also holds the dividers and other non-note elements, so
+    // count the ones that actually sound
+    var sounding = score.notes.filter(
+      (note) => typeof note.noteIndex === "number"
+    );
+
+    ids.length.should.equal(new Set(ids).size);
+    ids.length.should.equal(sounding.length);
+  });
 });
 
 describe("Recitation playback", function () {
@@ -382,6 +468,26 @@ describe("Recitation playback", function () {
     // and the Latin default, which is what a caller that says nothing gets,
     // makes its own count of the same text
     soundings({}).should.equal(soundings({ language: Exsurge.language.latin }));
+  });
+
+  it("survives a language that cannot syllabify", function () {
+    // English implements findVowelSegment but not syllabifyWord, and the base
+    // class throws for anything that has not overridden it. Playing a score is
+    // not the place to discover that, so an unsyllabifiable language falls
+    // back to a pulse per word.
+    var gabc = "(c4) the Lord be with you(fr0) and(g) al(h)so.(g)";
+
+    for (var name of Object.keys(Exsurge.language)) {
+      var language = Exsurge.language[name];
+
+      (() => soundingPulses(gabc, { language: language })).should.not.throw();
+    }
+
+    // "the Lord be with you" is five words, so five soundings of the tone
+    // ahead of the three written notes
+    soundingPulses(gabc, {
+      language: Exsurge.language.english
+    }).length.should.equal(8);
   });
 
   it("holds a reciting tone that carries no text", function () {

@@ -1386,18 +1386,30 @@ export class ChantLine extends ChantLayoutElement {
           var spansItsText = (notation) =>
             (notation instanceof TextOnly || notation.isRecitationTone) &&
             notation.hasLyrics();
-          var leftPoint = spansItsText(prev)
-              ? prev.lyrics[0].getRight()
-              : prev.bounds.right(),
-            rightPoint = spansItsText(next)
-              ? next.lyrics[0].getLeft()
-              : next.bounds.x;
-          if (prev instanceof TextOnly) {
-            let prev = this.score.notations
+          var rightPoint = spansItsText(next)
+            ? next.lyrics[0].getLeft()
+            : next.bounds.x;
+          var leftPoint;
+
+          if (i === this.notationsStartIndex) {
+            // notations[i - 1] is the notation before this one in the score,
+            // which is not necessarily on this line: a divider can begin a
+            // system, and then its predecessor sits on the line above with
+            // coordinates that mean nothing here. With a reciting tone up
+            // there, whose recited text runs the width of the staff,
+            // centering against it would put the divider to the right of the
+            // notation that follows it. The clef is this line's own left edge.
+            leftPoint = this.startingClef.bounds.right();
+          } else if (prev instanceof TextOnly) {
+            let previousNeume = this.score.notations
               .slice(this.notationsStartIndex, i)
               .reverse()
               .find((notation) => !(notation instanceof TextOnly));
-            leftPoint = prev ? prev.bounds.right() : 0;
+            leftPoint = previousNeume ? previousNeume.bounds.right() : 0;
+          } else if (spansItsText(prev)) {
+            leftPoint = prev.lyrics[0].getRight();
+          } else {
+            leftPoint = prev.bounds.right();
           }
           if (leftPoint) {
             curr.bounds.x = (leftPoint + rightPoint - barWidth) / 2;
@@ -1975,6 +1987,14 @@ export class ChantLine extends ChantLayoutElement {
     continuationNote.shape = note.shape;
     continuationNote.shapeModifiers = note.shapeModifiers;
     continuationNote.liquescent = note.liquescent;
+
+    // It is the same note, drawn again, so it answers to the same indices.
+    // The player maps a rendered glyph back to a note through elementIndex and
+    // tracks the sounding note by noteIndex; carrying both over is what makes
+    // the continuation clickable and lights it along with the note it
+    // continues. It is not added to score.notes, so nothing counts it twice.
+    continuationNote.noteIndex = note.noteIndex;
+    continuationNote.elementIndex = note.elementIndex;
 
     // episemata, morae, icti, accents and braces are deliberately not carried
     // over: they belong to the note as it was written, and repeating them

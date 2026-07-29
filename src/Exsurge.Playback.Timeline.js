@@ -268,7 +268,20 @@ function recitedSyllableCount(notation, defaultLanguage) {
   if (!/\S/.test(text)) return 0;
 
   var lyric = notation.lyrics[0];
-  var words = (lyric.language || defaultLanguage).syllabify(text);
+  var words;
+
+  // Not every Language can syllabify. English, for one, implements only
+  // findVowelSegment, and Language.syllabifyWord throws for anything that has
+  // not overridden it -- so playing a score with `language: language.english`
+  // would fail outright rather than merely mis-count. The recitation still has
+  // to sound, and one pulse per word is far closer than letting a whole clause
+  // by in a single pulse, so that is what an unsyllabifiable language gets.
+  try {
+    words = (lyric.language || defaultLanguage).syllabify(text);
+  } catch {
+    return text.trim().split(/\s+/).length;
+  }
+
   var count = 0;
 
   for (var i = 0; i < words.length; i++) count += words[i].length;

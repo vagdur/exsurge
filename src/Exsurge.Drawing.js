@@ -1368,7 +1368,12 @@ export class GlyphVisualizer extends ChantLayoutElement {
       result["element-index"] = source.elementIndex;
       if ("noteIndex" in source) {
         result.class += " note";
-        result.id = ctxt.noteIdPrefix + (source.noteIndex + 1);
+        // A reciting tone continued onto another chant line draws the same
+        // note a second time. It shares the note's index, so that the player
+        // finds both glyphs and lights them together, but an id may only
+        // appear once in a document, so the written note keeps it.
+        if (!(source.neume && source.neume.isRecitationContinuation))
+          result.id = ctxt.noteIdPrefix + (source.noteIndex + 1);
         if (source.neume) {
           const glyphCode = source.glyphVisualizer.glyphCode;
           if (porrectusNoteDiff) {
