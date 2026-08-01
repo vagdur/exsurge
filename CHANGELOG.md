@@ -1,3 +1,17 @@
+# [1.28.0](https://github.com/vagdur/exsurge/compare/v1.27.0...v1.28.0) (2026-08-01)
+
+
+### Bug Fixes
+
+* Address review findings on the reciting tone changes ([3c2fbd2](https://github.com/vagdur/exsurge/commit/3c2fbd2e22e6e7ba872e257836f582932b0c5fac))
+* **layout:** Center multi-word syllables on their first vowel ([cadac98](https://github.com/vagdur/exsurge/commit/cadac98c9994e09d372cb6b658aac1bca3985f93))
+
+
+### Features
+
+* **layout:** Repeat the reciting tone when a recitation breaks a line ([c8d7fc7](https://github.com/vagdur/exsurge/commit/c8d7fc769189818fdd05b810da846c38dbbd6bd0))
+* **playback:** Sound a reciting tone once per recited syllable ([4aba703](https://github.com/vagdur/exsurge/commit/4aba703b567415278a117c2ca276a598f167aa29))
+
 # [1.27.0](https://github.com/vagdur/exsurge/compare/v1.26.0...v1.27.0) (2026-07-28)
 
 
