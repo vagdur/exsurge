@@ -533,6 +533,79 @@ describe("Gabc: staff position offsets and pitch", function () {
   });
 });
 
+describe("Gabc: C and F clefs describe the same staff", function () {
+  // An F clef on line n and a C clef on line n+2 are two spellings of one
+  // staff: the fa an F clef names is the fa a fifth BELOW the do that a C clef
+  // two lines higher would name. Only playback can hear the difference -- staff
+  // positions round trip through either anchoring, so an octave error here is
+  // invisible in the engraving and audible the moment the score is played.
+
+  var NOTES = "(a) (c) (d) (e) (f) (g) (h) (i) (k) (m)";
+
+  function pitchIntsOf(gabc) {
+    var ctxt = new Exsurge.ChantContext();
+    var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
+    var score = new Exsurge.ChantScore(ctxt, mappings, false);
+
+    return score.notes
+      .filter(function (n) {
+        return n instanceof Exsurge.Note;
+      })
+      .map(function (n) {
+        return n.pitch.toInt();
+      });
+  }
+
+  [
+    ["f1", "c3"],
+    ["f2", "c4"],
+    ["f3", "c5"]
+  ].forEach(function (pair) {
+    it(pair[0] + " sounds exactly like " + pair[1], function () {
+      var fa = pitchIntsOf("(" + pair[0] + ") " + NOTES);
+      var doh = pitchIntsOf("(" + pair[1] + ") " + NOTES);
+
+      fa.length.should.equal(10);
+      fa.should.eql(doh);
+    });
+  });
+
+  it("does not transpose at a mid-score clef change", function () {
+    // the same letter on either side of an equivalent clef change
+    var pitches = pitchIntsOf("(c4) (d) (f2) (d) (c4) (d) (::)");
+
+    pitches.should.eql([pitches[0], pitches[0], pitches[0]]);
+  });
+
+  it("names the fa a fifth below its do", function () {
+    var clef = new Exsurge.FaClef(3, 2); // f2
+
+    // seven semitones below Do2, not five above it
+    clef
+      .staffPositionToPitch(3)
+      .toInt()
+      .should.equal(new Exsurge.Pitch(Exsurge.Step.Do, 2).toInt() - 7);
+
+    // and the do it implies sits on line 4, exactly where a c4 clef puts it
+    clef
+      .staffPositionToPitch(7)
+      .toInt()
+      .should.equal(new Exsurge.Pitch(Exsurge.Step.Do, 2).toInt());
+  });
+
+  it("round trips staff positions through pitch", function () {
+    [1, 3, 5, 7, 9].forEach(function (line) {
+      var clef = new Exsurge.FaClef(line, 2);
+
+      for (var sp = -4; sp <= 14; sp++) {
+        clef
+          .pitchToStaffPosition(clef.staffPositionToPitch(sp))
+          .should.equal(sp, "f clef on staff position " + line);
+      }
+    });
+  });
+});
+
 describe("Playback: real gabc", function () {
   // ChantScore's constructor runs updateNotations, which is all the extractor
   // needs -- no layout, and therefore no text measurement.

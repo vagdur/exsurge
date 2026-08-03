@@ -273,6 +273,16 @@ export class DoClef extends Clef {
 
 var __defaultDoClef = new DoClef(7, 2);
 
+// Where the F clef's line sits relative to the do of `this.octave`, in staff
+// positions. The fa an F clef names is the fa a FIFTH BELOW that do -- not the
+// fa a fourth above it -- because an F clef on line n and a C clef on line n+2
+// are two spellings of the same staff: f1 == c3, f2 == c4, f3 == c5. Anchoring
+// on the fa above would still round trip through pitchToStaffPosition, so the
+// engraving would look identical, but every pitch would come out an octave
+// high and playback of an f-clef score would sound an octave above the
+// equivalent c-clef one.
+var FaClefStaffOffsetFromDo = Pitch.stepToStaffOffset(Step.Fa) - 7; // === -4
+
 export class FaClef extends Clef {
   constructor(staffPosition, octave, defaultAccidental = null) {
     super(staffPosition, octave, defaultAccidental);
@@ -283,14 +293,14 @@ export class FaClef extends Clef {
   pitchToStaffPosition(pitch) {
     return (
       (pitch.octave - this.octave) * 7 +
-      this.staffPosition +
-      Pitch.stepToStaffOffset(pitch.step) -
-      Pitch.stepToStaffOffset(Step.Fa)
+      this.staffPosition -
+      FaClefStaffOffsetFromDo +
+      Pitch.stepToStaffOffset(pitch.step)
     );
   }
 
   staffPositionToPitch(staffPosition) {
-    var offset = staffPosition - this.staffPosition + 3; // + 3 because it's a fa clef (3 == offset from Do)
+    var offset = staffPosition - this.staffPosition + FaClefStaffOffsetFromDo;
     var octaveOffset = Math.floor(offset / 7);
 
     var step = Pitch.staffOffsetToStep(offset);
