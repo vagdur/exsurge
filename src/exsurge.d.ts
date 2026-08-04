@@ -242,6 +242,12 @@ declare module "@vagdur/exsurge" {
       useDropCap?: boolean
     );
 
+    /**
+     * The context the score was built with, refreshed by updateNotations.
+     * Null on a score built without one (copyLines inherits it). Playback
+     * reads defaultLanguage from here.
+     */
+    ctxt: ChantContext | null;
     mappings: ChantMapping[];
     lines: ChantLine[];
     staffLineCount: number;
@@ -700,7 +706,8 @@ declare module "@vagdur/exsurge" {
     velocities: Partial<typeof PlaybackVelocities> | null;
     /**
      * Syllabifies the text under a reciting tone, which is how many times it
-     * sounds. Defaults to Latin, as ChantContext's defaultLanguage does.
+     * sounds. Null takes the language from the score's context, and Latin --
+     * as ChantContext's defaultLanguage does -- for a score without one.
      */
     language: Language | null;
     onStart: ((player: ChantPlayer) => void) | null;

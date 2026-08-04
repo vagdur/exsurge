@@ -340,7 +340,7 @@ function makeRecitedSlot(note, durations, velocities) {
 
 /**
  * @param {import("./Exsurge.Chant.js").ChantScore} score
- * @param {{durations?: {beforeDivider?: object}, restWeights?: object, velocities?: object, classifyDivider?: Function, language?: import("./Exsurge.Text.js").Language}} [options]
+ * @param {{durations?: {beforeDivider?: object}, restWeights?: object, velocities?: object, classifyDivider?: Function, language?: import("./Exsurge.Text.js").Language}} [options] `language` overrides the syllabifier used for reciting tones; by default it is the one on the score's context
  * @return {PlaybackTimeline}
  */
 export function createPlaybackEvents(score, options) {
@@ -356,12 +356,19 @@ export function createPlaybackEvents(score, options) {
   var velocities = Object.assign({}, PlaybackVelocities, opts.velocities || {});
   var classify = opts.classifyDivider || classifyDivider;
 
-  // Counting the syllables under a reciting tone needs a syllabifier. There is
-  // no ChantContext here to read defaultLanguage from -- a score can be played
-  // without ever being laid out -- so the caller passes one, and the fallback
-  // is the same Latin that ChantContext defaults to. A lyric that names its
-  // own language still wins, as it does in layout.
-  var defaultLanguage = opts.language || language.latin;
+  // Counting the syllables under a reciting tone needs a syllabifier, and it
+  // has to be the one the score is written in: Latin reads the <ae> of
+  // Israels as a diphthong and counts two syllables where Swedish counts
+  // three. Unless the caller names a language, take it from the context the
+  // score was built with, so that setting ctxt.defaultLanguage is enough and
+  // playback cannot silently disagree with the layout. Scores built without a
+  // context -- the timeline needs no layout, only updateNotations -- keep the
+  // same Latin fallback ChantContext itself defaults to. A lyric that names
+  // its own language still wins, as it does in layout.
+  var defaultLanguage =
+    opts.language ||
+    (score && score.ctxt && score.ctxt.defaultLanguage) ||
+    language.latin;
 
   var notations = (score && score.notations) || [];
   var slots = [];
