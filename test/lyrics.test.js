@@ -51,11 +51,13 @@ function stubFontDictionary() {
   };
 }
 
-function buildScore(gabc) {
+function buildScore(gabc, language) {
   var ctxt = new Exsurge.ChantContext();
   // the stub implements only the two methods that get called, not all of
   // opentype.js's Font, so it cannot satisfy the declared dictionary type
   ctxt.fontDictionary = /** @type {any} */ (stubFontDictionary());
+
+  if (language) ctxt.defaultLanguage = language;
 
   var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
   var score = new Exsurge.ChantScore(ctxt, mappings, false);
@@ -465,9 +467,39 @@ describe("Recitation playback", function () {
 
     soundings({ language: Exsurge.language.swedish }).should.equal(7);
 
-    // and the Latin default, which is what a caller that says nothing gets,
-    // makes its own count of the same text
+    // and the Latin of the score's context, which is what a caller that says
+    // nothing gets here, makes its own count of the same text
     soundings({}).should.equal(soundings({ language: Exsurge.language.latin }));
+  });
+
+  it("takes its syllabifier from the score's context", function () {
+    // "Is-ra-els Gud" is four syllables in Swedish; Latin reads the <ae> as a
+    // diphthong and counts three. Setting ctxt.defaultLanguage has to be
+    // enough: playback that quietly kept counting in Latin would disagree with
+    // the layout the same context produced.
+    var gabc = "(c4) Lo(f)va(g) Israels Gud(hr0) i(g)dag.(h)";
+
+    var soundings = function (score, options) {
+      var reciting = score.notations.find(
+        (notation) => notation.isRecitationTone
+      );
+
+      return Exsurge.createPlaybackEvents(score, options).events.filter(
+        (event) => event.noteIndex === reciting.notes[0].noteIndex
+      ).length;
+    };
+
+    var swedish = buildScore(gabc, Exsurge.language.swedish).score;
+
+    soundings(swedish).should.equal(4);
+    soundings(buildScore(gabc).score).should.equal(3);
+
+    // an explicit language still overrides the context
+    soundings(swedish, { language: Exsurge.language.latin }).should.equal(3);
+
+    // and a score that has no context at all keeps the Latin fallback
+    swedish.ctxt = null;
+    soundings(swedish).should.equal(3);
   });
 
   it("survives a language that cannot syllabify", function () {

@@ -100,8 +100,9 @@ export var PlaybackDefaults = {
   velocities: null,
 
   // Syllabifies the text under a reciting tone, which is how many times that
-  // tone sounds. Null means Latin, the same default ChantContext uses; set it
-  // to match the language of the score, e.g. exsurge.language.swedish.
+  // tone sounds. Null takes the language from the context the score was built
+  // with, and Latin -- the same default ChantContext uses -- for a score built
+  // without one. Set it only to override that, e.g. exsurge.language.swedish.
   language: null,
 
   onStart: null, // (player)

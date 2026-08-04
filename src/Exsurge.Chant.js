@@ -486,6 +486,15 @@ export class ChantScore {
   constructor(ctxt, mappings = [], useDropCap) {
     this.mappings = mappings;
 
+    // The context the score was built with, kept so that consumers who are
+    // handed a score alone can still reach the settings it was parsed under --
+    // playback reads defaultLanguage from here rather than falling back to
+    // Latin behind the caller's back. Every method that needs the context
+    // still takes it as an argument; this is a reference, not a substitute, so
+    // it is refreshed by updateNotations and may be null on a score built
+    // without one.
+    this.ctxt = ctxt || null;
+
     this.lines = [];
     this.notes = [];
     this.staffLineCount = 4;
@@ -518,6 +527,9 @@ export class ChantScore {
    */
   copyLines(startLine, endLine) {
     let result = new ChantScore();
+    // constructed without a context, since there is nothing here to lay out
+    // again, but it is a slice of this score and belongs to the same one
+    result.ctxt = this.ctxt;
     result.lines = this.lines.slice(startLine, endLine);
     result.bounds = this.bounds.clone();
     let lastLine = result.lines.slice(-1)[0];
@@ -582,6 +594,8 @@ export class ChantScore {
 
   updateNotations(ctxt) {
     var i, j, mapping, notation;
+
+    this.ctxt = ctxt || this.ctxt;
 
     // flatten all mappings into one array for N(0) access to notations
     this.notations = [];
