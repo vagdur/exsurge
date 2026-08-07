@@ -55,7 +55,7 @@ npm install github:bbloomf/exsurge     # the fork this one is based on, not on n
 
 The built bundle `dist/exsurge.min.js` is UMD, so it works as a CommonJS/AMD module or as a browser global. **The global is named `exsurge`** — the scope is part of the package name, not the namespace.
 
-`import` and `require` both give you the full 135-export surface:
+`import` and `require` both give you the full 139-export surface:
 
 ```javascript
 import { ChantContext, Gabc, ChantScore } from "@vagdur/exsurge";  // dist/exsurge.mjs
@@ -148,7 +148,7 @@ exsurge.createPlayableChant(ctxt, gabc, document.getElementById("chant"), {
 });
 ```
 
-Clicking a note plays from that note onward, highlighting whichever note is sounding; clicking again stops. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example, [live here](https://vagdur.github.io/exsurge/test/playback.html).
+Clicking a note plays from that note onward, highlighting whichever note is sounding; clicking again stops. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setTemperament`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example, [live here](https://vagdur.github.io/exsurge/test/playback.html).
 
 To attach to a score you rendered yourself, construct the player directly:
 
@@ -161,7 +161,8 @@ const player = new exsurge.ChantPlayer(score, score.createSvgNode(ctxt), options
 | `speed` | `100` | percentage of `basePulseSeconds`; higher is faster |
 | `basePulseSeconds` | `0.4` | seconds per pulse at `speed: 100` (150 pulses/min) |
 | `tuning` | `261.6255653` | frequency of Do, in hertz |
-| `transpose` | `0` | extra semitones, applied after `tuning` |
+| `transpose` | `0` | extra semitones; shifts the piece without altering its intervals |
+| `temperament` | `"equal"` | `"equal"`, `"pythagorean"`, or your own ratio function |
 | `instrument` | `"piano"` | a key in `exsurge.Instruments`, or your own object |
 | `volume` | `1.0` | scales the master gain |
 | `loop` | `false` | restart at the end instead of stopping |
@@ -171,6 +172,14 @@ const player = new exsurge.ChantPlayer(score, score.createSvgNode(ctxt), options
 | `onStart` / `onStop` / `onEnd` / `onNoteChange` / `onError` | `null` | callbacks |
 
 **Tuning.** Every gabc clef is built at octave 2 whatever staff line it sits on, so `tuning` is the frequency of the Do that the clef itself names — literally "what pitch is C played at". A `c4` chant then spans roughly C3–C4 at the default; a `c1` chant sits nearly an octave higher, which is the clef doing its job. Use `transpose` to move a piece into a comfortable range. Note that on an **f-clef** the note sitting *on the clef line* is Fa, so it sounds a perfect fourth above `tuning`. Mid-score clef changes and accidentals are handled automatically, because gabc bakes the active clef into each note's pitch at parse time.
+
+**Temperament.** The default is twelve-tone equal temperament, because that is what a listener arriving from other software expects. Chant predates it by centuries, so `temperament: "pythagorean"` is on offer as the historically apt alternative: every interval is built from pure 3:2 fifths, which leaves fifths and fourths beatless and the thirds noticeably wider than tempered ones — the ditone comes out at 408 cents rather than 400. The twelve ratios are exported as `PythagoreanRatios`, and `temperament` also accepts your own function from signed semitones relative to Do to a frequency ratio, so any other tuning is a few lines away:
+
+```javascript
+player.setTemperament((semitones) => Math.pow(2, semitones / 12)); // back to equal
+```
+
+`transpose` composes with all of this as a second ratio rather than as a shift applied before the lookup, so moving a piece into a comfortable range never disturbs the intervals inside it.
 
 **Rhythm.** Chant notates no durations, so playback has to interpret. The default is an equal pulse with the usual Solesmes nuances: a mora dot adds a pulse, a horizontal episema lengthens slightly, an ictus accents without lengthening, a quilisma is light and broadens the note before it, liquescents are clipped, and bar lines produce rests scaled by type. All of it lives in three exported tables — `PlaybackDurations`, `PlaybackRests` and `PlaybackVelocities` — and any of them can be overridden per player via the `durations`, `restWeights` and `velocities` options.
 
@@ -202,7 +211,7 @@ Everything is in `src/`, re-exported flat from `src/index.js` onto a single name
 | `Exsurge.Playback.Timeline.js` | note → pulse extraction and the rhythm tables (pure) |
 | `Exsurge.Playback.Instruments.js` | Web Audio instruments (`PianoInstrument`) |
 
-TypeScript declarations are hand-maintained in `src/exsurge.d.ts`. They are checked by `npm run typecheck`, but they still cover only a fraction of the 135 runtime exports — an undeclared export is an omission, not a signal that it is private.
+TypeScript declarations are hand-maintained in `src/exsurge.d.ts`. They are checked by `npm run typecheck`, but they still cover only a fraction of the 139 runtime exports — an undeclared export is an omission, not a signal that it is private.
 
 ## Development
 

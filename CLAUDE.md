@@ -57,7 +57,7 @@ The whole tree is Prettier-formatted and `npm run format:check` runs in CI; mark
 
 ## Architecture
 
-All source is in `src/`, re-exported flat from `src/index.js` (so everything is on the single `exsurge` UMD namespace). TypeScript declarations are hand-maintained in `src/exsurge.d.ts` — update them when changing public APIs. The filename matters: as `src/index.d.ts` it shadowed `src/index.js` in TypeScript's resolution order, so the declarations and the implementation were never checked against each other, which is how they came to declare members that did not exist. They cover roughly 25 of the 135 runtime exports, so an undeclared export is an omission rather than a signal that it is private.
+All source is in `src/`, re-exported flat from `src/index.js` (so everything is on the single `exsurge` UMD namespace). TypeScript declarations are hand-maintained in `src/exsurge.d.ts` — update them when changing public APIs. The filename matters: as `src/index.d.ts` it shadowed `src/index.js` in TypeScript's resolution order, so the declarations and the implementation were never checked against each other, which is how they came to declare members that did not exist. They cover roughly 25 of the 139 runtime exports, so an undeclared export is an omission rather than a signal that it is private.
 
 The rendering pipeline is: **gabc text → parse → notation elements → layout → SVG**.
 

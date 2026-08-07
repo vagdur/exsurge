@@ -616,16 +616,38 @@ declare module "@vagdur/exsurge" {
 
   export function classifyDivider(divider: unknown): DividerKind | null;
 
+  /** frequency ratio per semitone above Do; twelve entries, Do first */
+  export const PythagoreanRatios: number[];
+
+  /** signed semitones relative to Do -> the ratio that offset sounds at */
+  export type TemperamentRatio = (semitones: number) => number;
+
+  export const Temperaments: {
+    equal: TemperamentRatio;
+    pythagorean: TemperamentRatio;
+    [name: string]: TemperamentRatio;
+  };
+
+  /** a key in Temperaments, or your own ratio function */
+  export type TemperamentSpec = string | TemperamentRatio;
+
+  /** throws on a name that is not in Temperaments */
+  export function resolveTemperament(
+    spec?: TemperamentSpec | null
+  ): TemperamentRatio;
+
   export function pitchIntToFrequency(
     pitchInt: number,
     tuning: number,
-    transpose?: number
+    transpose?: number,
+    temperament?: TemperamentSpec | null
   ): number;
 
   export function pitchToFrequency(
     pitch: Pitch | null,
     tuning: number,
-    transpose?: number
+    transpose?: number,
+    temperament?: TemperamentSpec | null
   ): number | null;
 
   export function secondsPerPulse(
@@ -685,8 +707,10 @@ declare module "@vagdur/exsurge" {
      * perfect fourth above this.
      */
     tuning: number;
-    /** extra semitones, applied after tuning */
+    /** extra semitones; shifts the piece without altering its intervals */
     transpose: number;
+    /** how the twelve semitones are spaced; defaults to "equal" */
+    temperament: TemperamentSpec;
     instrument: string | Instrument;
     volume: number;
     loop: boolean;
@@ -761,6 +785,7 @@ declare module "@vagdur/exsurge" {
     setSpeed(percent: number): void;
     setTuning(hz: number): void;
     setTranspose(semitones: number): void;
+    setTemperament(spec: TemperamentSpec): void;
     setInstrument(spec: string | Instrument): void;
     setVolume(v: number): void;
     setOptions(partial: Partial<ChantPlayerOptions>): void;

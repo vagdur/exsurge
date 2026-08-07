@@ -161,6 +161,112 @@ describe("Playback: pitch and tempo", function () {
     should.equal(Exsurge.pitchToFrequency(null, MIDDLE_C), null);
   });
 
+  it("tunes fifths and fourths pure in Pythagorean", function () {
+    var hz = function (step) {
+      return Exsurge.pitchIntToFrequency(
+        new Exsurge.Pitch(step, 2).toInt(),
+        MIDDLE_C,
+        0,
+        "pythagorean"
+      );
+    };
+
+    (hz(Exsurge.Step.So) / hz(Exsurge.Step.Do)).should.be.closeTo(3 / 2, 1e-12);
+    (hz(Exsurge.Step.Fa) / hz(Exsurge.Step.Do)).should.be.closeTo(4 / 3, 1e-12);
+    (hz(Exsurge.Step.La) / hz(Exsurge.Step.Re)).should.be.closeTo(3 / 2, 1e-12);
+
+    // the ditone is the audible difference from equal temperament: 408 cents
+    // against 400, roughly a seventh of a semitone sharp
+    var ditone = hz(Exsurge.Step.Mi) / hz(Exsurge.Step.Do);
+    ditone.should.be.closeTo(81 / 64, 1e-12);
+    ((1200 * Math.log(ditone)) / Math.LN2).should.be.closeTo(407.82, 0.01);
+  });
+
+  it("keeps octaves pure in Pythagorean", function () {
+    var low = new Exsurge.Pitch(Exsurge.Step.Mi, 1);
+    var high = new Exsurge.Pitch(Exsurge.Step.Mi, 3);
+
+    Exsurge.pitchToFrequency(low, MIDDLE_C, 0, "pythagorean").should.be.closeTo(
+      Exsurge.pitchToFrequency(high, MIDDLE_C, 0, "pythagorean") / 4,
+      1e-12
+    );
+
+    // and Do itself is still exactly the tuning frequency
+    Exsurge.pitchToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.Do, 2),
+      MIDDLE_C,
+      0,
+      "pythagorean"
+    ).should.equal(MIDDLE_C);
+  });
+
+  it("puts Te a Pythagorean whole tone below Do", function () {
+    // Bb is reached by fifths downward, so it is 16/9 rather than 9/5, and the
+    // Ti-Te semitone comes out wider than the tempered one
+    var te = Exsurge.pitchIntToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.Te, 2).toInt(),
+      MIDDLE_C,
+      0,
+      "pythagorean"
+    );
+    var ti = Exsurge.pitchIntToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.Ti, 2).toInt(),
+      MIDDLE_C,
+      0,
+      "pythagorean"
+    );
+
+    (te / MIDDLE_C).should.be.closeTo(16 / 9, 1e-12);
+    (ti / te).should.be.closeTo(2187 / 2048, 1e-12);
+  });
+
+  it("transposes a Pythagorean piece without changing its intervals", function () {
+    var plain = [];
+    var moved = [];
+
+    for (var step = 0; step < 12; step++) {
+      var pitchInt = new Exsurge.Pitch(step, 2).toInt();
+      plain.push(
+        Exsurge.pitchIntToFrequency(pitchInt, MIDDLE_C, 0, "pythagorean")
+      );
+      moved.push(
+        Exsurge.pitchIntToFrequency(pitchInt, MIDDLE_C, 5, "pythagorean")
+      );
+    }
+
+    // every note moved by the same pure fourth, so no interval within the
+    // piece was disturbed by the transposition
+    for (var i = 0; i < plain.length; i++)
+      (moved[i] / plain[i]).should.be.closeTo(4 / 3, 1e-12);
+  });
+
+  it("defaults to equal temperament and rejects unknown names", function () {
+    Exsurge.PlaybackDefaults.temperament.should.equal("equal");
+
+    var mi = new Exsurge.Pitch(Exsurge.Step.Mi, 2);
+    Exsurge.pitchToFrequency(mi, MIDDLE_C).should.equal(
+      Exsurge.pitchToFrequency(mi, MIDDLE_C, 0, "equal")
+    );
+
+    (function () {
+      Exsurge.resolveTemperament("just");
+    }).should.throw(/unknown temperament/);
+  });
+
+  it("accepts a temperament function of its own", function () {
+    // quarter tones, to make it obvious the function is being consulted
+    var quarterTones = function (semitones) {
+      return Math.pow(2, semitones / 24);
+    };
+
+    Exsurge.pitchToFrequency(
+      new Exsurge.Pitch(Exsurge.Step.Do, 3),
+      MIDDLE_C,
+      0,
+      quarterTones
+    ).should.be.closeTo(MIDDLE_C * Math.sqrt(2), 1e-12);
+  });
+
   it("converts speed percentage to seconds per pulse", function () {
     Exsurge.secondsPerPulse(100).should.be.closeTo(0.4, 1e-12);
     Exsurge.secondsPerPulse(200).should.be.closeTo(0.2, 1e-12);

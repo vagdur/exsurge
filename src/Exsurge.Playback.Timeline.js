@@ -151,17 +151,104 @@ export function classifyDivider(divider) {
   return "quarterBar";
 }
 
+// Twelve pure fifths overshoot seven octaves by a Pythagorean comma, so one
+// fifth in any twelve note Pythagorean layout is left a comma short -- the
+// wolf. This is the usual medieval chain, Eb-Bb-F-C-G-D-A-E-B-F#-C#-G#, which
+// leaves the wolf between G# and Eb; G# is the one chromatic step exsurge does
+// not even have a name for (see Step, which skips index 8), and in monophony a
+// bad fifth is inaudible in any case, since no two notes ever sound at once.
+//
+// Indexed by semitones above Do, matching the numbering of Step.
+export var PythagoreanRatios = [
+  1, // Do
+  2187 / 2048, // Du   C#, seven fifths up
+  9 / 8, // Re
+  32 / 27, // Me   Eb, three fifths down
+  81 / 64, // Mi
+  4 / 3, // Fa
+  729 / 512, // Fu   F#
+  3 / 2, // So
+  6561 / 4096, // G#, the unnamed step
+  27 / 16, // La
+  16 / 9, // Te   Bb, two fifths down
+  243 / 128 // Ti
+];
+
+function equalRatio(semitones) {
+  return Math.pow(2, semitones / 12);
+}
+
+function pythagoreanRatio(semitones) {
+  // pitch integers are whole semitones, so only a fractional transpose can
+  // land between table entries. It is rounded rather than interpolated: there
+  // is no meaningful Pythagorean quarter tone to interpolate towards.
+  var n = Math.round(semitones);
+  var octave = Math.floor(n / 12);
+  return PythagoreanRatios[n - octave * 12] * Math.pow(2, octave);
+}
+
+/**
+ * A temperament: signed semitones relative to Do -> the frequency ratio that
+ * offset sounds at, which is all a monophonic player needs.
+ *
+ * @typedef {(semitones: number) => number} TemperamentRatio
+ */
+
+/**
+ * @typedef {string|TemperamentRatio} TemperamentSpec
+ */
+
+// Chant predates equal temperament by centuries, so `pythagorean` is the
+// historically apt choice: fifths and fourths come out pure, and the thirds
+// noticeably wider than tempered ones. `equal` stays the default because it is
+// what a listener arriving from any other software expects to hear.
+/** @type {{[name: string]: TemperamentRatio}} */
+export var Temperaments = {
+  equal: equalRatio,
+  pythagorean: pythagoreanRatio
+};
+
+/**
+ * Resolves a temperament option to the ratio function it names.
+ *
+ * @param {TemperamentSpec|null} [spec] a key in Temperaments, or your own
+ *   function from signed semitones relative to Do to a frequency ratio
+ * @return {TemperamentRatio}
+ */
+export function resolveTemperament(spec) {
+  if (!spec) return equalRatio;
+  if (typeof spec === "function") return spec;
+
+  var found = Temperaments[spec];
+  if (!found)
+    throw new Error(
+      'exsurge: unknown temperament "' +
+        spec +
+        '". Known temperaments are ' +
+        Object.keys(Temperaments).join(", ") +
+        ", or supply your own ratio function."
+    );
+
+  return found;
+}
+
 /**
  * Converts an exsurge pitch integer to a frequency in hertz.
  *
  * @param {number} pitchInt result of Pitch.toInt()
  * @param {number} tuning frequency of Do, i.e. of Pitch(Step.Do, 2)
  * @param {number} [transpose] additional semitones
+ * @param {TemperamentSpec} [temperament] see resolveTemperament
  * @return {number} frequency in hertz
  */
-export function pitchIntToFrequency(pitchInt, tuning, transpose) {
-  var semitones = pitchInt - DoReferenceInt + (transpose || 0);
-  return tuning * Math.pow(2, semitones / 12);
+export function pitchIntToFrequency(pitchInt, tuning, transpose, temperament) {
+  var ratio = resolveTemperament(temperament);
+
+  // The transposition is a second ratio rather than a shift applied before the
+  // lookup, so that moving a piece into a comfortable range leaves every
+  // interval within it untouched. In equal temperament the two are the same
+  // thing; in an unequal one they emphatically are not.
+  return tuning * ratio(pitchInt - DoReferenceInt) * ratio(transpose || 0);
 }
 
 /**
@@ -170,11 +257,12 @@ export function pitchIntToFrequency(pitchInt, tuning, transpose) {
  * @param {Pitch} pitch may be null, for a note that has no pitch
  * @param {number} tuning frequency of Do, i.e. of Pitch(Step.Do, 2)
  * @param {number} [transpose] additional semitones
+ * @param {TemperamentSpec} [temperament] see resolveTemperament
  * @return {number|null} frequency in hertz, or null if the pitch was null
  */
-export function pitchToFrequency(pitch, tuning, transpose) {
+export function pitchToFrequency(pitch, tuning, transpose, temperament) {
   if (!pitch) return null;
-  return pitchIntToFrequency(pitch.toInt(), tuning, transpose);
+  return pitchIntToFrequency(pitch.toInt(), tuning, transpose, temperament);
 }
 
 /**

@@ -107,6 +107,13 @@
         />
       </div>
       <div>
+        <label for="temperament">Temperament</label>
+        <select id="temperament">
+          <option value="equal">Equal</option>
+          <option value="pythagorean">Pythagorean</option>
+        </select>
+      </div>
+      <div>
         <label for="instrument">Instrument</label>
         <select id="instrument"></select>
       </div>
@@ -175,6 +182,7 @@
         tuning: document.getElementById("tuning"),
         tuningOut: document.getElementById("tuningOut"),
         transpose: document.getElementById("transpose"),
+        temperament: document.getElementById("temperament"),
         instrument: document.getElementById("instrument"),
         volume: document.getElementById("volume")
       };
@@ -190,6 +198,7 @@
           speed: Number(ui.speed.value),
           tuning: Number(ui.tuning.value),
           transpose: Number(ui.transpose.value),
+          temperament: ui.temperament.value || "equal",
           instrument: ui.instrument.value || "piano",
           volume: Number(ui.volume.value),
           highlightColor: "#cc0000",
@@ -250,6 +259,8 @@
       };
       ui.transpose.oninput = () =>
         player && player.setTranspose(Number(ui.transpose.value));
+      ui.temperament.onchange = () =>
+        player && player.setTemperament(ui.temperament.value);
       ui.instrument.onchange = () =>
         player && player.setInstrument(ui.instrument.value);
       ui.volume.oninput = () =>

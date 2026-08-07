@@ -41,6 +41,7 @@ import { ChantScore } from "./Exsurge.Chant.js";
 import {
   createPlaybackEvents,
   pitchIntToFrequency,
+  resolveTemperament,
   secondsPerPulse
 } from "./Exsurge.Playback.Timeline.js";
 import { resolveInstrument } from "./Exsurge.Playback.Instruments.js";
@@ -65,8 +66,16 @@ export var PlaybackDefaults = {
   tuning: 261.6255653,
 
   // extra semitones, applied after tuning. Chant has no absolute pitch, so
-  // this is the knob for moving a piece into a comfortable range.
+  // this is the knob for moving a piece into a comfortable range. It shifts
+  // the piece without altering the intervals inside it, whatever the
+  // temperament.
   transpose: 0,
+
+  // How the twelve semitones are spaced: a key in Exsurge.Temperaments, or
+  // your own function from signed semitones relative to Do to a frequency
+  // ratio. "pythagorean" is the historically apt reading of chant -- pure 3:2
+  // fifths, wide thirds -- while "equal" is what most listeners expect.
+  temperament: "equal",
 
   // a key in Exsurge.Instruments, or an object implementing the instrument
   // interface described in Exsurge.Playback.Instruments.js
@@ -175,6 +184,10 @@ export class ChantPlayer {
     this.__masterGain = null;
     this.__compressor = null;
     this.__instrument = resolveInstrument(this.options.instrument);
+
+    // resolved once here rather than per note, since it is consulted twice for
+    // every event the scheduler touches
+    this.__temperament = resolveTemperament(this.options.temperament);
 
     this.__state = "stopped";
     this.__currentNoteIndex = null;
@@ -406,6 +419,10 @@ export class ChantPlayer {
     this.setOptions({ transpose: semitones });
   }
 
+  setTemperament(spec) {
+    this.setOptions({ temperament: spec });
+  }
+
   setInstrument(spec) {
     this.setOptions({ instrument: spec });
   }
@@ -435,6 +452,9 @@ export class ChantPlayer {
 
     if ("instrument" in partial)
       this.__instrument = resolveInstrument(this.options.instrument);
+
+    if ("temperament" in partial)
+      this.__temperament = resolveTemperament(this.options.temperament);
 
     if ("volume" in partial && this.__masterGain)
       this.__masterGain.gain.value = this.__gainValue();
@@ -467,6 +487,7 @@ export class ChantPlayer {
     else if (
       "tuning" in partial ||
       "transpose" in partial ||
+      "temperament" in partial ||
       "instrument" in partial
     )
       this.__rescheduleFuture(this.__currentPulse());
@@ -499,7 +520,8 @@ export class ChantPlayer {
             : pitchIntToFrequency(
                 ev.pitchInt,
                 this.options.tuning,
-                this.options.transpose
+                this.options.transpose,
+                this.__temperament
               ),
         startTime: ev.startPulse * spp,
         duration: ev.pulses * spp
@@ -573,7 +595,8 @@ export class ChantPlayer {
     var frequency = pitchIntToFrequency(
       event.pitchInt,
       this.options.tuning,
-      this.options.transpose
+      this.options.transpose,
+      this.__temperament
     );
 
     // a repeated note would otherwise beat against its own decaying tail
