@@ -55,7 +55,7 @@ npm install github:bbloomf/exsurge     # the fork this one is based on, not on n
 
 The built bundle `dist/exsurge.min.js` is UMD, so it works as a CommonJS/AMD module or as a browser global. **The global is named `exsurge`** — the scope is part of the package name, not the namespace.
 
-`import` and `require` both give you the full 135-export surface:
+`import` and `require` both give you the full 139-export surface:
 
 ```javascript
 import { ChantContext, Gabc, ChantScore } from "@vagdur/exsurge";  // dist/exsurge.mjs
@@ -211,7 +211,7 @@ Everything is in `src/`, re-exported flat from `src/index.js` onto a single name
 | `Exsurge.Playback.Timeline.js` | note → pulse extraction and the rhythm tables (pure) |
 | `Exsurge.Playback.Instruments.js` | Web Audio instruments (`PianoInstrument`) |
 
-TypeScript declarations are hand-maintained in `src/exsurge.d.ts`. They are checked by `npm run typecheck`, but they still cover only a fraction of the 135 runtime exports — an undeclared export is an omission, not a signal that it is private.
+TypeScript declarations are hand-maintained in `src/exsurge.d.ts`. They are checked by `npm run typecheck`, but they still cover only a fraction of the 139 runtime exports — an undeclared export is an omission, not a signal that it is private.
 
 ## Development
 
