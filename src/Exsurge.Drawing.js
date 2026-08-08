@@ -414,7 +414,7 @@ export var QuickSvg = {
 
   /**
    * @param {string} name
-   * @param {Record<string, any>} [attributes]
+   * @param {Record<string, any>|null} [attributes]
    * @param {any} [children]
    */
   createNode: function (name, attributes, children) {
@@ -460,7 +460,7 @@ export var QuickSvg = {
    * @param {Record<string, any>} [props]
    * @param {...any} children
    */
-  createSvgTree(name, props, ...children) {
+  createSvgTree(name, props = {}, ...children) {
     if ("class" in props) {
       props.className = props.class;
       delete props.class;
@@ -491,7 +491,7 @@ export var QuickSvg = {
 
   /**
    * @param {string} name
-   * @param {Record<string, any>} [attributes]
+   * @param {Record<string, any>|null} [attributes]
    * @param {any} [child]
    */
   createFragment: function (name, attributes, child) {
@@ -821,7 +821,7 @@ export class ChantContext {
     return (
       this.fontDictionary &&
       (this.fontDictionary[keyWithFontFamily] ||
-        this.fontDictionary[fontFamily] ||
+        /** @type {any} */ (this.fontDictionary)[fontFamily] ||
         this.fontDictionary.Regular)
     );
   }
@@ -2222,6 +2222,7 @@ export class TextElement extends ChantLayoutElement {
     this.fontSize = fontSize;
     this.textAnchor = textAnchor;
     this.sourceIndex = sourceIndex;
+    /** @type {string|undefined} */
     this.sourceGabc = sourceGabc;
     this.dominantBaseline = "baseline"; // default placement
 
@@ -3222,6 +3223,12 @@ export class Lyric extends TextElement {
     // performLayout will do the processing
     this.centerStartIndex = -1;
     this.centerLength = text.length;
+    /** @type {number} */
+    this.widthWithoutConnector = 0;
+    /** @type {number} */
+    this.firstLineMaxWidth = -1;
+    /** @type {import("./Exsurge.Drawing.js").TextSpan|undefined} */
+    this.connectorSpan = undefined;
 
     this.needsConnector = false;
 

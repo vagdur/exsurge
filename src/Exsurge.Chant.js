@@ -155,10 +155,22 @@ export class Note extends ChantLayoutElement {
     this.glyphVisualizer.setStaffPosition(ctxt, this.staffPosition);
 
     // assign glyphvisualizer metrics to this note
-    this.bounds.x = this.glyphVisualizer.bounds.x;
-    this.bounds.y = this.glyphVisualizer.bounds.y;
-    this.bounds.width = this.glyphVisualizer.bounds.width;
-    this.bounds.height = this.glyphVisualizer.bounds.height;
+    this.bounds.x =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.x;
+    this.bounds.y =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.y;
+    this.bounds.width =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.width;
+    this.bounds.height =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.height;
 
     this.origin.x = this.glyphVisualizer.origin.x;
     this.origin.y = this.glyphVisualizer.origin.y;
@@ -178,37 +190,48 @@ export class Note extends ChantLayoutElement {
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   draw(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-
-    this.glyphVisualizer.draw(ctxt);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    gv.draw(ctxt);
   }
 
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   createSvgNode(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-    this.svgNode = this.glyphVisualizer.createSvgNode(ctxt, this);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    this.svgNode = gv.createSvgNode(ctxt, this);
     return this.svgNode;
   }
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   createSvgTree(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-    return this.glyphVisualizer.createSvgTree(ctxt, this);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    return gv.createSvgTree(ctxt, this);
   }
 
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   createSvgFragment(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-    return this.glyphVisualizer.createSvgFragment(ctxt, this);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    return gv.createSvgFragment(ctxt, this);
   }
 }
 

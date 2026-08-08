@@ -2096,18 +2096,58 @@ export class Gabc {
 
         // accidentals
         case "x":
-          if (note.pitch.step === Step.Mi) note.pitch.step = Step.Me;
-          else if (note.pitch.step === Step.Ti) note.pitch.step = Step.Te;
+          if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Mi
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Me;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Ti
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Te;
           break;
         case "y":
-          if (note.pitch.step === Step.Te) note.pitch.step = Step.Ti;
-          else if (note.pitch.step === Step.Me) note.pitch.step = Step.Mi;
-          else if (note.pitch.step === Step.Du) note.pitch.step = Step.Do;
-          else if (note.pitch.step === Step.Fu) note.pitch.step = Step.Fa;
+          if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Te
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Ti;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Me
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Mi;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Du
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Do;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Fu
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Fa;
           break;
         case "#":
-          if (note.pitch.step === Step.Do) note.pitch.step = Step.Du;
-          else if (note.pitch.step === Step.Fa) note.pitch.step = Step.Fu;
+          if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Do
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Du;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Fa
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Fu;
           break;
 
         // gabc special item groups

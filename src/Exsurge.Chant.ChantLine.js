@@ -410,7 +410,9 @@ export class ChantLine extends ChantLayoutElement {
     }
 
     if (this.layoutInsertionCursor(ctxt)) {
-      this.insertionCursor.draw(ctxt);
+      /** @type {import("./Exsurge.Chant.Signs.js").InsertionCursor} */ (
+        this.insertionCursor
+      ).draw(ctxt);
     }
 
     // draw the ledger lines
@@ -458,7 +460,7 @@ export class ChantLine extends ChantLayoutElement {
   getInnerNodes(
     ctxt,
     _top = 0,
-    /** @type {{quickSvg?: string, elements?: string}} */
+    /** @type {{quickSvg: string, elements: string}} */
     functionNames = { quickSvg: "createNode", elements: "createSvgNode" }
   ) {
     var inner = [];
@@ -634,7 +636,10 @@ export class ChantLine extends ChantLayoutElement {
     inner = QuickSvg.createFragment("g", { class: "staffLines" }, inner);
 
     if (this.layoutInsertionCursor(ctxt)) {
-      inner += this.insertionCursor.createSvgFragment(ctxt);
+      inner +=
+        /** @type {import("./Exsurge.Chant.Signs.js").InsertionCursor} */ (
+          this.insertionCursor
+        ).createSvgFragment(ctxt);
     }
 
     // create the ledger lines
@@ -781,9 +786,11 @@ export class ChantLine extends ChantLayoutElement {
       prevNeume = null,
       /** @type {any[]} */
       prevLyrics = [];
-    /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */
+    /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */
     var condensableSpaces =
-      /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */ ([]);
+      /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */ (
+        /** @type {unknown} */ ([])
+      );
     condensableSpaces.sum = 0;
     this.notationsStartIndex = newElementStart;
     this.numNotationsOnLine = 0;
@@ -974,7 +981,11 @@ export class ChantLine extends ChantLayoutElement {
           prevNeume,
           curr,
           actualRightBoundary,
-          this.extraTextOnlyIndex ? [] : condensableSpaces // no spaces are condensable once we are on extra text only lyrics
+          this.extraTextOnlyIndex
+            ? /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */ (
+                /** @type {unknown} */ ([])
+              )
+            : condensableSpaces // no spaces are condensable once we are on extra text only lyrics
         );
       var candidateForExtraTextOnlyLine =
         ctxt.useExtraTextOnly &&
@@ -1247,8 +1258,12 @@ export class ChantLine extends ChantLayoutElement {
             }
           }
           // remove the custos and divider from the condensable spaces list, before adding the divider back, when repositioning it.
-          condensableSpaces.sum -= condensableSpaces.pop().condensable;
-          condensableSpaces.sum -= condensableSpaces.pop().condensable;
+          condensableSpaces.sum -= /** @type {number} */ (
+            /** @type {any} */ (condensableSpaces.pop()).condensable
+          );
+          condensableSpaces.sum -= /** @type {number} */ (
+            /** @type {any} */ (condensableSpaces.pop()).condensable
+          );
           this.positionNotationElement(
             ctxt,
             prevLyrics,
@@ -2175,8 +2190,10 @@ export class ChantLine extends ChantLayoutElement {
     prev,
     curr,
     rightNotationBoundary,
-    /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */
-    condensableSpaces = /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */ ([])
+    /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */
+    condensableSpaces = /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */ (
+      /** @type {unknown} */ ([])
+    )
   ) {
     if (!Object.prototype.hasOwnProperty.call(condensableSpaces, "sum"))
       condensableSpaces.sum = 0;
@@ -2331,8 +2348,12 @@ export class ChantLine extends ChantLayoutElement {
       for (i = 0; i < curr.lyrics.length; i++) {
         if (!curr.lyrics[i].originalText) continue;
         var prevLyricRight = 0;
-        /** @type {Array<{notation?: any, condensable?: number}> & {sum?: number}} */
-        let condensableSpacesSincePrevLyric = [];
+        /** @type {Array<{notation?: any, condensable?: number}> & {sum: number}} */
+        let condensableSpacesSincePrevLyric =
+          /** @type {Array<{notation?: any, condensable?: number}> & {sum: number}} */ (
+            /** @type {unknown} */ ([])
+          );
+        condensableSpacesSincePrevLyric.sum = 0;
         let condensableSpaceSincePrevLyric;
         if (i < prevLyrics.length && prevLyrics[i]) {
           prevLyricRight = prevLyrics[i].getRight();
@@ -2340,15 +2361,14 @@ export class ChantLine extends ChantLayoutElement {
             .map((s) => s.notation)
             .lastIndexOf(prevLyrics[i].notation);
           if (notationI >= 0) {
-            condensableSpacesSincePrevLyric = condensableSpaces.slice(
-              notationI + 1
-            );
+            condensableSpacesSincePrevLyric =
+              /** @type {Array<{notation?: any, condensable?: number}> & {sum: number}} */ (
+                condensableSpaces.slice(notationI + 1)
+              );
             condensableSpacesSincePrevLyric.sum =
               condensableSpacesSincePrevLyric
-                .map((s) => s.condensable)
+                .map((s) => /** @type {number} */ (s.condensable || 0))
                 .reduce((a, b) => a + b, 0);
-          } else {
-            condensableSpacesSincePrevLyric.sum = 0;
           }
         }
 
