@@ -34,6 +34,11 @@ export var Units = {
   DIU_PER_INCH: 96,
   DIU_PER_CENTIMETER: 96 / 2.54,
 
+  /**
+   * @param {number} n
+   * @param {any} inputUnits
+   * @returns {number}
+   */
   ToDeviceIndependent: function (n, inputUnits) {
     switch (inputUnits) {
       case Centimeters:
@@ -47,6 +52,11 @@ export var Units = {
     }
   },
 
+  /**
+   * @param {number} n
+   * @param {any} outputUnits
+   * @returns {number}
+   */
   FromDeviceIndependent: function (n, outputUnits) {
     switch (outputUnits) {
       case Centimeters:
@@ -60,6 +70,10 @@ export var Units = {
     }
   },
 
+  /**
+   * @param {any} s
+   * @returns {number}
+   */
   StringToUnitsType: function (s) {
     switch (s.ToLower()) {
       case "in":
@@ -83,6 +97,10 @@ export var Units = {
     }
   },
 
+  /**
+   * @param {number} units
+   * @returns {string}
+   */
   UnitsTypeToString: function (units) {
     switch (units) {
       case Units.Inches:
@@ -99,30 +117,58 @@ export var Units = {
   }
 };
 
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 export function DeviceIndependent(n) {
   return n;
 }
 
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 export function Centimeters(n) {
   return Units.ToDeviceIndependent(n, Units.Centimeters);
 }
 
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 export function Millimeters(n) {
   return Units.ToDeviceIndependent(n, Units.Millimeters);
 }
 
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 export function Inches(n) {
   return Units.ToDeviceIndependent(n, Units.Inches);
 }
 
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 export function ToCentimeters(n) {
   return Units.FromDeviceIndependent(n, Units.Centimeters);
 }
 
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 export function ToMillimeters(n) {
   return Units.FromDeviceIndependent(n, Units.Millimeters);
 }
 
+/**
+ * @param {number} n
+ * @returns {number}
+ */
 export function ToInches(n) {
   return Units.FromDeviceIndependent(n, Units.Inches);
 }
@@ -131,6 +177,10 @@ export function ToInches(n) {
  * Point
  */
 export class Point {
+  /**
+   * @param {number} [x]
+   * @param {number} [y]
+   */
   constructor(x, y) {
     this.x = typeof x !== "undefined" ? x : 0;
     this.y = typeof y !== "undefined" ? y : 0;
@@ -140,6 +190,10 @@ export class Point {
     return new Point(this.x, this.y);
   }
 
+  /**
+   * @param {Point} point
+   * @returns {boolean}
+   */
   equals(point) {
     return this.x === point.x && this.y === point.y;
   }
@@ -149,6 +203,12 @@ export class Point {
  * Rect
  */
 export class Rect {
+  /**
+   * @param {number} [x]
+   * @param {number} [y]
+   * @param {number} [width]
+   * @param {number} [height]
+   */
   constructor(x, y, width, height) {
     this.x = typeof x !== "undefined" ? x : Infinity;
     this.y = typeof y !== "undefined" ? y : Infinity;
@@ -178,6 +238,10 @@ export class Rect {
     return this.y + this.height;
   }
 
+  /**
+   * @param {Rect} rect
+   * @returns {boolean}
+   */
   equals(rect) {
     return (
       this.x === rect.x &&
@@ -187,7 +251,11 @@ export class Rect {
     );
   }
 
-  // other can be a Point or a Rect
+  /**
+   * other can be a Point or a Rect
+   * @param {Point | Rect} other
+   * @returns {boolean}
+   */
   contains(other) {
     if (other instanceof Point) {
       return (
@@ -207,6 +275,10 @@ export class Rect {
     }
   }
 
+  /**
+   * @param {Rect} rect
+   * @returns {void}
+   */
   union(rect) {
     var right = Math.max(this.x + this.width, rect.x + rect.width);
     var bottom = Math.max(this.y + this.height, rect.y + rect.height);
@@ -225,6 +297,12 @@ export class Rect {
  * @class
  */
 export class Margins {
+  /**
+   * @param {number} [left]
+   * @param {number} [top]
+   * @param {number} [right]
+   * @param {number} [bottom]
+   */
   constructor(left, top, right, bottom) {
     this.left = typeof left !== "undefined" ? left : 0;
     this.top = typeof top !== "undefined" ? top : 0;
@@ -236,6 +314,10 @@ export class Margins {
     return new Margins(this.left, this.top, this.right, this.bottom);
   }
 
+  /**
+   * @param {Margins} margins
+   * @returns {boolean}
+   */
   equals(margins) {
     return (
       this.left === margins.left &&
@@ -252,6 +334,10 @@ export class Margins {
  * @class
  */
 export class Size {
+  /**
+   * @param {number} [width]
+   * @param {number} [height]
+   */
   constructor(width, height) {
     this.width = typeof width !== "undefined" ? width : 0;
     this.height = typeof height !== "undefined" ? height : 0;
@@ -261,6 +347,10 @@ export class Size {
     return new Size(this.width, this.height);
   }
 
+  /**
+   * @param {Size} size
+   * @returns {boolean}
+   */
   equals(size) {
     return this.width === size.width && this.height === size.height;
   }
@@ -302,6 +392,10 @@ var __StaffOffsetToStep = [
 ]; // no accidentals in this one
 
 export class Pitch {
+  /**
+   * @param {number} step
+   * @param {number} [octave]
+   */
   constructor(step, octave) {
     if (typeof octave === "undefined") {
       octave = Math.floor(step / 12);
@@ -315,26 +409,50 @@ export class Pitch {
     return this.octave * 12 + this.step;
   }
 
+  /**
+   * @param {number} step
+   * @returns {Pitch}
+   */
   transpose(step) {
     return new Pitch(this.toInt() + step);
   }
 
+  /**
+   * @param {Pitch} pitch
+   * @returns {boolean}
+   */
   isHigherThan(pitch) {
     return this.toInt() > pitch.toInt();
   }
 
+  /**
+   * @param {Pitch} pitch
+   * @returns {boolean}
+   */
   isLowerThan(pitch) {
     return this.toInt() < pitch.toInt();
   }
 
+  /**
+   * @param {Pitch} pitch
+   * @returns {boolean}
+   */
   equals(pitch) {
     return this.toInt() === pitch.toInt();
   }
 
+  /**
+   * @param {number} step
+   * @returns {number}
+   */
   static stepToStaffOffset(step) {
     return __StepToStaffPosition[step];
   }
 
+  /**
+   * @param {number} offset
+   * @returns {number}
+   */
   static staffOffsetToStep(offset) {
     while (offset < 0) offset = __StaffOffsetToStep.length + offset;
 
@@ -351,6 +469,10 @@ export function generateRandomGuid() {
   return s4() + s4();
 }
 
+/**
+ * @param {Record<string, any>} properties
+ * @returns {string}
+ */
 export function getCssForProperties(properties) {
   return Object.entries(properties)
     .map(([key, val]) =>
