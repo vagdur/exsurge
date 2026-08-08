@@ -729,7 +729,18 @@ export class ChantScore {
   // for web applications, probably performLayoutAsync would be more
   // apppropriate that the above performLayout, since it will process
   // the notations without locking up the UI thread.
-  performLayoutAsync(ctxt, finishedCallback) {
+  //
+  // hyphenWidth can read as zero (or absurdly wide) before the lyric font
+  // is ready, so we retry briefly. That wait is bounded: after
+  // MAX_HYPHEN_WIDTH_RETRIES the errorCallback fires (or console.error
+  // if none was given) instead of spinning forever with a blank score.
+  // Throws inside a layout chunk are likewise reported rather than only
+  // surfacing as an uncaught setTimeout exception with no finishedCallback.
+  performLayoutAsync(ctxt, finishedCallback, errorCallback) {
+    this._performLayoutAsync(ctxt, finishedCallback, errorCallback, 0);
+  }
+
+  _performLayoutAsync(ctxt, finishedCallback, errorCallback, hyphenRetries) {
     if (this.needsLayout === false) {
       if (finishedCallback) setTimeout(() => finishedCallback(), 0);
 
@@ -738,29 +749,94 @@ export class ChantScore {
 
     if (ctxt.onFontLoaded) {
       ctxt.onFontLoaded.push(() =>
-        this.performLayoutAsync(ctxt, finishedCallback)
+        this._performLayoutAsync(
+          ctxt,
+          finishedCallback,
+          errorCallback,
+          hyphenRetries
+        )
       );
       return;
     }
 
     // check for sane value of hyphen width:
     ctxt.updateHyphenWidth();
-    if (
-      !ctxt.hyphenWidth ||
-      ctxt.hyphenWidth / ctxt.textStyles.lyric.size > 0.6
-    ) {
+    var lyricSize = ctxt.textStyles.lyric.size;
+    var hyphenRatio = ctxt.hyphenWidth / lyricSize;
+    if (!ctxt.hyphenWidth || hyphenRatio > 0.6) {
+      if (hyphenRetries >= ChantScore.MAX_HYPHEN_WIDTH_RETRIES) {
+        var detail = !ctxt.hyphenWidth
+          ? "hyphen width is " + ctxt.hyphenWidth
+          : "hyphen width / lyric size is " +
+            hyphenRatio +
+            " (max 0.6); hyphenWidth=" +
+            ctxt.hyphenWidth +
+            ", lyricSize=" +
+            lyricSize;
+        this._reportLayoutError(
+          new Error(
+            "performLayoutAsync: lyric font metrics never became usable after " +
+              ChantScore.MAX_HYPHEN_WIDTH_RETRIES +
+              " attempts (" +
+              detail +
+              ")"
+          ),
+          errorCallback
+        );
+        return;
+      }
+
+      if (
+        hyphenRetries === 2 &&
+        typeof console !== "undefined" &&
+        console.warn
+      ) {
+        console.warn(
+          "exsurge: hyphen width still unusable after 3 attempts; " +
+            "retrying (hyphenWidth=" +
+            ctxt.hyphenWidth +
+            ", lyricSize=" +
+            lyricSize +
+            "). Will give up after " +
+            ChantScore.MAX_HYPHEN_WIDTH_RETRIES +
+            " attempts."
+        );
+      }
+
       setTimeout(() => {
-        this.performLayoutAsync(ctxt, finishedCallback);
+        this._performLayoutAsync(
+          ctxt,
+          finishedCallback,
+          errorCallback,
+          hyphenRetries + 1
+        );
       }, 100);
       return;
     }
 
     this.initializeLayout(ctxt);
 
-    setTimeout(() => this.layoutElementsAsync(ctxt, 0, finishedCallback), 0);
+    setTimeout(
+      () => this.layoutElementsAsync(ctxt, 0, finishedCallback, errorCallback),
+      0
+    );
   }
 
-  layoutElementsAsync(ctxt, index, finishedCallback) {
+  _reportLayoutError(error, errorCallback) {
+    if (typeof errorCallback === "function") {
+      errorCallback(error);
+      return;
+    }
+
+    if (typeof console !== "undefined" && console.error) {
+      console.error(error);
+      return;
+    }
+
+    throw error;
+  }
+
+  layoutElementsAsync(ctxt, index, finishedCallback, errorCallback) {
     if (index >= this.notations.length) {
       this.needsLayout = false;
 
@@ -772,19 +848,25 @@ export class ChantScore {
     if (index === 0) ctxt.activeClef = this.startingClef;
 
     var timeout = new Date().getTime() + 50; // process for fifty milliseconds
-    do {
-      var notation = this.notations[index];
-      if (notation.needsLayout) {
-        ctxt.currNotationIndex = index;
-        notation.performLayout(ctxt);
-      }
+    try {
+      do {
+        var notation = this.notations[index];
+        if (notation.needsLayout) {
+          ctxt.currNotationIndex = index;
+          notation.performLayout(ctxt);
+        }
 
-      index++;
-    } while (index < this.notations.length && new Date().getTime() < timeout);
+        index++;
+      } while (index < this.notations.length && new Date().getTime() < timeout);
+    } catch (error) {
+      this._reportLayoutError(error, errorCallback);
+      return;
+    }
 
     // schedule the next block of processing
     setTimeout(
-      () => this.layoutElementsAsync(ctxt, index, finishedCallback),
+      () =>
+        this.layoutElementsAsync(ctxt, index, finishedCallback, errorCallback),
       0
     );
   }
@@ -1121,6 +1203,13 @@ export class ChantScore {
     return data;
   }
 }
+
+// How many times performLayoutAsync will re-check hyphen metrics while
+// waiting for a font, at 100 ms each. Beyond this the layout fails loudly
+// instead of leaving the host with a permanently blank score. Assigned on
+// the constructor rather than declared as a class field so the source stays
+// within the project's ES2019 floor.
+ChantScore.MAX_HYPHEN_WIDTH_RETRIES = 50;
 
 export class ChantDocument {
   constructor() {
