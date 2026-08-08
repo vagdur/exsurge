@@ -271,7 +271,13 @@ declare module "@vagdur/exsurge" {
     recreateDropCap(ctxt: ChantContext): void;
     updateNotations(ctxt: ChantContext): void;
     performLayout(ctxt: ChantContext, forceLayout?: boolean): void;
-    performLayoutAsync(ctxt: ChantContext, finishedCallback?: () => void): void;
+    performLayoutAsync(
+      ctxt: ChantContext,
+      finishedCallback?: () => void,
+      errorCallback?: (error: Error) => void
+    ): void;
+    /** attempts at 100 ms before performLayoutAsync gives up on hyphen metrics */
+    static MAX_HYPHEN_WIDTH_RETRIES: number;
     layoutChantLines(
       ctxt: ChantContext,
       width: number,
@@ -746,7 +752,11 @@ declare module "@vagdur/exsurge" {
           player: ChantPlayer
         ) => void)
       | null;
-    onError: ((error: Error, player: ChantPlayer) => void) | null;
+    /**
+     * Playback errors always pass the player. Layout/render failures from
+     * createPlayableChant pass null when the player has not been created yet.
+     */
+    onError: ((error: Error, player: ChantPlayer | null) => void) | null;
   }
 
   export const PlaybackDefaults: ChantPlayerOptions;
