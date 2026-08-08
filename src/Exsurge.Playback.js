@@ -1019,32 +1019,52 @@ export class ChantPlayer {
 }
 
 /**
- * Renders gabc into a container and returns a player wired to it.
+ * Renders gabc (or a prebuilt score) into a container and returns a player
+ * wired to it.
  *
  * Layout is asynchronous, so the player arrives via the callback rather than
- * as a return value.
+ * as a return value. The score is passed as a second argument so callers can
+ * reach score-level state (annotation, titles, selection, …) without
+ * reimplementing the layout / SVG / resize pipeline.
  *
- *   Exsurge.createPlayableChant(ctxt, gabc, el, { speed: 90 }, function(player) {
+ *   Exsurge.createPlayableChant(ctxt, gabc, el, { speed: 90 }, function(player, score) {
  *     mySpeedSlider.oninput = function() { player.setSpeed(this.value); };
  *   });
  *
+ * Anything that must be set before layout — notably `score.annotation` —
+ * needs a score the caller owns. Pass a prebuilt ChantScore as the second
+ * argument instead of a gabc string:
+ *
+ *   var score = new ChantScore(ctxt, Gabc.createMappingsFromSource(ctxt, gabc), true);
+ *   score.annotation = new Annotation(ctxt, "%V%");
+ *   Exsurge.createPlayableChant(ctxt, score, el, opts, onReady);
+ *
  * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
- * @param {string} gabcSource
+ * @param {string|import("./Exsurge.Chant.js").ChantScore} gabcSourceOrScore
  * @param {HTMLElement} container emptied and filled with the rendered score
  * @param {object} [options] see PlaybackDefaults, plus useDropCap and autoResize
- * @param {function} [onReady] receives the ChantPlayer
+ * @param {function} [onReady] receives (player, score)
  */
 export function createPlayableChant(
   ctxt,
-  gabcSource,
+  gabcSourceOrScore,
   container,
   options,
   onReady
 ) {
   var opts = options || {};
 
-  var mappings = Gabc.createMappingsFromSource(ctxt, gabcSource);
-  var score = new ChantScore(ctxt, mappings, opts.useDropCap !== false);
+  var score;
+  if (gabcSourceOrScore instanceof ChantScore) {
+    score = gabcSourceOrScore;
+  } else if (typeof gabcSourceOrScore === "string") {
+    var mappings = Gabc.createMappingsFromSource(ctxt, gabcSourceOrScore);
+    score = new ChantScore(ctxt, mappings, opts.useDropCap !== false);
+  } else {
+    throw new TypeError(
+      "createPlayableChant: expected a gabc string or ChantScore as the second argument"
+    );
+  }
 
   var player = null;
   var resizeTimer = null;
@@ -1084,7 +1104,7 @@ export function createPlayableChant(
         };
       }
 
-      if (typeof onReady === "function") onReady(player);
+      if (typeof onReady === "function") onReady(player, score);
     });
   });
 }

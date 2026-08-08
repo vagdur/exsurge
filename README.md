@@ -136,15 +136,26 @@ Note that tree nodes carry back-references to the model objects that produced th
 
 ### Playback
 
-A rendered score can be made playable. `createPlayableChant` does the whole pipeline — parse, lay out, render, and wire up a player:
+A rendered score can be made playable. `createPlayableChant` does the whole pipeline — parse, lay out, render, and wire up a player. The callback receives both the player and the score:
 
 ```javascript
 exsurge.createPlayableChant(ctxt, gabc, document.getElementById("chant"), {
   speed: 100,      // percent of the base speed; higher is faster
   tuning: 261.63,  // Hz of Do — see below
   instrument: "piano"
-}, player => {
+}, (player, score) => {
   mySpeedSlider.oninput = () => player.setSpeed(Number(mySpeedSlider.value));
+});
+```
+
+Anything that must be set *before* layout (an annotation above the clef, titles, …) needs a score you own. Pass a prebuilt `ChantScore` instead of a gabc string — `createPlayableChant` still handles layout, SVG, player and resize:
+
+```javascript
+const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
+const score = new exsurge.ChantScore(ctxt, mappings, true);
+score.annotation = new exsurge.Annotation(ctxt, "%V%");
+exsurge.createPlayableChant(ctxt, score, document.getElementById("chant"), options, (player) => {
+  // …
 });
 ```
 

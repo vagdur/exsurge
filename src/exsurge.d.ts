@@ -12,7 +12,6 @@ declare module "@vagdur/exsurge" {
   type Note = unknown;
   type Clef = unknown;
   type DropCap = unknown;
-  type Annotation = { recalculateMetrics: (ctxt: ChantContext) => void };
   type Rect = unknown;
   type ExsurgeLanguage = unknown;
   type ChantNotationElement = unknown;
@@ -193,9 +192,21 @@ declare module "@vagdur/exsurge" {
     OpenTypeJS
   }
 
-  export class Annotations {
+  // Single-line annotation above the clef (e.g. "℣", "Ant."). Constructible
+  // at runtime; previously only a structural type, so `new Annotation(...)`
+  // failed to typecheck.
+  export class Annotation extends ChantLayoutElement {
+    constructor(ctxt: ChantContext, text: string, elementIndex?: number);
+    recalculateMetrics(ctxt: ChantContext): void;
+    sourceGabc: string;
+    padding: number;
+  }
+
+  export class Annotations extends ChantLayoutElement {
     constructor(ctxt: ChantContext, ...texts: string[]);
     recalculateMetrics(ctxt: ChantContext): void;
+    annotations: Annotation[];
+    padding: number;
   }
 
   class ChantMapping {
@@ -256,7 +267,7 @@ declare module "@vagdur/exsurge" {
     startingClef: Clef;
     useDropCap: boolean;
     dropCap: DropCap;
-    annotation: Annotation | null;
+    annotation: Annotation | Annotations | null;
     compiled: boolean;
     autoColoring: boolean;
     needsLayout: boolean;
@@ -426,6 +437,13 @@ declare module "@vagdur/exsurge" {
 
     autoColor: boolean;
     staffLineCount: number;
+
+    /**
+     * Prefix for note element ids in SVG output (default `"note-"`). Set a
+     * distinct value per score when several scores share a document, otherwise
+     * ids collide (`note-1`, `note-2`, …).
+     */
+    noteIdPrefix: string;
 
     setFont(
       font: string,
@@ -801,13 +819,13 @@ declare module "@vagdur/exsurge" {
 
   export function createPlayableChant(
     ctxt: ChantContext,
-    gabcSource: string,
+    gabcSourceOrScore: string | ChantScore,
     container: HTMLElement,
     options?: Partial<ChantPlayerOptions> & {
       useDropCap?: boolean;
       autoResize?: boolean;
     },
-    onReady?: (player: ChantPlayer) => void
+    onReady?: (player: ChantPlayer, score: ChantScore) => void
   ): void;
 }
 

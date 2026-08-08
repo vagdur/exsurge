@@ -770,3 +770,41 @@ describe("Playback: real gabc", function () {
       dotted[i].pulses.should.be.at.least(2);
   });
 });
+
+describe("createPlayableChant: score surface", function () {
+  // The wrapper used to hide the ChantScore it built, which forced any caller
+  // needing score.annotation (or titles, …) to reimplement the whole pipeline.
+  // These checks cover the parts that are testable without a DOM: Annotation
+  // constructibility, noteIdPrefix, and the prebuilt-score entry point's
+  // argument guard. The layout/SVG path still needs a browser — see
+  // test/playback.html.
+
+  it("exports Annotation as a constructible class", function () {
+    Exsurge.Annotation.should.be.a("function");
+    var ctxt = new Exsurge.ChantContext();
+    var annotation = new Exsurge.Annotation(ctxt, "%V%");
+    annotation.should.be.instanceof(Exsurge.Annotation);
+
+    var mappings = Exsurge.Gabc.createMappingsFromSource(
+      ctxt,
+      "(c4) A(f)men(f) (::)"
+    );
+    var score = new Exsurge.ChantScore(ctxt, mappings, true);
+    score.annotation = annotation;
+    score.annotation.should.equal(annotation);
+  });
+
+  it("exposes noteIdPrefix on ChantContext", function () {
+    var ctxt = new Exsurge.ChantContext();
+    ctxt.noteIdPrefix.should.equal("note-");
+    ctxt.noteIdPrefix = "note-lauds-";
+    ctxt.noteIdPrefix.should.equal("note-lauds-");
+  });
+
+  it("rejects a second argument that is neither gabc nor a ChantScore", function () {
+    var ctxt = new Exsurge.ChantContext();
+    (function () {
+      Exsurge.createPlayableChant(ctxt, 42, {}, {});
+    }).should.throw(TypeError, /gabc string or ChantScore/);
+  });
+});
