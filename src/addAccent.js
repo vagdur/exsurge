@@ -1,3 +1,7 @@
+/**
+ * @param {string} vowel
+ * @returns {string}
+ */
 export const addAccent = (vowel) =>
   ({
     Æ: "Ǽ",

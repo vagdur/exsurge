@@ -45,6 +45,10 @@ export default {
   // .js.
   plugins: [],
 
+  /**
+   * @param {import('rollup').RollupLog} warning
+   * @param {(warning: import('rollup').RollupLog) => void} warn
+   */
   onwarn(warning, warn) {
     // Exsurge.Chant.js is in a deliberate cycle with ChantLine, Gabc, Signs,
     // Markings and Neumes, and the export order in src/index.js is arranged

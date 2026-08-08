@@ -24,20 +24,14 @@
     // meaningfully harder than the one above it:
     //
     //   1. noImplicitThis              done
-    //   2. useUnknownInCatchVariables  done (catch bodies already treat the
-    //                                  binding as opaque, so enabling it was
-    //                                  free; it starts to bite once
-    //                                  noImplicitAny types the helpers that
-    //                                  currently swallow the binding)
-    //   3. noImplicitAny               voluminous but mechanical; every
-    //                                  parameter in 15k lines needs a JSDoc
-    //                                  @param
+    //   2. useUnknownInCatchVariables  done
+    //   3. noImplicitAny               in progress / done once green
     //   4. strictNullChecks            its own project, touches everything
     //   5. the rest, then "strict": true
     "strict": false,
     "noImplicitThis": true,
     "useUnknownInCatchVariables": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "strictBindCallApply": false,
