@@ -1249,7 +1249,7 @@ export class ChantScore {
   draw(ctxt, scale = 1) {
     ctxt.setCanvasSize(this.bounds.width, this.bounds.height, scale);
 
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.clearRect(0, 0, ctxt.canvas.width, ctxt.canvas.height);
 

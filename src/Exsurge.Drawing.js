@@ -671,6 +671,38 @@ export class ChantContext {
     this.glyphPunctumWidth = Glyphs.PunctumQuadratum.bounds.width;
     this.glyphPunctumHeight = Glyphs.PunctumQuadratum.bounds.height;
 
+    // Geometry fields filled by setGlyphScaling below. Declared here with
+    // numeric placeholders so strictNullChecks treats them as definite —
+    // setGlyphScaling is always called before any layout/draw path uses them.
+    /** @type {number} */
+    this.glyphMultiplier = 1;
+    /** @type {number} */
+    this.glyphScaling = 0;
+    /** @type {number} */
+    this.staffInterval = 0;
+    /** @type {number} */
+    this.staffLineWeight = 0;
+    /** @type {number} */
+    this.neumeLineWeight = 0;
+    /** @type {number} */
+    this.dividerLineWeight = 0;
+    /** @type {number} */
+    this.episemaLineWeight = 0;
+    /** @type {number} */
+    this.intraNeumeSpacing = 0;
+    /** @type {number} */
+    this.hyphenWidth = 0;
+    /** @type {number} */
+    this.minLyricWordSpacing = 0;
+    /** @type {CanvasRenderingContext2D|undefined} */
+    this.canvasCtxt = undefined;
+    /** @type {HTMLCanvasElement|undefined} */
+    this.canvas = undefined;
+    /** @type {Element|undefined} */
+    this.svgTextMeasurer = undefined;
+    /** @type {Element|undefined} */
+    this.defsNode = undefined;
+
     // max space to add between notations when justifying, in multiples of this.staffInterval
     this.maxExtraSpaceInStaffIntervals = 0.5;
 
@@ -965,7 +997,10 @@ export class ChantContext {
   makeCanvasIfNeeded() {
     if (!this.canvas) {
       this.canvas = document.createElement("canvas");
-      this.canvasCtxt = this.canvas.getContext("2d");
+      // getContext("2d") is null only if the browser lacks canvas; treat as definite.
+      this.canvasCtxt = /** @type {CanvasRenderingContext2D} */ (
+        this.canvas.getContext("2d")
+      );
     }
   }
 
@@ -977,13 +1012,22 @@ export class ChantContext {
   setCanvasSize(width, height, scale = 1) {
     this.makeCanvasIfNeeded();
 
-    this.canvas.style.width = width * scale + "px";
-    this.canvas.style.height = height * scale + "px";
+    /** @type {HTMLCanvasElement} */ (this.canvas).style.width =
+      width * scale + "px";
+    /** @type {HTMLCanvasElement} */ (this.canvas).style.height =
+      height * scale + "px";
     scale *= this.pixelRatio;
-    this.canvas.width = width * scale;
-    this.canvas.height = height * scale;
+    /** @type {HTMLCanvasElement} */ (this.canvas).width = width * scale;
+    /** @type {HTMLCanvasElement} */ (this.canvas).height = height * scale;
 
-    this.canvasCtxt.setTransform(scale, 0, 0, scale, 0, 0);
+    /** @type {CanvasRenderingContext2D} */ (this.canvasCtxt).setTransform(
+      scale,
+      0,
+      0,
+      scale,
+      0,
+      0
+    );
   }
 }
 
@@ -1059,7 +1103,7 @@ export class DividerLineVisualizer extends ChantLayoutElement {
    * @param {ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.fillStyle = ctxt.dividerLineColor;
 
@@ -1175,7 +1219,7 @@ export class NeumeLineVisualizer extends ChantLayoutElement {
    * @param {ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.fillStyle = ctxt.neumeLineColor;
 
@@ -1267,7 +1311,7 @@ export class NeumeBeamVisualizer extends ChantLayoutElement {
    * @param {ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
     const points = this.getPoints(ctxt);
 
     canvasCtxt.fillStyle = ctxt.neumeLineColor;
@@ -1344,7 +1388,7 @@ export class VirgaLineVisualizer extends ChantLayoutElement {
    * @param {ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.fillStyle = ctxt.neumeLineColor;
     canvasCtxt.fillRect(
@@ -1417,7 +1461,7 @@ export class LineaVisualizer extends ChantLayoutElement {
    * @param {ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.fillStyle = ctxt.neumeLineColor;
     canvasCtxt.fillRect(
@@ -1583,7 +1627,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
    * @param {ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     const porrectusResult = /^Porrectus([1-9])$/.exec(this.glyphCode);
     const porrectusNoteDiff = porrectusResult ? Number(porrectusResult[1]) : 0;
@@ -1749,7 +1793,7 @@ export class RoundBraceVisualizer extends ChantLayoutElement {
     /**
      * @type CanvasRenderingContext2D
      */
-    var d = ctxt.canvasCtxt;
+    var d = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     const { x1, x2, y, cx1, cx2, cy } = this.getPathPoints();
     d.beginPath();
@@ -2507,7 +2551,7 @@ export class TextElement extends ChantLayoutElement {
       var lines = -length;
       length = Infinity;
     }
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
     var width = 0;
     var widths = [];
     var newLineSpans = [this.spans[0]];
@@ -2675,10 +2719,16 @@ export class TextElement extends ChantLayoutElement {
     this.origin.x = 0;
 
     if (ctxt.textMeasuringStrategy === TextMeasuringStrategy.Svg) {
-      while (ctxt.svgTextMeasurer.firstChild)
-        ctxt.svgTextMeasurer.removeChild(ctxt.svgTextMeasurer.firstChild);
-      ctxt.svgTextMeasurer.appendChild(this.createSvgNode(ctxt));
-      ctxt.svgTextMeasurer.appendChild(ctxt.createStyleNode());
+      while (/** @type {Element} */ (ctxt.svgTextMeasurer).firstChild)
+        /** @type {Element} */ (ctxt.svgTextMeasurer).removeChild(
+          /** @type {Element} */ (ctxt.svgTextMeasurer).firstChild
+        );
+      /** @type {Element} */ (ctxt.svgTextMeasurer).appendChild(
+        this.createSvgNode(ctxt)
+      );
+      /** @type {Element} */ (ctxt.svgTextMeasurer).appendChild(
+        ctxt.createStyleNode()
+      );
 
       var bbox = /** @type {any} */ (ctxt.svgTextMeasurer.firstChild).getBBox();
       this.bounds.width = bbox.width;
@@ -2813,7 +2863,7 @@ export class TextElement extends ChantLayoutElement {
    * @param {number} [_scale] accepted for ChantLayoutElement parity; unused
    */
   draw(ctxt, _scale) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     if (this.textAnchor === "middle") canvasCtxt.textAlign = "center";
     else canvasCtxt.textAlign = "start";
@@ -3383,10 +3433,10 @@ export class Lyric extends TextElement {
       if (ctxt.textMeasuringStrategy === TextMeasuringStrategy.Svg) {
         // svgTextMeasurer still has the current lyric in it...
         x1 = /** @type {any} */ (
-          ctxt.svgTextMeasurer.firstChild
+          /** @type {Element} */ (ctxt.svgTextMeasurer).firstChild
         ).getSubStringLength(0, this.centerStartIndex);
         x2 = /** @type {any} */ (
-          ctxt.svgTextMeasurer.firstChild
+          /** @type {Element} */ (ctxt.svgTextMeasurer).firstChild
         ).getSubStringLength(0, this.centerStartIndex + this.centerLength);
       } else {
         x1 = this.measureSubstring(ctxt, this.centerStartIndex);
@@ -3451,10 +3501,10 @@ export class Lyric extends TextElement {
         if (ctxt.textMeasuringStrategy === TextMeasuringStrategy.Svg) {
           // svgTextMeasurer still has the current lyric in it...
           x1 = /** @type {any} */ (
-            ctxt.svgTextMeasurer.firstChild
+            /** @type {Element} */ (ctxt.svgTextMeasurer).firstChild
           ).getSubStringLength(0, result.startIndex);
           x2 = /** @type {any} */ (
-            ctxt.svgTextMeasurer.firstChild
+            /** @type {Element} */ (ctxt.svgTextMeasurer).firstChild
           ).getSubStringLength(0, result.startIndex + result.length);
         } else {
           x1 = this.measureSubstring(ctxt, result.startIndex);
@@ -4174,7 +4224,7 @@ export class ChantNotationElement extends ChantLayoutElement {
    * @param {ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
     canvasCtxt.translate(this.bounds.x, 0);
 
     for (var i = 0; i < this.visualizers.length; i++)

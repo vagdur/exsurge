@@ -388,7 +388,7 @@ export class ChantLine extends ChantLayoutElement {
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.translate(this.bounds.x, this.bounds.y);
 
@@ -782,7 +782,9 @@ export class ChantLine extends ChantLayoutElement {
       /** @type {any[]} */
       prevLyrics = [];
     /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */
-    var condensableSpaces = [];
+    var condensableSpaces =
+      /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */ ([]);
+    condensableSpaces.sum = 0;
     this.notationsStartIndex = newElementStart;
     this.numNotationsOnLine = 0;
 
@@ -2174,7 +2176,7 @@ export class ChantLine extends ChantLayoutElement {
     curr,
     rightNotationBoundary,
     /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */
-    condensableSpaces = []
+    condensableSpaces = /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum?: number}} */ ([])
   ) {
     if (!Object.prototype.hasOwnProperty.call(condensableSpaces, "sum"))
       condensableSpaces.sum = 0;

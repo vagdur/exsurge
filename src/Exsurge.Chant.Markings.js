@@ -229,7 +229,7 @@ export class HorizontalEpisema extends ChantLayoutElement {
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.fillStyle = ctxt.neumeLineColor;
 

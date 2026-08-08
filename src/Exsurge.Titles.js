@@ -219,7 +219,7 @@ export class Titles extends ChantLayoutElement {
    * @param {number} [scale]
    */
   draw(ctxt, scale = 1) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
     canvasCtxt.translate(this.bounds.x, this.bounds.y);
 
     for (let el of [
