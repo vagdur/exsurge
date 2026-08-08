@@ -60,6 +60,10 @@ describe("dist bundle", function () {
     Exsurge.PlaybackDurations.should.be.an("object");
     Exsurge.PlaybackRests.should.be.an("object");
     Exsurge.PlaybackVelocities.should.be.an("object");
+    // Annotation ships in the bundle (and always has); the d.ts used to
+    // declare it as a structural type, so this guards the runtime half of
+    // that fix independently of the typecheck.
+    Exsurge.Annotation.should.be.a("function");
   });
 
   // The bundle is committed and vendored downstream, so a silent change to its
