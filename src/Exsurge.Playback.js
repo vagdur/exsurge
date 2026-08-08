@@ -1025,7 +1025,11 @@ export class ChantPlayer {
  * Layout is asynchronous, so the player arrives via the callback rather than
  * as a return value. The score is passed as a second argument so callers can
  * reach score-level state (annotation, titles, selection, …) without
- * reimplementing the layout / SVG / resize pipeline.
+ * reimplementing the layout / SVG / resize pipeline. Layout and render
+ * failures are reported through `options.onError(error, player)` — `player`
+ * is null when the failure happens before the player exists. Without an
+ * onError, the error is written to `console.error` so a blank score is never
+ * silent.
  *
  *   Exsurge.createPlayableChant(ctxt, gabc, el, { speed: 90 }, function(player, score) {
  *     mySpeedSlider.oninput = function() { player.setSpeed(this.value); };
@@ -1042,7 +1046,9 @@ export class ChantPlayer {
  * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
  * @param {string|import("./Exsurge.Chant.js").ChantScore} gabcSourceOrScore
  * @param {HTMLElement} container emptied and filled with the rendered score
- * @param {object} [options] see PlaybackDefaults, plus useDropCap and autoResize
+ * @param {object} [options] see PlaybackDefaults, plus useDropCap and autoResize.
+ *   autoResize (default true) installs a window resize listener; call
+ *   player.destroy() to release it, especially before replacing the container.
  * @param {function} [onReady] receives (player, score)
  */
 export function createPlayableChant(
@@ -1069,8 +1075,39 @@ export function createPlayableChant(
   var player = null;
   var resizeTimer = null;
 
+  function reportError(error) {
+    if (typeof opts.onError === "function") {
+      opts.onError(error, player);
+      return;
+    }
+
+    if (typeof console !== "undefined" && console.error) {
+      console.error(error);
+      return;
+    }
+
+    throw error;
+  }
+
   function render(callback) {
+    // performLayoutAsync (and the resize debounce) can finish after the host
+    // has replaced the container. Appending into a detached node looks like a
+    // successful layout -- onReady fires, the player works -- with nothing
+    // visible. Bail loudly rather than drawing into nothing.
+    if (container.isConnected === false) {
+      console.warn(
+        "exsurge: createPlayableChant container is not in the document; skipping render. If you replaced the element, call player.destroy() first."
+      );
+      return;
+    }
+
     score.layoutChantLines(ctxt, container.clientWidth, function () {
+      if (container.isConnected === false) {
+        console.warn(
+          "exsurge: createPlayableChant container was detached during layout; skipping render."
+        );
+        return;
+      }
       while (container.firstChild) container.removeChild(container.firstChild);
       container.appendChild(score.createSvgNode(ctxt));
       callback();
@@ -1078,33 +1115,53 @@ export function createPlayableChant(
   }
 
   function onResize() {
+    // autoResize keeps this listener until destroy(); once the container is
+    // gone there is nothing useful to do, and clientWidth is 0.
+    if (container.isConnected === false) return;
+
     if (resizeTimer !== null) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       resizeTimer = null;
       // only the second layout phase depends on width, and it changes neither
       // note order nor pitch -- so playback carries on across a resize
-      render(function () {
-        player.attach(container.firstChild);
-      });
+      try {
+        render(function () {
+          player.attach(container.firstChild);
+        });
+      } catch (error) {
+        reportError(error);
+      }
     }, 150);
   }
 
-  score.performLayoutAsync(ctxt, function () {
-    render(function () {
-      player = new ChantPlayer(score, container.firstChild, opts);
+  score.performLayoutAsync(
+    ctxt,
+    function () {
+      try {
+        render(function () {
+          try {
+            player = new ChantPlayer(score, container.firstChild, opts);
 
-      if (opts.autoResize !== false && typeof window !== "undefined") {
-        window.addEventListener("resize", onResize);
+            if (opts.autoResize !== false && typeof window !== "undefined") {
+              window.addEventListener("resize", onResize);
 
-        var innerDestroy = player.destroy;
-        player.destroy = function () {
-          window.removeEventListener("resize", onResize);
-          if (resizeTimer !== null) clearTimeout(resizeTimer);
-          innerDestroy.call(player);
-        };
+              var innerDestroy = player.destroy;
+              player.destroy = function () {
+                window.removeEventListener("resize", onResize);
+                if (resizeTimer !== null) clearTimeout(resizeTimer);
+                innerDestroy.call(player);
+              };
+            }
+
+            if (typeof onReady === "function") onReady(player, score);
+          } catch (error) {
+            reportError(error);
+          }
+        });
+      } catch (error) {
+        reportError(error);
       }
-
-      if (typeof onReady === "function") onReady(player, score);
-    });
-  });
+    },
+    reportError
+  );
 }

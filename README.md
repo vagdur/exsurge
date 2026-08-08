@@ -93,13 +93,15 @@ score.layoutChantLines(ctxt, 1000, () => {
 });
 ```
 
-In a browser, prefer the asynchronous layout call, which chunks its work across timeouts instead of blocking the main thread:
+In a browser, prefer the asynchronous layout call, which chunks its work across timeouts instead of blocking the main thread. Pass a third callback if you need to hear about failures (for example, lyric font metrics that never become usable):
 
 ```javascript
 score.performLayoutAsync(ctxt, () => {
   score.layoutChantLines(ctxt, containerWidth, () => {
     container.appendChild(score.createSvgNode(ctxt));
   });
+}, (error) => {
+  console.error(error);
 });
 ```
 
@@ -161,6 +163,8 @@ exsurge.createPlayableChant(ctxt, score, document.getElementById("chant"), optio
 
 Clicking a note plays from that note onward, highlighting whichever note is sounding; clicking again stops. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setTemperament`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example, [live here](https://vagdur.github.io/exsurge/test/playback.html).
 
+`autoResize` defaults to `true` and installs a `window` resize listener that re-lays out into the same container. Call `player.destroy()` when you are done with the player — or before replacing the container element — so that listener is released. Rendering into a detached container is skipped with a console warning rather than drawing into a node nobody can see.
+
 To attach to a score you rendered yourself, construct the player directly:
 
 ```javascript
@@ -180,7 +184,9 @@ const player = new exsurge.ChantPlayer(score, score.createSvgNode(ctxt), options
 | `highlightClass` / `highlightColor` | `"playing"` / `"#cc0000"` | how the sounding note is marked |
 | `injectStyle` | `true` | inject scoped css for the highlight; set `false` to supply your own |
 | `audioContext` | `null` | share an existing context; the player then never closes it |
-| `onStart` / `onStop` / `onEnd` / `onNoteChange` / `onError` | `null` | callbacks |
+| `autoResize` | `true` | (`createPlayableChant` only) re-layout on window resize; call `destroy()` to release the listener |
+| `useDropCap` | `true` | (`createPlayableChant` only) whether the score gets a drop capital |
+| `onStart` / `onStop` / `onEnd` / `onNoteChange` / `onError` | `null` | callbacks; `onError` also reports layout/render failures from `createPlayableChant` (with `player` null if the player was never created) |
 
 **Tuning.** Every gabc clef is built at octave 2 whatever staff line it sits on, so `tuning` is the frequency of the Do that the clef itself names — literally "what pitch is C played at". A `c4` chant then spans roughly C3–C4 at the default; a `c1` chant sits nearly an octave higher, which is the clef doing its job. Use `transpose` to move a piece into a comfortable range. Note that on an **f-clef** the note sitting *on the clef line* is Fa, so it sounds a perfect fourth above `tuning`. Mid-score clef changes and accidentals are handled automatically, because gabc bakes the active clef into each note's pitch at parse time.
 
