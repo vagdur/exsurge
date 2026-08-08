@@ -1,3 +1,19 @@
+# [1.29.0](https://github.com/vagdur/exsurge/compare/v1.28.0...v1.29.0) (2026-08-08)
+
+
+### Bug Fixes
+
+* **playback:** Anchor the F clef a fifth below its do ([489dad9](https://github.com/vagdur/exsurge/commit/489dad90279d393caaedb96aaac8d994eddc3563))
+* **playback:** Skip render when createPlayableChant container is detached ([e2694f7](https://github.com/vagdur/exsurge/commit/e2694f77af9d359da8e2a812d61a07fb97cfccbb))
+* **playback:** Take the recitation syllabifier from the score's context ([cfd3e52](https://github.com/vagdur/exsurge/commit/cfd3e526e5d42e055ca2ae343229c4a1ab4cd89a))
+* Report async layout failures instead of hanging silently ([05de15b](https://github.com/vagdur/exsurge/commit/05de15ba482a492f6472f36ad97464fbdcd3a471)), closes [#13](https://github.com/vagdur/exsurge/issues/13)
+
+
+### Features
+
+* **playback:** Add a Pythagorean temperament option ([aad6939](https://github.com/vagdur/exsurge/commit/aad6939ef58922d54f9305222480c378a79a44f9))
+* **playback:** Expose ChantScore from createPlayableChant ([b32d184](https://github.com/vagdur/exsurge/commit/b32d184d218ea4c952aa3385efe6d92f24663c68)), closes [#15](https://github.com/vagdur/exsurge/issues/15)
+
 # [1.28.0](https://github.com/vagdur/exsurge/compare/v1.27.0...v1.28.0) (2026-08-01)
 
 
