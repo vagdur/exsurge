@@ -23,10 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 43 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { Step } from "./Exsurge.Core.js";
 import {
   MarkingPositionHint,
@@ -76,8 +72,13 @@ var __bracketedCommandRegex = /^([a-z]+):(.*)/;
 //  5. a float indicating the millimeter length of the brace (not supported yet)
 var __braceSpecRegex = /([ou])(b|cb|cba):([01])(?:([{}])|;(\d*(?:\.\d+)?)mm)/;
 
+/** @type {import("./Exsurge.Drawing.js").TrailingSpace} */
 const TrailingSpaceForAccidental = (ctxt) =>
   ctxt.intraNeumeSpacing * ctxt.accidentalSpaceMultiplier;
+/**
+ * @param {number} multiplier
+ * @returns {import("./Exsurge.Drawing.js").TrailingSpace}
+ */
 const TrailingSpaceMultiple = (multiplier) => (ctxt) =>
   ctxt.intraNeumeSpacing * multiplier;
 
@@ -170,7 +171,7 @@ export class GabcHeader {
     for (let i in this.comments) {
       if (!Object.prototype.hasOwnProperty.call(this.comments, i)) continue;
       try {
-        result.splice(i, 0, this.comments[i]);
+        result.splice(Number(i), 0, this.comments[i]);
       } catch (e) {
         console.warn(e);
       }
@@ -195,11 +196,7 @@ export class Gabc {
     // set the default clef
     ctxt.activeClef = Clef.default();
 
-    var mappings = this.createMappingsFromWords(
-      ctxt,
-      words,
-      (clef) => (ctxt.activeClef = clef)
-    );
+    var mappings = this.createMappingsFromWords(ctxt, words);
 
     // always set the last notation to have a trailingSpace of 0. This makes layout for the last chant line simpler
     if (
@@ -647,7 +644,9 @@ export class Gabc {
           elem.translationIndex = translationText.push(elem) - 1;
         }
         indexOffset += m[0].length;
-        __altTranslationRegex.exec();
+        // Advance the shared regex past a zero-width match so the next
+        // syllable's while-loop does not re-see the same index.
+        __altTranslationRegex.exec("");
       }
       if (lyricText === "" && alText.length === 0) continue;
 
@@ -890,6 +889,7 @@ export class Gabc {
     var sourceLength;
     var notations = [];
     var notes = [];
+    /** @type {import("./Exsurge.Drawing.js").TrailingSpace} */
     var trailingSpace = DefaultTrailingSpace;
 
     var addToLastSourceGabc = (gabc) => {
@@ -920,7 +920,7 @@ export class Gabc {
           ctxt.activeClef = notation;
           if (
             prevNotation &&
-            prevNotation.trailingSpace.isDefault &&
+            /** @type {any} */ (prevNotation.trailingSpace).isDefault &&
             prevNotation.isDivider
           ) {
             prevNotation.trailingSpace = TrailingSpaceForAccidental;
@@ -928,7 +928,7 @@ export class Gabc {
         } else if (notation.isAccidental) {
           ctxt.activeClef.activeAccidental = notation;
         } else if (
-          notation.trailingSpace.isDefault &&
+          /** @type {any} */ (notation.trailingSpace).isDefault &&
           notation instanceof Signs.Custos
         ) {
           notation.trailingSpace = TrailingSpaceForAccidental;
@@ -1582,7 +1582,7 @@ export class Gabc {
       var prevNote = currNoteIndex > 0 ? notes[currNoteIndex - 1] : null;
       var currNote = notes[currNoteIndex];
 
-      state = state.handle(
+      state = /** @type {any} */ (state).handle(
         currNote,
         prevNote,
         notes.length - 1 - currNoteIndex
@@ -1596,11 +1596,11 @@ export class Gabc {
     }
 
     if (neumes.length > 0) {
-      if (!finalTrailingSpace.isDefault) {
+      if (!(/** @type {any} */ (finalTrailingSpace).isDefault)) {
         neumes[neumes.length - 1].trailingSpace = finalTrailingSpace;
         neumes[neumes.length - 1].keepWithNext = true;
 
-        if (finalTrailingSpace > 0)
+        if (/** @type {any} */ (finalTrailingSpace) > 0)
           neumes[neumes.length - 1].allowLineBreakBeforeNext = neumes[
             neumes.length - 1
           ].keepWithNext = true;
@@ -1820,7 +1820,7 @@ export class Gabc {
 
         case "V":
           note.shape = NoteShape.Virga;
-          note.shapeModifers |= NoteShapeModifiers.Reverse;
+          note.shapeModifiers |= NoteShapeModifiers.Reverse;
           break;
 
         case "w":
@@ -2031,6 +2031,7 @@ export class Gabc {
   //  - notations (string)
   //  - lyrics (array of strings)
   static parseWord(gabcWord) {
+    /** @type {Array<{notations: string, lyrics: string[]}> & {wordLength?: number}} */
     var syllables = [];
     var matches = [];
 

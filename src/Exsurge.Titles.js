@@ -23,9 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 6 findings: the titles bag is inferred as {} at its declaration, plus one
-// expando on Element.
-
 import { Rect } from "./Exsurge.Core.js";
 import {
   ChantLayoutElement,
@@ -37,6 +34,11 @@ import {
 } from "./Exsurge.Drawing.js";
 
 export class Titles extends ChantLayoutElement {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {import("./Exsurge.Chant.js").ChantScore} score
+   * @param {{supertitle?: string, title?: string, subtitle?: string, textLeft?: string, textRight?: string}} [titles]
+   */
   constructor(
     ctxt,
     score,
@@ -203,7 +205,7 @@ export class Titles extends ChantLayoutElement {
 
     var node = QuickSvg.createNode("g", { class: "Titles" }, nodes);
 
-    node.source = this;
+    /** @type {any} */ (node).source = this;
     this.svg = node;
 
     return node;

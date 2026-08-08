@@ -23,10 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 30 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { ChantLine } from "./Exsurge.Chant.ChantLine.js";
 import { InsertionCursor } from "./Exsurge.Chant.Signs.js";
 import { Pitch, Rect, Step } from "./Exsurge.Core.js";
@@ -114,11 +110,34 @@ export class Note extends ChantLayoutElement {
     this.episemata = [];
     this.morae = []; // silly to have an array of these, but gabc allows multiple morae per note!
 
-    // these are set on the note when they are needed, otherwise, they're undefined
-    // this.ictus
-    // this.accuteAccent
-    // this.braceStart
-    // this.braceEnd
+    // Optional markings / parse metadata. Declared here so checkJs sees them;
+    // they stay null until assigned (truthiness checks elsewhere are unchanged).
+    /** @type {any} */
+    this.ictus = null;
+    /** @type {any} */
+    this.accuteAccent = null;
+    /** @type {any} */
+    this.braceStart = null;
+    /** @type {any} */
+    this.braceEnd = null;
+    /** @type {any} */
+    this.accent = null;
+    /** @type {any} */
+    this.choralSign = null;
+    /** @type {any} */
+    this.alText = null;
+    /** @type {number|undefined} */
+    this.sourceIndex = undefined;
+    /** @type {string|undefined} */
+    this.sourceGabc = undefined;
+    /** @type {number|undefined} */
+    this.noteIndex = undefined;
+    /** @type {number|undefined} */
+    this.elementIndex = undefined;
+    /** @type {number|undefined} */
+    this.staffPositionOffset = undefined;
+    /** @type {number|undefined} */
+    this.inclinataFlags = undefined;
   }
 
   setGlyph(ctxt, glyphCode) {
@@ -140,8 +159,8 @@ export class Note extends ChantLayoutElement {
   // a utility function for modifiers
   shapeModifierMatches(shapeModifier) {
     if (shapeModifier === NoteShapeModifiers.None)
-      return this.shapeModifier === NoteShapeModifiers.None;
-    else return this.shapeModifier & (shapeModifier !== 0);
+      return this.shapeModifiers === NoteShapeModifiers.None;
+    else return (this.shapeModifiers & shapeModifier) !== 0;
   }
 
   draw(ctxt) {
@@ -180,6 +199,12 @@ export class Clef extends ChantNotationElement {
     this.defaultAccidental = defaultAccidental;
     this.activeAccidental = defaultAccidental;
     this.keepWithNext = true;
+    /** @type {Clef|null} */
+    this.model = null;
+    /** @type {boolean|undefined} */
+    this.small = undefined;
+    /** @type {boolean|undefined} */
+    this.sans = undefined;
   }
 
   resetAccidentals() {
@@ -214,7 +239,7 @@ export class Clef extends ChantNotationElement {
 
   clone() {
     if (this.model) return this.model.clone();
-    let clone = new this.constructor(
+    let clone = new /** @type {any} */ (this.constructor)(
       this.staffPosition,
       this.octave,
       this.defaultAccidental
@@ -505,6 +530,7 @@ export class ChantScore {
     this.useDropCap = useDropCap;
     this.dropCap = null;
 
+    /** @type {any} */
     this.annotation = null;
 
     this.compiled = false;
@@ -515,6 +541,21 @@ export class ChantScore {
 
     // valid after chant lines are created...
     this.bounds = new Rect();
+
+    /** @type {ChantScore[]} */
+    this.pages = [this];
+    /** @type {any} */
+    this.selection = null;
+    /** @type {any} */
+    this.overrideTextLeft = null;
+    /** @type {boolean|undefined} */
+    this.hasAboveLinesText = undefined;
+    /** @type {boolean|undefined} */
+    this.hasLyrics = undefined;
+    /** @type {boolean|undefined} */
+    this.hasTranslations = undefined;
+    /** @type {any} */
+    this.svg = null;
 
     if (ctxt) this.updateNotations(ctxt);
   }
@@ -1055,19 +1096,19 @@ export class ChantScore {
     for (var i = 0; i < this.lines.length; i++)
       node.push(this.lines[i].createSvgNode(ctxt));
 
-    node = QuickSvg.createNode("g", {}, node);
+    var g = QuickSvg.createNode("g", {}, node);
 
-    node = QuickSvg.createNode("svg", this.getSvgProps(ctxt), node);
+    var svg = QuickSvg.createNode("svg", this.getSvgProps(ctxt), g);
 
-    node.source = this;
-    this.svg = node;
+    /** @type {any} */ (svg).source = this;
+    this.svg = svg;
 
-    return node;
+    return svg;
   }
 
   createSvgTree(ctxt, zoom) {
     // create defs section
-    var node = [
+    var children = [
       QuickSvg.createSvgTree(
         "defs",
         {},
@@ -1076,17 +1117,15 @@ export class ChantScore {
       )
     ];
 
-    if (this.titles) node.push(this.titles.createSvgTree(ctxt));
+    if (this.titles) children.push(this.titles.createSvgTree(ctxt));
 
     for (var i = 0; i < this.lines.length; i++)
-      node.push(this.lines[i].createSvgTree(ctxt));
+      children.push(this.lines[i].createSvgTree(ctxt));
 
-    node = QuickSvg.createSvgTree("g", {}, ...node);
+    var g = QuickSvg.createSvgTree("g", {}, ...children);
     let svgProps = this.getSvgProps(ctxt, zoom);
     svgProps.source = this;
-    node = QuickSvg.createSvgTree("svg", svgProps, node);
-
-    return node;
+    return QuickSvg.createSvgTree("svg", svgProps, g);
   }
 
   createSvg(ctxt) {
@@ -1117,14 +1156,14 @@ export class ChantScore {
 
     var top = 0;
     for (var i = 0; i < this.lines.length; i++) {
-      var lineFragment = [
+      var lineChildren = [
         ctxt.defsNode.cloneNode(true),
         this.lines[i].createSvgNode(ctxt, top)
       ];
-      lineFragment[0].appendChild(ctxt.createStyleNode());
+      lineChildren[0].appendChild(ctxt.createStyleNode());
       var height = this.lines[i].bounds.height + ctxt.staffInterval * 1.5;
-      lineFragment = QuickSvg.createNode("g", {}, lineFragment);
-      lineFragment = QuickSvg.createNode(
+      var lineG = QuickSvg.createNode("g", {}, lineChildren);
+      var lineFragment = QuickSvg.createNode(
         "svg",
         {
           xmlns: QuickSvg.ns,
@@ -1134,7 +1173,7 @@ export class ChantScore {
           height: height,
           viewBox: [0, 0, this.bounds.width, height].join(" ")
         },
-        lineFragment
+        lineG
       );
       node.push(lineFragment);
       top += height;
@@ -1185,9 +1224,11 @@ export class ChantScore {
       this.annotation = new Annotation(ctxt, data.annotation);
     } else this.annotation = null;
 
-    var createDropCap = data["drop-cap"] === "auto" ? true : false;
-
-    Gabc.parseChantNotations(data.notations, this, createDropCap);
+    // Legacy JSON path: parseNotations wants (ctxt, data, sourceIndex). The
+    // old parseChantNotations name never existed on Gabc. Drop-cap from the
+    // serialized payload is applied when mappings are turned into a score,
+    // not here.
+    Gabc.parseNotations(ctxt, data.notations, 0);
   }
 
   serializeToJson() {

@@ -23,10 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 20 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { describe, it, chai } from "vitest";
 import * as Exsurge from "../src/index.js";
 
@@ -77,7 +73,8 @@ function scoreOf(notations) {
     }
   }
 
-  return { notations: notations, notes: notes };
+  // Duck-typed score: createPlaybackEvents only reads notations/notes.
+  return /** @type {any} */ ({ notations: notations, notes: notes });
 }
 
 function pulsesOf(timeline) {
@@ -528,7 +525,7 @@ describe("Playback: instruments", function () {
       Exsurge.resolveInstrument("sackbut");
     }).should.throw(/unknown instrument/);
     (function () {
-      Exsurge.resolveInstrument({ name: "nope" });
+      Exsurge.resolveInstrument(/** @type {any} */ ({ name: "nope" }));
     }).should.throw(/createVoice/);
   });
 });
@@ -804,7 +801,12 @@ describe("createPlayableChant: score surface", function () {
   it("rejects a second argument that is neither gabc nor a ChantScore", function () {
     var ctxt = new Exsurge.ChantContext();
     (function () {
-      Exsurge.createPlayableChant(ctxt, 42, {}, {});
+      Exsurge.createPlayableChant(
+        ctxt,
+        /** @type {any} */ (42),
+        /** @type {any} */ ({}),
+        {}
+      );
     }).should.throw(TypeError, /gabc string or ChantScore/);
   });
 });

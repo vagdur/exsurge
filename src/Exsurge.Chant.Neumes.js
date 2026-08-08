@@ -23,11 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 4 findings. firstAbove/firstBelow use false as a not-set sentinel and are
-// then assigned indices, so they are boolean|number and cannot index an array.
-// Worth a real look: index 0 is falsy, so `firstAbove || firstBelow || 0`
-// cannot distinguish a legitimate index of 0 from unset.
-
 import {
   LiquescentType,
   NoteShape,
@@ -498,8 +493,13 @@ export class Neume extends ChantNotationElement {
   }
 
   requiresLedgerLine(ctxt) {
+    // false is the unset sentinel; a real index of 0 is falsy, so
+    // `firstAbove || firstBelow || 0` cannot distinguish them. Typed as
+    // number|false so assignments and array indexing both typecheck.
+    /** @type {number|false} */
     var firstAbove = false,
       needsAbove = false,
+      /** @type {number|false} */
       firstBelow = false,
       needsBelow = false,
       // isPorrectus = false,

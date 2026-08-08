@@ -251,7 +251,7 @@ If you need a prebuilt bundle without installing from npm — vendoring it into 
 
 One constraint the build enforces deliberately: `rollup.config.mjs` has **no** `@rollup/plugin-node-resolve`, so every relative import in `src/` must keep its explicit `.js` extension. That is what the browser sandboxes below depend on, and leaving the plugin out turns a missing extension into a build failure rather than a demo that breaks after deploy.
 
-Eight files carry `// @ts-nocheck` with a note saying how many findings and why; run `grep -rl "@ts-nocheck" src/ test/` to see the list. `tsconfig.json` spells out the strictness flags that are still off, in the order they are worth turning on.
+`tsconfig.json` spells out the strictness flags that are still off, in the order they are worth turning on.
 
 ### Tests
 
