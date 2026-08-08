@@ -1022,7 +1022,10 @@ export class ChantPlayer {
  * Renders gabc into a container and returns a player wired to it.
  *
  * Layout is asynchronous, so the player arrives via the callback rather than
- * as a return value.
+ * as a return value. Layout and render failures are reported through
+ * `options.onError(error, player)` — `player` is null when the failure
+ * happens before the player exists. Without an onError, the error is
+ * written to `console.error` so a blank score is never silent.
  *
  *   Exsurge.createPlayableChant(ctxt, gabc, el, { speed: 90 }, function(player) {
  *     mySpeedSlider.oninput = function() { player.setSpeed(this.value); };
@@ -1049,6 +1052,20 @@ export function createPlayableChant(
   var player = null;
   var resizeTimer = null;
 
+  function reportError(error) {
+    if (typeof opts.onError === "function") {
+      opts.onError(error, player);
+      return;
+    }
+
+    if (typeof console !== "undefined" && console.error) {
+      console.error(error);
+      return;
+    }
+
+    throw error;
+  }
+
   function render(callback) {
     score.layoutChantLines(ctxt, container.clientWidth, function () {
       while (container.firstChild) container.removeChild(container.firstChild);
@@ -1063,28 +1080,44 @@ export function createPlayableChant(
       resizeTimer = null;
       // only the second layout phase depends on width, and it changes neither
       // note order nor pitch -- so playback carries on across a resize
-      render(function () {
-        player.attach(container.firstChild);
-      });
+      try {
+        render(function () {
+          player.attach(container.firstChild);
+        });
+      } catch (error) {
+        reportError(error);
+      }
     }, 150);
   }
 
-  score.performLayoutAsync(ctxt, function () {
-    render(function () {
-      player = new ChantPlayer(score, container.firstChild, opts);
+  score.performLayoutAsync(
+    ctxt,
+    function () {
+      try {
+        render(function () {
+          try {
+            player = new ChantPlayer(score, container.firstChild, opts);
 
-      if (opts.autoResize !== false && typeof window !== "undefined") {
-        window.addEventListener("resize", onResize);
+            if (opts.autoResize !== false && typeof window !== "undefined") {
+              window.addEventListener("resize", onResize);
 
-        var innerDestroy = player.destroy;
-        player.destroy = function () {
-          window.removeEventListener("resize", onResize);
-          if (resizeTimer !== null) clearTimeout(resizeTimer);
-          innerDestroy.call(player);
-        };
+              var innerDestroy = player.destroy;
+              player.destroy = function () {
+                window.removeEventListener("resize", onResize);
+                if (resizeTimer !== null) clearTimeout(resizeTimer);
+                innerDestroy.call(player);
+              };
+            }
+
+            if (typeof onReady === "function") onReady(player);
+          } catch (error) {
+            reportError(error);
+          }
+        });
+      } catch (error) {
+        reportError(error);
       }
-
-      if (typeof onReady === "function") onReady(player);
-    });
-  });
+    },
+    reportError
+  );
 }
