@@ -25,6 +25,7 @@
 
 import { describe, it, chai } from "vitest";
 import { createRequire } from "node:module";
+import * as Src from "../src/index.js";
 
 chai.should();
 
@@ -44,6 +45,10 @@ const require = createRequire(import.meta.url);
 // filters the include globs, not files reached by an import.
 const distBundle = "../dist/exsurge.min.js";
 const Exsurge = require(distBundle);
+
+function sortedKeys(obj) {
+  return Object.keys(obj).sort();
+}
 
 describe("dist bundle", function () {
   // If any module ever touches document, window or AudioContext at module
@@ -66,11 +71,19 @@ describe("dist bundle", function () {
     Exsurge.Annotation.should.be.a("function");
   });
 
-  // The bundle is committed and vendored downstream, so a silent change to its
-  // shape matters. These are the properties the UMD wrapper is supposed to
-  // guarantee, independent of which bundler produced it.
+  // The UMD wrapper should re-export everything src/index.js does. Compare
+  // names against the source module rather than pinning a count that has to
+  // be bumped (in multiple places) whenever anything is added.
   it("keeps the whole public surface", function () {
-    Object.keys(Exsurge).length.should.equal(139);
+    const srcKeys = sortedKeys(Src);
+    const distKeys = sortedKeys(Exsurge);
+    const onlyInSrc = srcKeys.filter((k) => !distKeys.includes(k));
+    const onlyInDist = distKeys.filter((k) => !srcKeys.includes(k));
+    onlyInSrc.should.deep.equal(
+      [],
+      `missing from dist: ${onlyInSrc.join(", ")}`
+    );
+    onlyInDist.should.deep.equal([], `extra in dist: ${onlyInDist.join(", ")}`);
   });
 
   it("still renders without a DOM", function () {

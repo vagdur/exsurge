@@ -13,14 +13,34 @@ on:
   pull_request:
 
 jobs:
-  check:
+  # Lint, format and typecheck do not vary with the Node version under test, so
+  # they run once rather than once per matrix entry.
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # npm ci requires package-lock.json to be in step with package.json, so
+      # any commit changing dependencies has to regenerate the lock in the same
+      # commit or this fails on that commit alone.
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+
+  # Runtime suite on the engines floor and on the Node version development
+  # happens on. Running both catches accidental reliance on newer node's ESM
+  # syntax detection, which would otherwise only show up for consumers.
+  # npm ci runs the "prepare" script, so dist/ is built before npm test —
+  # which matters, because test/dist.test.js loads the bundle.
+  test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # 20 is the floor declared in engines; 22 is what development happens
-        # on. Running both catches accidental reliance on newer node's ESM
-        # syntax detection, which would otherwise only show up for consumers.
         node: ["20", "22"]
     steps:
       - uses: actions/checkout@v4
@@ -28,26 +48,14 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      # npm ci requires package-lock.json to be in step with package.json, so
-      # any commit changing dependencies has to regenerate the lock in the same
-      # commit or this fails on that commit alone.
-      # npm ci runs the "prepare" script, so dist/ is built here before the
-      # test step -- which matters, because test/dist.test.js loads the bundle.
       - run: npm ci
-      - run: npm run lint
-      - run: npm run format:check
-      - run: npm run typecheck
       - run: npm test
 
-  # There was a dist-freshness job here, comparing the committed bundle against
-  # a fresh build. It went when dist/ stopped being committed: there is no
-  # longer a stored copy that can drift out of date. test/dist.test.js is what
-  # guards the bundle now, and it does so on every run rather than only on
-  # pull_request.
+  # Packaging failures are invisible to the specs above, because those import
+  # src/ directly. scripts/pack-smoke.mjs packs, installs into a throwaway
+  # project, and checks that CJS/ESM resolve through the exports map with the
+  # same named surface (no hardcoded export count) and that assets ship.
   pack:
-    # The packaging failures that matter are invisible to the specs above,
-    # because those import src/ directly. Only an installed tarball exercises
-    # the "exports" map, the "files" allowlist and the published declarations.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -56,22 +64,4 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - name: Pack and install into a throwaway project
-        run: |
-          set -euo pipefail
-          tarball="$PWD/$(npm pack --silent)"
-          mkdir -p /tmp/consumer && cd /tmp/consumer
-          npm init -y >/dev/null
-          npm install "$tarball" >/dev/null
-          node -e '
-            const e = require("@vagdur/exsurge");
-            if (Object.keys(e).length !== 139) throw new Error("CJS: wrong export count");
-            if (typeof e.ChantContext !== "function") throw new Error("CJS: no ChantContext");
-          '
-          node --input-type=module -e '
-            import * as e from "@vagdur/exsurge";
-            if (typeof e.ChantContext !== "function") {
-              throw new Error("ESM: named exports missing -- check the exports map");
-            }
-          '
-          node -e 'require.resolve("@vagdur/exsurge/assets/fonts/ExsurgeChar.otf")'
+      - run: npm run test:pack
