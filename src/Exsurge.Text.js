@@ -2,6 +2,9 @@
  * @class
  */
 export class Language {
+  /**
+   * @param {string} name
+   */
   constructor(name) {
     this.name = typeof name !== "undefined" ? name : "<unknown>";
     this.centerNeume = false;
@@ -15,7 +18,7 @@ export class Language {
    * Subclasses must implement this.
    *
    * @param {string} word
-   * @return {string[]} the syllables of the word
+   * @returns {any}
    */
   // eslint-disable-next-line no-unused-vars
   syllabifyWord(word) {
@@ -24,7 +27,11 @@ export class Language {
     );
   }
 
+  /**
+   * @param {string} text
+   */
   syllabify(text) {
+    /** @type {any[]} */
     var parsedWords = [];
 
     if (typeof text === "undefined" || text === "") return parsedWords;
@@ -54,7 +61,7 @@ export class English extends Language {
   /**
    * @param {String} s the string to search
    * @param {Number} startIndex The index at which to start searching for a vowel in the string
-   * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
+   * @returns {{found: boolean, startIndex: number, length: number}}
    */
   findVowelSegment(s, startIndex) {
     var match = this.regexLetter.exec(s.slice(startIndex));
@@ -104,15 +111,15 @@ export class Latin extends Language {
     var wordExceptions = new Object();
 
     // ui combos pronounced as diphthongs
-    wordExceptions["huius"] = ["hui", "us"];
-    wordExceptions["cuius"] = ["cui", "us"];
-    wordExceptions["huic"] = ["huic"];
-    wordExceptions["cui"] = ["cui"];
-    wordExceptions["hui"] = ["hui"];
+    /** @type {any} */ (wordExceptions)["huius"] = ["hui", "us"];
+    /** @type {any} */ (wordExceptions)["cuius"] = ["cui", "us"];
+    /** @type {any} */ (wordExceptions)["huic"] = ["huic"];
+    /** @type {any} */ (wordExceptions)["cui"] = ["cui"];
+    /** @type {any} */ (wordExceptions)["hui"] = ["hui"];
 
     // eu combos pronounced as diphthongs
-    wordExceptions["euge"] = ["eu", "ge"];
-    wordExceptions["seu"] = ["seu"];
+    /** @type {any} */ (wordExceptions)["euge"] = ["eu", "ge"];
+    /** @type {any} */ (wordExceptions)["seu"] = ["seu"];
 
     this.vowels = [
       "a",
@@ -160,6 +167,9 @@ export class Latin extends Language {
   }
 
   // c must be lowercase!
+  /**
+   * @param {*} c
+   */
   isVowel(c) {
     for (var i = 0, end = this.vowels.length; i < end; i++)
       if (this.vowels[i] === c) return true;
@@ -167,6 +177,9 @@ export class Latin extends Language {
     return false;
   }
 
+  /**
+   * @param {*} c
+   */
   isVowelThatMightBeConsonant(c) {
     for (var i = 0, end = this.vowelsThatMightBeConsonants.length; i < end; i++)
       if (this.vowelsThatMightBeConsonants[i] === c) return true;
@@ -175,6 +188,9 @@ export class Latin extends Language {
   }
 
   // substring should be a vowel and the character following
+  /**
+   * @param {*} substring
+   */
   isVowelActingAsConsonant(substring) {
     return (
       this.isVowelThatMightBeConsonant(substring[0]) &&
@@ -251,9 +267,11 @@ export class Latin extends Language {
    *      th, which should never be separated in syllabification:
    *      architectus, ar-chi-tec-tus; loquacem, lo-qua-cem.
    *
+   * @param {string} word
+   * @returns {any}
    */
   syllabifyWord(word) {
-    var syllables = [];
+    var /** @type {any[]} */ syllables = [];
     var haveCompleteSyllable = false;
     var previousWasVowel = false;
     var workingString = word.toLowerCase();
@@ -262,7 +280,7 @@ export class Latin extends Language {
     var c, lookahead, haveLookahead;
 
     // a helper function to create syllables
-    var makeSyllable = function (length) {
+    var makeSyllable = function (/** @type {*} */ length) {
       if (haveCompleteSyllable) {
         syllables.push(word.substr(startSyllable, length));
         startSyllable += length;
@@ -344,6 +362,7 @@ export class Latin extends Language {
     // we tack the remaining characters onto the last syllable.
     if (haveCompleteSyllable) syllables.push(word.substr(startSyllable));
     else if (startSyllable > 0)
+      /** @type {any[]} */
       syllables[syllables.length - 1] += word.substr(startSyllable);
 
     return syllables;
@@ -353,13 +372,15 @@ export class Latin extends Language {
    * @param {String} s the string to search
    * @param {Number} startIndex The index at which to start searching for a vowel in the string
    * @param {Array<{index: Number, endIndex: Number}>} [ignore] ranges, relative to startIndex, that a match may not overlap
-   * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
+   * @returns {{found: boolean, startIndex: number, length: number}}
    */
   findVowelSegment(s, startIndex, ignore) {
     this.regexVowel.lastIndex = 0;
     let stringSlice = s.slice(startIndex);
     var match = this.regexVowel.exec(stringSlice);
-    var isIgnoredMatch = ({ index, endIndex }) =>
+    var isIgnoredMatch = (
+      /** @type {{index: number, endIndex: number}} */ { index, endIndex }
+    ) =>
       (index <= match.index && endIndex > match.index) ||
       (index < this.regexVowel.lastIndex &&
         endIndex >= this.regexVowel.lastIndex);
@@ -436,6 +457,9 @@ export class Spanish extends Language {
   }
 
   // c must be lowercase!
+  /**
+   * @param {*} c
+   */
   isVowel(c) {
     for (var i = 0, end = this.vowels.length; i < end; i++)
       if (this.vowels[i] === c) return true;
@@ -477,6 +501,9 @@ export class Spanish extends Language {
     return false;
   }
 
+  /**
+   * @param {string} text
+   */
   createSyllable(text) {
     /*
     var accented = false;
@@ -504,6 +531,8 @@ export class Spanish extends Language {
   }
 
   /**
+   * @param {string} word
+   * @returns {any}
    */
   syllabifyWord(word) {
     var syllables = [];
@@ -643,7 +672,7 @@ export class Spanish extends Language {
   /**
    * @param {String} s the string to search
    * @param {Number} startIndex The index at which to start searching for a vowel in the string
-   * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
+   * @returns {{found: boolean, startIndex: number, length: number}}
    */
   findVowelSegment(s, startIndex) {
     var i, end, index;
@@ -909,15 +938,22 @@ export class Swedish extends Language {
    *
    * A hyphen in the source forces a break wherever it stands, and is dropped
    * from the syllables — the way to divide a compound at its seam.
+   * @param {string} word
+   * @returns {any}
    */
   syllabifyWord(word) {
     // an explicit hyphen forces a break
+    /**
+     * @param {*} part
+     * @param {*} syllables
+     */
     if (word.indexOf("-") >= 0)
       return word
         .split("-")
-        .filter((part) => part.length > 0)
+        .filter((/** @type {*} */ part) => part.length > 0)
         .reduce(
-          (syllables, part) => syllables.concat(this.syllabifyWord(part)),
+          (/** @type {*} */ syllables, /** @type {*} */ part) =>
+            syllables.concat(this.syllabifyWord(part)),
           []
         );
 
@@ -958,13 +994,15 @@ export class Swedish extends Language {
    * @param {String} s the string to search
    * @param {Number} startIndex The index at which to start searching for a vowel in the string
    * @param {Array<{index: Number, endIndex: Number}>} [ignore] ranges, relative to startIndex, that a match may not overlap
-   * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
+   * @returns {{found: boolean, startIndex: number, length: number}}
    */
   findVowelSegment(s, startIndex, ignore) {
     this.regexVowel.lastIndex = 0;
     let stringSlice = s.slice(startIndex);
     var match = this.regexVowel.exec(stringSlice);
-    var isIgnoredMatch = ({ index, endIndex }) =>
+    var isIgnoredMatch = (
+      /** @type {{index: number, endIndex: number}} */ { index, endIndex }
+    ) =>
       (index <= match.index && endIndex > match.index) ||
       (index < this.regexVowel.lastIndex &&
         endIndex >= this.regexVowel.lastIndex);

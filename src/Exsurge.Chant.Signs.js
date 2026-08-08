@@ -44,6 +44,9 @@ export class Custos extends ChantNotationElement {
     this.staffPosition = 2; // default sane value
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -85,7 +88,7 @@ export class Custos extends ChantNotationElement {
   /**
    *
    * @param {number} staffPosition position of custos
-   * @param {number} staffLineCount number of lines on staff
+   * @param {number} [staffLineCount] number of lines on staff
    * @returns
    */
   static getGlyphCode(staffPosition, staffLineCount = 4) {
@@ -113,6 +116,9 @@ export class Divider extends ChantNotationElement {
     this.resetsAccidentals = true;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
     if (this.hasCarryover) {
@@ -135,6 +141,9 @@ export class Divider extends ChantNotationElement {
  * QuarterBar
  */
 export class QuarterBar extends Divider {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
     const top = ctxt.staffLineCount * 2;
@@ -149,6 +158,9 @@ export class QuarterBar extends Divider {
  * HalfBar
  */
 export class HalfBar extends Divider {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -172,6 +184,9 @@ export class HalfBar extends Divider {
  * FullBar
  */
 export class FullBar extends Divider {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -189,6 +204,9 @@ export class FullBar extends Divider {
  * Insertion Cursor
  */
 export class InsertionCursor extends Divider {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
     this.cssClass = "InsertionCursor";
@@ -209,6 +227,9 @@ export class InsertionCursor extends Divider {
  * DominicanBar
  */
 export class DominicanBar extends Divider {
+  /**
+   * @param {number} staffPosition
+   */
   constructor(staffPosition) {
     super();
     var parity = (staffPosition + 1) % 2;
@@ -216,6 +237,9 @@ export class DominicanBar extends Divider {
     this.staffPosition = staffPosition - 2 * parity;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
     this.addVisualizer(
@@ -237,6 +261,9 @@ export class DominicanBar extends Divider {
  * DoubleBar
  */
 export class DoubleBar extends Divider {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -265,6 +292,10 @@ export const AccidentalType = {
  * Accidental
  */
 export class Accidental extends ChantNotationElement {
+  /**
+   * @param {number} staffPosition
+   * @param {number} accidentalType
+   */
   constructor(staffPosition, accidentalType) {
     super();
     this.isAccidental = true;
@@ -276,6 +307,9 @@ export class Accidental extends ChantNotationElement {
     this.pitch = undefined;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -286,6 +320,9 @@ export class Accidental extends ChantNotationElement {
 
   // creation of the glyph visualizer is refactored out or performLayout
   // so that clefs can use the same logic for their accidental glyph
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createGlyphVisualizer(ctxt) {
     var glyphCode;
 
@@ -307,6 +344,9 @@ export class Accidental extends ChantNotationElement {
     return glyph;
   }
 
+  /**
+   * @param {number} step
+   */
   adjustStep(step) {
     switch (this.accidentalType) {
       case AccidentalType.Flat:
@@ -329,6 +369,9 @@ export class Accidental extends ChantNotationElement {
     return step;
   }
 
+  /**
+   * @param {import("./Exsurge.Core.js").Pitch} pitch
+   */
   applyToPitch(pitch) {
     // no adjusment needed
     if (/** @type {any} */ (this).pitch.octave !== pitch.octave) return;
@@ -354,6 +397,9 @@ export class Virgula extends Divider {
     this.staffPosition = 7;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 

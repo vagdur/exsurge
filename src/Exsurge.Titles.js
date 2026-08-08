@@ -36,7 +36,7 @@ import {
 export class Titles extends ChantLayoutElement {
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
-   * @param {import("./Exsurge.Chant.js").ChantScore} score
+   * @param {*} score
    * @param {{supertitle?: string, title?: string, subtitle?: string, textLeft?: string, textRight?: string}} [titles]
    */
   constructor(
@@ -53,8 +53,13 @@ export class Titles extends ChantLayoutElement {
     this.setTextRight(ctxt, textRight);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} elementName
+   * @param {number} width
+   */
   setBoundsX(ctxt, elementName, width) {
-    let element = this[elementName];
+    let element = /** @type {any} */ (this)[elementName];
     switch (ctxt.textStyles[elementName].alignment) {
       case "left":
         element.textAnchor = "start";
@@ -75,6 +80,7 @@ export class Titles extends ChantLayoutElement {
    * Lays out the titles, and returns their total height
    * @param  {import("./Exsurge.Drawing.js").ChantContext} ctxt
    * @return {number}      the tottal height of titles laid out
+   * @param {number} width
    */
   layoutTitles(ctxt, width) {
     this.bounds = new Rect(0, 0, 0, 0);
@@ -132,42 +138,86 @@ export class Titles extends ChantLayoutElement {
     return finalY;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} supertitle
+   */
   setSupertitle(ctxt, supertitle) {
     this.supertitle = supertitle ? new Supertitle(ctxt, supertitle) : null;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} title
+   */
   setTitle(ctxt, title) {
     this.title = title ? new Title(ctxt, title) : null;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} subtitle
+   */
   setSubtitle(ctxt, subtitle) {
     this.subtitle = subtitle ? new Subtitle(ctxt, subtitle) : null;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} textLeft
+   */
   setTextLeft(ctxt, textLeft) {
     this.textLeft = textLeft
       ? new TextLeftRight(ctxt, textLeft, "textLeft")
       : null;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} textRight
+   */
   setTextRight(ctxt, textRight) {
     this.textRight = textRight
       ? new TextLeftRight(ctxt, textRight, "textRight")
       : null;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} _ctxt
+   * @param {*} _supertitle
+   */
   hasSupertitle(_ctxt, _supertitle) {
     return !!this.supertitle;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} _ctxt
+   * @param {*} _title
+   */
   hasTitle(_ctxt, _title) {
     return !!this.title;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} _ctxt
+   * @param {*} _subtitle
+   */
   hasSubtitle(_ctxt, _subtitle) {
     return !!this.subtitle;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} _ctxt
+   * @param {*} _textLeft
+   */
   hasTextLeft(_ctxt, _textLeft) {
     return !!this.textLeft;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} _ctxt
+   * @param {*} _textRight
+   */
   hasTextRight(_ctxt, _textRight) {
     return !!this.textRight;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} [scale]
+   */
   draw(ctxt, scale = 1) {
     var canvasCtxt = ctxt.canvasCtxt;
     canvasCtxt.translate(this.bounds.x, this.bounds.y);
@@ -185,6 +235,10 @@ export class Titles extends ChantLayoutElement {
     canvasCtxt.translate(-this.bounds.x, -this.bounds.y);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} [functionName]
+   */
   getInnerNodes(ctxt, functionName = "createSvgNode") {
     var nodes = [];
 
@@ -200,6 +254,9 @@ export class Titles extends ChantLayoutElement {
     return nodes;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgNode(ctxt) {
     var nodes = this.getInnerNodes(ctxt, "createSvgNode");
 
@@ -211,6 +268,9 @@ export class Titles extends ChantLayoutElement {
     return node;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgTree(ctxt) {
     var nodes = this.getInnerNodes(ctxt, "createSvgTree");
 
@@ -221,6 +281,9 @@ export class Titles extends ChantLayoutElement {
     );
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgFragment(ctxt) {
     var fragment = "";
 

@@ -151,12 +151,19 @@ export var PlaybackDefaults = {
   onError: null // (error, player)
 };
 
+/**
+ * @param {*} value
+ */
 function toArray(value) {
   if (!value) return [];
   if (Object.prototype.toString.call(value) === "[object Array]") return value;
   return [value];
 }
 
+/**
+ * @param {*} element
+ * @param {string} className
+ */
 function addClass(element, className) {
   var existing = element.getAttribute("class") || "";
   if ((" " + existing + " ").indexOf(" " + className + " ") >= 0) return;
@@ -166,6 +173,10 @@ function addClass(element, className) {
   );
 }
 
+/**
+ * @param {*} element
+ * @param {string} className
+ */
 function removeClass(element, className) {
   var existing = element.getAttribute("class") || "";
   var parts = existing.split(/\s+/);
@@ -175,6 +186,10 @@ function removeClass(element, className) {
   element.setAttribute("class", kept.join(" "));
 }
 
+/**
+ * @param {*} element
+ * @param {string} className
+ */
 function hasClass(element, className) {
   var existing = element.getAttribute("class") || "";
   return (" " + existing + " ").indexOf(" " + className + " ") >= 0;
@@ -183,6 +198,10 @@ function hasClass(element, className) {
 // Compares the two glyph lists a note can be drawn as. Highlighting is keyed
 // on identity so that moving between notes that share a glyph -- the two notes
 // of a porrectus -- does not toggle the class off and back on.
+/**
+ * @param {*} a
+ * @param {*} b
+ */
 function sameElements(a, b) {
   if (a === b) return true;
   if (!a || !b || a.length !== b.length) return false;
@@ -199,9 +218,11 @@ function sameElements(a, b) {
  */
 export class ChantPlayer {
   /**
-   * @param {ChantScore} score a score whose updateNotations has run
+   * @param {*} score a score whose updateNotations has run
    * @param {SVGElement|SVGElement[]} [svgNode] output of score.createSvgNode
    * @param {PlaybackOptions} [options] see PlaybackDefaults
+   * @param {object} options
+   * @param {*} svgNode
    */
   constructor(score, svgNode, options) {
     this.score = score;
@@ -225,9 +246,9 @@ export class ChantPlayer {
     this.__currentNoteIndex = null;
     this.__currentElement = null;
 
-    this.__roots = [];
-    this.__styleNodes = [];
-    this.__noteElements = [];
+    this.__roots = /** @type {any[]} */ ([]);
+    this.__styleNodes = /** @type {any[]} */ ([]);
+    this.__noteElements = /** @type {any[]} */ ([]);
     this.__rootClass = "exsurge-player-" + ++__playerSerial;
 
     this.__secondsPerPulse = secondsPerPulse(
@@ -239,7 +260,7 @@ export class ChantPlayer {
     this.__highlightIndex = 0;
     this.__endPulse = 0;
 
-    this.__voices = [];
+    this.__voices = /** @type {any[]} */ ([]);
     this.__lastVoice = null;
     this.__lastFrequency = 0;
 
@@ -247,7 +268,7 @@ export class ChantPlayer {
     this.__rafId = null;
 
     var self = this;
-    this.__boundClick = function (evt) {
+    this.__boundClick = function (/** @type {*} */ evt) {
       self.__onClick(evt);
     };
     this.__boundTick = function () {
@@ -439,26 +460,44 @@ export class ChantPlayer {
   // settings
   //
 
+  /**
+   * @param {*} percent
+   */
   setSpeed(percent) {
     this.setOptions({ speed: percent });
   }
 
+  /**
+   * @param {*} hz
+   */
   setTuning(hz) {
     this.setOptions({ tuning: hz });
   }
 
+  /**
+   * @param {number} semitones
+   */
   setTranspose(semitones) {
     this.setOptions({ transpose: semitones });
   }
 
+  /**
+   * @param {*} spec
+   */
   setTemperament(spec) {
     this.setOptions({ temperament: spec });
   }
 
+  /**
+   * @param {*} spec
+   */
   setInstrument(spec) {
     this.setOptions({ instrument: spec });
   }
 
+  /**
+   * @param {*} v
+   */
   setVolume(v) {
     this.setOptions({ volume: v });
   }
@@ -624,6 +663,10 @@ export class ChantPlayer {
     this.__compressor.connect(ctx.destination);
   }
 
+  /**
+   * @param {*} event
+   * @param {number} when
+   */
   __startVoice(event, when) {
     var frequency = pitchIntToFrequency(
       event.pitchInt,
@@ -681,6 +724,9 @@ export class ChantPlayer {
     this.__voices = live;
   }
 
+  /**
+   * @param {*} hard
+   */
   __releaseAll(hard) {
     var now = this.audioContext ? this.audioContext.currentTime : 0;
 
@@ -707,6 +753,9 @@ export class ChantPlayer {
     );
   }
 
+  /**
+   * @param {number} noteIndex
+   */
   __eventIndexForNote(noteIndex) {
     var byNote = this.timeline.eventIndexByNoteIndex;
 
@@ -791,6 +840,9 @@ export class ChantPlayer {
     this.__rescheduleFuture(pulse);
   }
 
+  /**
+   * @param {*} fromPulse
+   */
   __rescheduleFuture(fromPulse) {
     var now = this.audioContext.currentTime;
     var events = this.timeline.events;
@@ -866,6 +918,10 @@ export class ChantPlayer {
       this.__rafId = requestAnimationFrame(this.__boundFrame);
   }
 
+  /**
+   * @param {number} noteIndex
+   * @param {*} event
+   */
   __setCurrent(noteIndex, event) {
     if (noteIndex === this.__currentNoteIndex) return;
 
@@ -873,14 +929,20 @@ export class ChantPlayer {
     this.__fire("onNoteChange", [noteIndex, event || null, this]);
   }
 
+  /**
+   * @param {number} noteIndex
+   */
   __applyHighlight(noteIndex) {
     var elements =
       (noteIndex === null ? null : this.__noteElements[noteIndex]) || null;
 
     // the two notes of a porrectus share one drawn glyph, so moving between
     // them must not toggle the class off and back on
+    /**
+     * @param {*} element
+     */
     if (!sameElements(elements, this.__currentElement)) {
-      this.__eachCurrentElement((element) =>
+      this.__eachCurrentElement((/** @type {*} */ element) =>
         removeClass(element, this.options.highlightClass)
       );
       if (elements)
@@ -894,14 +956,19 @@ export class ChantPlayer {
 
   // the glyphs currently lit. Normally one, but a reciting tone that continues
   // onto further chant lines is drawn once per line and lights all at once.
+  /**
+   * @param {*} fn
+   */
   __eachCurrentElement(fn) {
     var elements = this.__currentElement;
     if (!elements) return;
     for (var i = 0; i < elements.length; i++) fn(elements[i]);
   }
 
+  /**
+   */
   __clearHighlight() {
-    this.__eachCurrentElement((element) =>
+    this.__eachCurrentElement((/** @type {*} */ element) =>
       removeClass(element, this.options.highlightClass)
     );
 
@@ -961,6 +1028,9 @@ export class ChantPlayer {
     );
   }
 
+  /**
+   * @param {*} root
+   */
   __injectStyle(root) {
     // css inside inline svg is document global, so these rules are scoped by a
     // per player root class. Without that, two players on one page would fight
@@ -971,12 +1041,18 @@ export class ChantPlayer {
     this.__styleNodes.push(style);
   }
 
+  /**
+   * @param {*} previousHighlightClass
+   */
   __refreshStyle(previousHighlightClass) {
+    /**
+     * @param {*} element
+     */
     if (
       previousHighlightClass &&
       previousHighlightClass !== this.options.highlightClass
     ) {
-      this.__eachCurrentElement((element) => {
+      this.__eachCurrentElement((/** @type {*} */ element) => {
         removeClass(element, previousHighlightClass);
         addClass(element, this.options.highlightClass);
       });
@@ -1006,6 +1082,9 @@ export class ChantPlayer {
   // internals: input
   //
 
+  /**
+   * @param {*} evt
+   */
   __onClick(evt) {
     if (this.__state === "playing") {
       this.stop();
@@ -1030,8 +1109,12 @@ export class ChantPlayer {
   // internals: callbacks
   //
 
+  /**
+   * @param {string} name
+   * @param {*} args
+   */
   __fire(name, args) {
-    var callback = this.options[name];
+    var callback = /** @type {any} */ (this.options)[name];
     if (typeof callback !== "function") return;
 
     try {
@@ -1097,6 +1180,7 @@ export function createPlayableChant(
   /** @type {PlaybackOptions} */
   var opts = options || {};
 
+  /** @type {any} */
   var score;
   if (gabcSourceOrScore instanceof ChantScore) {
     score = gabcSourceOrScore;
@@ -1109,14 +1193,15 @@ export function createPlayableChant(
     );
   }
 
-  var player = null;
-  var resizeTimer = null;
+  var /** @type {any} */ player = null;
+  var /** @type {any} */ resizeTimer = null;
 
   /**
    * @param {unknown} error
    */
   function reportError(error) {
     if (typeof opts.onError === "function") {
+      /** @type {any} */
       opts.onError(error, player);
       return;
     }
@@ -1129,6 +1214,9 @@ export function createPlayableChant(
     throw error;
   }
 
+  /**
+   * @param {*|undefined} callback
+   */
   function render(callback) {
     // performLayoutAsync (and the resize debounce) can finish after the host
     // has replaced the container. Appending into a detached node looks like a
@@ -1159,6 +1247,7 @@ export function createPlayableChant(
     // gone there is nothing useful to do, and clientWidth is 0.
     if (container.isConnected === false) return;
 
+    /** @type {any} */
     if (resizeTimer !== null) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       resizeTimer = null;
@@ -1192,7 +1281,9 @@ export function createPlayableChant(
               var innerDestroy = player.destroy;
               player.destroy = function () {
                 window.removeEventListener("resize", onResize);
+                /** @type {any} */
                 if (resizeTimer !== null) clearTimeout(resizeTimer);
+                /** @type {any} */
                 innerDestroy.call(player);
               };
             }

@@ -138,7 +138,7 @@ var __dividerKinds = [
 /**
  * Identifies which kind of bar line a divider is, for rest length purposes.
  *
- * @param {import("./Exsurge.Chant.Signs.js").Divider} divider
+ * @param {*} divider
  * @return {string|null} a key into PlaybackRests, or null if it never sounds
  */
 export function classifyDivider(divider) {
@@ -174,10 +174,16 @@ export var PythagoreanRatios = [
   243 / 128 // Ti
 ];
 
+/**
+ * @param {number} semitones
+ */
 function equalRatio(semitones) {
   return Math.pow(2, semitones / 12);
 }
 
+/**
+ * @param {number} semitones
+ */
 function pythagoreanRatio(semitones) {
   // pitch integers are whole semitones, so only a fractional transpose can
   // land between table entries. It is rounded rather than interpolated: there
@@ -281,6 +287,11 @@ export function secondsPerPulse(speedPercent, basePulseSeconds) {
 
 // builds the mutable slot for a single note. `mult` accumulates multipliers,
 // `add` accumulates additive lengthening; the final worth is mult + add.
+/**
+ * @param {*} note
+ * @param {*} durations
+ * @param {*} velocities
+ */
 function makeNoteSlot(note, durations, velocities) {
   var mult = durations.base;
   var add = 0;
@@ -327,7 +338,7 @@ function makeNoteSlot(note, durations, velocities) {
     noteIndex: note.noteIndex,
     elementIndex: note.elementIndex,
     pitchInt: note.pitch ? note.pitch.toInt() : null,
-    dividerKind: null,
+    dividerKind: /** @type {any} */ (null),
     mult: mult,
     add: add,
     velocity: velocity
@@ -338,6 +349,9 @@ function makeNoteSlot(note, durations, velocities) {
 // narrow enough breaks a long recitation across chant lines, which moves part
 // of the text onto a synthesized continuation; the timeline reads through that
 // so playback does not depend on how wide the score happens to be.
+/**
+ * @param {*} notation
+ */
 function recitedText(notation) {
   var lyric = notation.lyrics && notation.lyrics[0];
 
@@ -350,6 +364,10 @@ function recitedText(notation) {
 
 // How many syllables of text a reciting tone carries, which is how many times
 // it sounds. Zero means it carries no text at all.
+/**
+ * @param {*} notation
+ * @param {*} defaultLanguage
+ */
 function recitedSyllableCount(notation, defaultLanguage) {
   var text = recitedText(notation);
 
@@ -382,6 +400,11 @@ function recitedSyllableCount(notation, defaultLanguage) {
 // A syllable of recitation that is not the last one: the written note's
 // ornaments -- a mora, an episema -- belong to the end of the recitation, not
 // to every syllable of it, so these are plain notes at the reciting pitch.
+/**
+ * @param {*} note
+ * @param {*} durations
+ * @param {*} velocities
+ */
 function makeRecitedSlot(note, durations, velocities) {
   return {
     kind: "note",
@@ -389,7 +412,7 @@ function makeRecitedSlot(note, durations, velocities) {
     noteIndex: note.noteIndex,
     elementIndex: note.elementIndex,
     pitchInt: note.pitch ? note.pitch.toInt() : null,
-    dividerKind: null,
+    dividerKind: /** @type {any} */ (null),
     mult: durations.base,
     add: 0,
     velocity: velocities.base
@@ -488,7 +511,8 @@ export function createPlaybackEvents(score, options) {
       if (kind === null) continue; // InsertionCursor and friends
 
       if (previousNote)
-        previousNote.mult *= durations.beforeDivider[kind] || 1.0;
+        previousNote.mult *=
+          /** @type {any} */ (durations.beforeDivider)[kind] || 1.0;
 
       slots.push({
         kind: "rest",
@@ -497,7 +521,7 @@ export function createPlaybackEvents(score, options) {
         elementIndex: notation.elementIndex,
         pitchInt: null,
         dividerKind: kind,
-        mult: rests[kind] || 0,
+        mult: /** @type {any} */ (rests)[kind] || 0,
         add: 0,
         velocity: 0
       });
@@ -592,7 +616,7 @@ export function createPlaybackEvents(score, options) {
   }
 
   return {
-    events: events,
+    events: /** @type {any} */ (events),
     totalPulses: pulse,
     eventIndexByNoteIndex: eventIndexByNoteIndex
   };

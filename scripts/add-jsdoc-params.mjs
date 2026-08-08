@@ -391,7 +391,9 @@ function processFile(file, errorsForFile) {
   for (const { line, param } of errorsForFile) {
     const funcLine = findFunctionStart(lines, line);
     if (funcLine < 0) {
-      console.warn(`${file}:${line}: could not find function for param ${param}`);
+      console.warn(
+        `${file}:${line}: could not find function for param ${param}`
+      );
       continue;
     }
     if (!byFunc.has(funcLine)) byFunc.set(funcLine, new Map());
