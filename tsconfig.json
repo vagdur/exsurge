@@ -25,7 +25,7 @@
     //
     //   1. noImplicitThis              done
     //   2. useUnknownInCatchVariables  done
-    //   3. noImplicitAny               in progress / done once green
+    //   3. noImplicitAny               done
     //   4. strictNullChecks            its own project, touches everything
     //   5. the rest, then "strict": true
     "strict": false,

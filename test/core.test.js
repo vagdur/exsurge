@@ -105,7 +105,10 @@ describe("Core functionality", function () {
 describe("Latin syllabification", function () {
   var lang = new Exsurge.Latin();
 
-  var assertWordSyllables = function (word, syllables) {
+  var assertWordSyllables = function (
+    /** @type {*} */ word,
+    /** @type {*} */ syllables
+  ) {
     word.length.should.equal(syllables.length);
 
     for (var i = 0; i < word.length; i++) {
@@ -144,7 +147,11 @@ describe("Latin vowel segments", function () {
   // U+030A COMBINING RING ABOVE; see the note in the suite above.
   var RING = String.fromCharCode(0x30a);
 
-  var assertVowelSegment = function (s, startIndex, expected) {
+  var assertVowelSegment = function (
+    /** @type {*} */ s,
+    /** @type {*} */ startIndex,
+    /** @type {*} */ expected
+  ) {
     var result = lang.findVowelSegment(s, startIndex);
     result.found.should.equal(true);
     s.substr(result.startIndex, result.length).should.equal(expected);
@@ -190,7 +197,10 @@ describe("Latin vowel segments", function () {
 describe("Swedish syllabification", function () {
   var lang = new Exsurge.Swedish();
 
-  var assertSyllables = function (word, syllables) {
+  var assertSyllables = function (
+    /** @type {*} */ word,
+    /** @type {*} */ syllables
+  ) {
     lang.syllabifyWord(word).join("-").should.equal(syllables.join("-"));
   };
 
@@ -321,7 +331,11 @@ describe("Swedish vowel segments", function () {
   var RING = String.fromCharCode(0x30a);
   var DIAERESIS = String.fromCharCode(0x308);
 
-  var assertVowelSegment = function (s, startIndex, expected) {
+  var assertVowelSegment = function (
+    /** @type {*} */ s,
+    /** @type {*} */ startIndex,
+    /** @type {*} */ expected
+  ) {
     var result = lang.findVowelSegment(s, startIndex);
     result.found.should.equal(true);
     s.substr(result.startIndex, result.length).should.equal(expected);

@@ -899,7 +899,7 @@ export class ChantScore {
   // good for server side processing or very small chant pieces.
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
-   * @param {boolean} force
+   * @param {boolean} [force]
    */
   performLayout(ctxt, force) {
     if (!force && this.needsLayout === false) return; // nothing to do here!
@@ -931,8 +931,8 @@ export class ChantScore {
   // surfacing as an uncaught setTimeout exception with no finishedCallback.
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
-   * @param {*|undefined} finishedCallback
-   * @param {*|undefined} errorCallback
+   * @param {*} [finishedCallback]
+   * @param {*} [errorCallback]
    */
   performLayoutAsync(ctxt, finishedCallback, errorCallback) {
     this._performLayoutAsync(ctxt, finishedCallback, errorCallback, 0);
@@ -940,9 +940,9 @@ export class ChantScore {
 
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
-   * @param {*|undefined} finishedCallback
-   * @param {*|undefined} errorCallback
-   * @param {*} hyphenRetries
+   * @param {*} [finishedCallback]
+   * @param {*} [errorCallback]
+   * @param {*} [hyphenRetries]
    */
   _performLayoutAsync(ctxt, finishedCallback, errorCallback, hyphenRetries) {
     if (this.needsLayout === false) {
@@ -1048,8 +1048,8 @@ export class ChantScore {
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    * @param {number} index
-   * @param {*|undefined} finishedCallback
-   * @param {*|undefined} errorCallback
+   * @param {*} [finishedCallback]
+   * @param {*} [errorCallback]
    */
   layoutElementsAsync(ctxt, index, finishedCallback, errorCallback) {
     if (index >= this.notations.length) {
@@ -1150,7 +1150,7 @@ export class ChantScore {
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    * @param {number} width
-   * @param {*|undefined} finishedCallback
+   * @param {*} [finishedCallback]
    */
   layoutChantLines(ctxt, width, finishedCallback) {
     /** @type {any[]} */

@@ -34,12 +34,18 @@ var should = chai.should();
 // opentype.js that measureSubstringBBox uses and gives every glyph the same
 // half-em advance, so a substring's width is proportional to its length.
 function stubFontDictionary() {
-  var advanceWidth = (text, fontSize) => text.length * fontSize * 0.5;
+  var advanceWidth = (/** @type {*} */ text, /** @type {*} */ fontSize) =>
+    text.length * fontSize * 0.5;
 
   return {
     Regular: {
       getAdvanceWidth: advanceWidth,
-      getPath: (text, x, y, fontSize) => ({
+      getPath: (
+        /** @type {*} */ text,
+        /** @type {*} */ x,
+        /** @type {*} */ y,
+        /** @type {*} */ fontSize
+      ) => ({
         getBoundingBox: () => ({
           x1: x,
           y1: y - fontSize * 0.75,
@@ -51,7 +57,10 @@ function stubFontDictionary() {
   };
 }
 
-function buildScore(gabc, language) {
+function buildScore(
+  /** @type {*} */ gabc,
+  /** @type {*} */ language = undefined
+) {
   var ctxt = new Exsurge.ChantContext();
   // the stub implements only the two methods that get called, not all of
   // opentype.js's Font, so it cannot satisfy the declared dictionary type
@@ -67,7 +76,7 @@ function buildScore(gabc, language) {
   return { ctxt: ctxt, score: score };
 }
 
-function notationsOnLine(score, line) {
+function notationsOnLine(/** @type {*} */ score, /** @type {*} */ line) {
   return score.notations.slice(
     line.notationsStartIndex,
     line.notationsStartIndex + line.numNotationsOnLine
@@ -76,7 +85,7 @@ function notationsOnLine(score, line) {
 
 // lays a score out on a single line wide enough that nothing wraps, and
 // returns the notations of that line in reading order
-function layoutNotations(gabc, width = 800) {
+function layoutNotations(/** @type {*} */ gabc, width = 800) {
   var { ctxt, score } = buildScore(gabc);
 
   score.layoutChantLines(ctxt, width, () => {});
@@ -87,13 +96,19 @@ function layoutNotations(gabc, width = 800) {
 }
 
 // the sounding shape of a score: what is heard, in order, and for how long
-function timelineOf(score, options) {
+function timelineOf(
+  /** @type {*} */ score,
+  /** @type {*} */ options = undefined
+) {
   return Exsurge.createPlaybackEvents(score, options || {}).events.map(
     (event) => [event.kind, event.pitchInt, event.pulses]
   );
 }
 
-function soundingPulses(gabc, options) {
+function soundingPulses(
+  /** @type {*} */ gabc,
+  /** @type {*} */ options = undefined
+) {
   return Exsurge.createPlaybackEvents(buildScore(gabc).score, options || {})
     .events.filter((event) => event.kind === "note")
     .map((event) => event.pulses);
@@ -102,7 +117,7 @@ function soundingPulses(gabc, options) {
 // Every glyph the score draws with the "note" class -- what ChantPlayer looks
 // for when it maps a rendered score back onto its notes. createSvgTree is used
 // rather than createSvgNode because the specs run without a DOM.
-function noteGlyphs(score, ctxt) {
+function noteGlyphs(/** @type {*} */ score, /** @type {*} */ ctxt) {
   var found = [];
 
   (function walk(node) {
@@ -121,9 +136,10 @@ function noteGlyphs(score, ctxt) {
   return found;
 }
 
-function findByLyric(notations, text) {
+function findByLyric(/** @type {*} */ notations, /** @type {*} */ text) {
   var found = notations.find(
-    (notation) => notation.hasLyrics() && notation.lyrics[0].text === text
+    (/** @type {*} */ notation) =>
+      notation.hasLyrics() && notation.lyrics[0].text === text
   );
 
   should.exist(found);
@@ -157,7 +173,9 @@ describe("Lyric alignment", function () {
 
     var before = findByLyric(notations, "Gud,");
     var recited = findByLyric(notations, "som besöker sitt");
-    var divider = notations.find((notation) => notation.isDivider);
+    var divider = notations.find(
+      (/** @type {*} */ notation) => notation.isDivider
+    );
 
     should.exist(divider);
 
@@ -195,7 +213,7 @@ describe("Recitation line breaking", function () {
     "från evighet till evighet"
   ];
 
-  function layoutAt(width) {
+  function layoutAt(/** @type {*} */ width) {
     var { ctxt, score } = buildScore(gabc);
 
     score.layoutChantLines(ctxt, width, () => {});
@@ -205,11 +223,11 @@ describe("Recitation line breaking", function () {
 
   // every notation on every line, tagged with the line it landed on, so a
   // whole layout can be compared with another one
-  function snapshot(score) {
+  function snapshot(/** @type {*} */ score) {
     return score.lines
-      .map((line, index) =>
+      .map((/** @type {*} */ line, /** @type {*} */ index) =>
         notationsOnLine(score, line)
-          .map((notation) =>
+          .map((/** @type {*} */ notation) =>
             [
               index,
               notation.constructor.name,
@@ -222,8 +240,10 @@ describe("Recitation line breaking", function () {
       .join("\n");
   }
 
-  function recitationTones(score) {
-    return score.notations.filter((notation) => notation.isRecitationTone);
+  function recitationTones(/** @type {*} */ score) {
+    return score.notations.filter(
+      (/** @type {*} */ notation) => notation.isRecitationTone
+    );
   }
 
   it("leaves a recitation alone when it fits on the line", function () {
@@ -235,7 +255,7 @@ describe("Recitation line breaking", function () {
       .filter((notation) => notation.isRecitationContinuation)
       .length.should.equal(0);
     recitationTones(score)
-      .map((notation) => notation.lyrics[0].text)
+      .map((/** @type {*} */ notation) => notation.lyrics[0].text)
       .should.deep.equal(recitedText);
   });
 
@@ -259,7 +279,7 @@ describe("Recitation line breaking", function () {
 
     // nothing of the text is lost or duplicated in the breaking
     var recited = recitationTones(score).map(
-      (notation) => notation.lyrics[0].text
+      (/** @type {*} */ notation) => notation.lyrics[0].text
     );
     var rejoined = [];
     var next = 0;
@@ -338,7 +358,7 @@ describe("Recitation line breaking", function () {
       .filter((notation) => notation.isRecitationContinuation)
       .length.should.equal(0);
     recitationTones(score)
-      .map((notation) => notation.lyrics[0].text)
+      .map((/** @type {*} */ notation) => notation.lyrics[0].text)
       .should.deep.equal(recitedText);
     score.notations
       .every((notation, index) => notation.notationIndex === index)
@@ -454,13 +474,14 @@ describe("Recitation playback", function () {
   it("syllabifies with the language it is given", function () {
     // "va-re Fa-dern och So-nen" is seven syllables in Swedish
     var gabc = "(c4) Ä(f)ra(g) vare Fadern och Sonen(hr0) A(g)men.(h)";
-    var recitingNoteIndex = (score) =>
-      score.notations.find((notation) => notation.isRecitationTone).notes[0]
-        .noteIndex;
+    var recitingNoteIndex = (/** @type {*} */ score) =>
+      score.notations.find(
+        (/** @type {*} */ notation) => notation.isRecitationTone
+      ).notes[0].noteIndex;
 
     var { score } = buildScore(gabc);
     var index = recitingNoteIndex(score);
-    var soundings = (options) =>
+    var soundings = (/** @type {*} */ options) =>
       Exsurge.createPlaybackEvents(score, options).events.filter(
         (event) => event.noteIndex === index
       ).length;
@@ -479,9 +500,12 @@ describe("Recitation playback", function () {
     // the layout the same context produced.
     var gabc = "(c4) Lo(f)va(g) Israels Gud(hr0) i(g)dag.(h)";
 
-    var soundings = function (score, options) {
+    var soundings = function (
+      /** @type {*} */ score,
+      /** @type {*} */ options = undefined
+    ) {
       var reciting = score.notations.find(
-        (notation) => notation.isRecitationTone
+        (/** @type {*} */ notation) => notation.isRecitationTone
       );
 
       return Exsurge.createPlaybackEvents(score, options).events.filter(
@@ -510,7 +534,7 @@ describe("Recitation playback", function () {
     var gabc = "(c4) the Lord be with you(fr0) and(g) al(h)so.(g)";
 
     for (var name of Object.keys(Exsurge.language)) {
-      var language = Exsurge.language[name];
+      var language = /** @type {any} */ (Exsurge.language)[name];
 
       (() => soundingPulses(gabc, { language: language })).should.not.throw();
     }

@@ -138,7 +138,7 @@ export class GabcHeader {
           });
           if (/** @type {any} */ (this)[match[1]]) {
             var arrayName = match[1] + "Array";
-            if (!/** @type {any} */ (this)[arrayName]) {
+            if (!(/** @type {any} */ (this)[arrayName])) {
               /** @type {any} */ (this)[arrayName] = [
                 /** @type {any} */ (this)[match[1]]
               ];
@@ -174,7 +174,7 @@ export class GabcHeader {
     var result = [];
     for (let key in this) {
       if (
-        typeof /** @type {any} */ (this)[key] !== "string" ||
+        typeof (/** @type {any} */ (this)[key]) !== "string" ||
         /^(length|original|comments|cValues)$/.test(key)
       ) {
         continue;
