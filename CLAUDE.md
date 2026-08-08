@@ -28,7 +28,7 @@ Two consequences for editing:
 - **`package.json` has a `files` allowlist.** A new top-level directory that consumers need at runtime will not be published unless it is added there. `src/` is in the list only because `types` resolves into it. The bundles are listed as four individual paths rather than as `dist`, so that the unminified `dist/exsurge.js` debug build stays out of the tarball — with `dist/` gitignored wholesale, a bare `dist` entry sweeps it in.
 - **There is an `exports` map, and it is load-bearing.** `import` must resolve to `dist/exsurge.mjs` and `require` to `dist/exsurge.min.js`. Node ignores `module`, so if the map is removed, `import` falls back to `main` — the minified UMD — and `cjs-module-lexer` cannot recover named exports from it, leaving consumers with a bare `default` and a confusing `ChantContext is not a constructor`. The map also gates subpaths: `./assets/*`, `./dist/*`, `./src/*` and `./package.json` are listed explicitly, and anything not listed becomes unreachable to consumers.
 
-Neither of these is exercised by `npm test`, which imports `src/` directly. The check that catches them is `npm pack` followed by installing the tarball into a throwaway project and importing it both ways.
+Neither of these is exercised by `npm test`, which imports `src/` directly. The check that catches them is `npm run test:pack` (`scripts/pack-smoke.mjs`): it packs, installs the tarball into a throwaway project, and asserts that CJS and ESM expose the same named surface through the exports map.
 
 Version numbering is continuous with Bloomfield's tags rather than with the registry: the fork branched at his `v1.25.2` and kept the number, so the first npm release starts there despite being the package's first version. Publishing is manual (`npm publish`) and deliberately not wired into the `npm version` hooks. `publishConfig.access` is `public`.
 
@@ -38,8 +38,9 @@ Consumers can equally install from git — npm runs `prepare`, so the bundle is 
 
 - `npm run build` — rollup, writes `dist/exsurge.min.js` (UMD, minified), `dist/exsurge.mjs` (ESM) and `dist/exsurge.js` (unminified UMD). Fails on any rollup warning.
 - `npm run build-dev` — same without `--failAfterWarnings`; `npm run dev` — watch mode.
-- `npm test` — vitest, runs once and exits. `npm run test:watch` to watch. Specs import `src/` directly, so no build is needed first — except `test/dist.test.js`, which loads the built bundle on purpose and therefore needs `dist/` to exist (`prepare` guarantees that after any install).
-- `npm run lint` / `npm run format` / `npm run typecheck` — eslint, prettier, tsc.
+- `npm test` — vitest, runs once and exits. `npm run test:watch` to watch. Specs import `src/` directly, so no build is needed first — except `test/dist.test.js`, which loads the built bundle on purpose and therefore needs `dist/` to exist (`prepare` guarantees that after any install). `test/dist.test.js` compares the bundle's export names to `src/index.js` rather than pinning a count.
+- `npm run test:pack` — pack, install into a throwaway project, and assert CJS/ESM resolve through the exports map with the same named surface. This is what the CI `pack` job runs.
+- `npm run lint` / `npm run format` / `npm run typecheck` — eslint, prettier, tsc. CI runs these once in a `static` job; the Node 20/22 matrix only runs `npm test`.
 - **`dist/` is gitignored — do not commit it, and do not add build output to a `src/` change.** It was tracked until the change that added this line, which is why older commits pair every `src/` edit with a rebuilt bundle and why the history is full of conflicts in `dist/exsurge.min.js`. A `prepare` script (`npm run build`) now covers the three cases that mattered: npm runs it on `npm install`/`npm ci`, on installing this repo as a git dependency, and before `npm pack`/`npm publish`. There is no longer a `dist-freshness` CI job, because there is no stored copy that can go stale.
 - Releases: `npm version <patch|minor|major>` — the preversion/version/postversion hooks validate, regenerate `CHANGELOG.md` (conventional-changelog, angular preset), and push with tags. Commit messages follow Conventional Commits (`feat:`, `fix:`) since the changelog is generated from them. Bundles are attached to GitHub releases by hand (`gh release create <tag> dist/exsurge.min.js dist/exsurge.mjs`) for anyone vendoring rather than installing.
 
@@ -57,7 +58,7 @@ The whole tree is Prettier-formatted and `npm run format:check` runs in CI; mark
 
 ## Architecture
 
-All source is in `src/`, re-exported flat from `src/index.js` (so everything is on the single `exsurge` UMD namespace). TypeScript declarations are hand-maintained in `src/exsurge.d.ts` — update them when changing public APIs. The filename matters: as `src/index.d.ts` it shadowed `src/index.js` in TypeScript's resolution order, so the declarations and the implementation were never checked against each other, which is how they came to declare members that did not exist. They cover roughly 25 of the 139 runtime exports, so an undeclared export is an omission rather than a signal that it is private.
+All source is in `src/`, re-exported flat from `src/index.js` (so everything is on the single `exsurge` UMD namespace). TypeScript declarations are hand-maintained in `src/exsurge.d.ts` — update them when changing public APIs. The filename matters: as `src/index.d.ts` it shadowed `src/index.js` in TypeScript's resolution order, so the declarations and the implementation were never checked against each other, which is how they came to declare members that did not exist. They cover roughly 25 of the runtime exports, so an undeclared export is an omission rather than a signal that it is private.
 
 The rendering pipeline is: **gabc text → parse → notation elements → layout → SVG**.
 
