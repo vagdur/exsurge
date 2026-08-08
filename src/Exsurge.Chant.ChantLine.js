@@ -23,10 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 31 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { ChantLineBreak, Note, NoteShape, TextOnly } from "./Exsurge.Chant.js";
 import { Punctum } from "./Exsurge.Chant.Neumes.js";
 import {
@@ -86,6 +82,11 @@ export class ChantLine extends ChantLayoutElement {
     this.spaceBetweenTextTracks = 0; // spacing between each text track
 
     this.lastLyrics = [];
+
+    /** @type {any} */
+    this.insertionCursor = null;
+    /** @type {number|undefined} */
+    this.elementIndex = undefined;
   }
 
   get staffSpaces() {
@@ -731,6 +732,7 @@ export class ChantLine extends ChantLayoutElement {
       prev,
       prevNeume = null,
       prevLyrics = [];
+    /** @type {Array<{notation?: any, condensable?: number, fixed?: boolean}> & {sum?: number}} */
     var condensableSpaces = [];
     this.notationsStartIndex = newElementStart;
     this.numNotationsOnLine = 0;
@@ -2037,6 +2039,7 @@ export class ChantLine extends ChantLayoutElement {
     prev,
     curr,
     rightNotationBoundary,
+    /** @type {Array<{notation?: any, condensable?: number, fixed?: boolean}> & {sum?: number}} */
     condensableSpaces = []
   ) {
     if (!Object.prototype.hasOwnProperty.call(condensableSpaces, "sum"))
@@ -2191,6 +2194,7 @@ export class ChantLine extends ChantLayoutElement {
       for (i = 0; i < curr.lyrics.length; i++) {
         if (!curr.lyrics[i].originalText) continue;
         var prevLyricRight = 0;
+        /** @type {Array<{notation?: any, condensable?: number}> & {sum?: number}} */
         let condensableSpacesSincePrevLyric = [];
         let condensableSpaceSincePrevLyric;
         if (i < prevLyrics.length && prevLyrics[i]) {

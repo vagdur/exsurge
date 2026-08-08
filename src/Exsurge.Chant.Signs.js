@@ -272,6 +272,8 @@ export class Accidental extends ChantNotationElement {
 
     this.staffPosition = staffPosition;
     this.accidentalType = accidentalType;
+    /** @type {import("./Exsurge.Core.js").Pitch|undefined} */
+    this.pitch = undefined;
   }
 
   performLayout(ctxt) {

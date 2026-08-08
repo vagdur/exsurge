@@ -23,10 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 62 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { getCssForProperties, Point, Rect } from "./Exsurge.Core.js";
 import { Glyphs } from "./Exsurge.Glyphs.js";
 import { language } from "./Exsurge.Text.js";
@@ -66,8 +62,20 @@ export var MarkingPositionHint = {
 };
 
 /**
+ * @typedef {object} TextTypeEntry
+ * @property {string} display
+ * @property {(size: number, ctxt?: any) => number} [defaultSize]
+ * @property {(ctxt: any) => number} [size]
+ * @property {(score: any, elem?: any) => any} [containedInScore]
+ * @property {(score: any, elem?: any) => any} [getFromScore]
+ * @property {(score: any, elem?: any) => any} [getFromSvgElem]
+ * @property {string} [cssClass]
+ * @property {string} [key]
+ */
+
+/**
  * List of types of text and their defaults relative to lyrics
- * @type Array
+ * @type {{ [key: string]: TextTypeEntry }}
  */
 export const TextTypes = {
   supertitle: {
@@ -176,6 +184,16 @@ Object.entries(TextTypes).forEach(([key, entry]) => {
   TextTypesByClass[cssClass] = entry;
 });
 
+/**
+ * Trailing space may be a fixed number or a function of the context. The
+ * default carries an `isDefault` flag so Gabc can tell whether a notation
+ * still has the stock spacing or an explicit override.
+ * @typedef {number | ((ctxt: any) => number) | { (ctxt: any): number; isDefault?: boolean }} TrailingSpace
+ */
+
+/**
+ * @type {TrailingSpace & { isDefault: boolean }}
+ */
 export const DefaultTrailingSpace = (ctxt) =>
   ctxt.intraNeumeSpacing * ctxt.interSyllabicMultiplier;
 DefaultTrailingSpace.isDefault = true;
@@ -269,9 +287,10 @@ export var QuickSvg = {
     var defs = document.createElementNS(this.ns, "defs");
     node.appendChild(defs);
 
-    node.defs = defs;
+    var svgNode = /** @type {any} */ (node);
+    svgNode.defs = defs;
 
-    node.clearNotations = function () {
+    svgNode.clearNotations = function () {
       // clear out all children except defs
       node.removeChild(defs);
 
@@ -357,7 +376,7 @@ export var QuickSvg = {
   createNode: function (name, attributes, children) {
     var node = document.createElementNS(this.ns, name);
     if (attributes && attributes.source) {
-      node.source = attributes.source;
+      /** @type {any} */ (node).source = attributes.source;
       delete attributes.source;
     }
     for (var attr in attributes) {
@@ -555,6 +574,11 @@ export class ChantContext {
     this.minSpaceBelowStaff = 1; // multiple of staffInterval
     this.spaceBetweenSystems = 1.5; // multiple of staffInterval
 
+    // Temporary scratch list of notations used during layout (e.g. by
+    // NeumeBuilder looking at the previous notation). Not part of the score.
+    /** @type {any[]|undefined} */
+    this.notations = undefined;
+
     // everything depends on the scale of the punctum
     this.glyphPunctumWidth = Glyphs.PunctumQuadratum.bounds.width;
     this.glyphPunctumHeight = Glyphs.PunctumQuadratum.bounds.height;
@@ -684,9 +708,9 @@ export class ChantContext {
   /**
    *
    * @param {string} font : ;
-   * @param {number} size
-   * @param {any} baseStyle
-   * @param {{ [key: string]: import('opentype.js').Font }} fontDictionary
+   * @param {number} [size]
+   * @param {any} [baseStyle]
+   * @param {{ [key: string]: import('opentype.js').Font }} [fontDictionary]
    */
   setFont(font, size = 16, baseStyle = {}, fontDictionary) {
     for (let [key, textType] of Object.entries(TextTypes)) {
@@ -1433,6 +1457,8 @@ export class RoundBraceVisualizer extends ChantLayoutElement {
     }
 
     this.isAbove = isAbove;
+    /** @type {any} */
+    this.accent = null;
     this.braceHeight = (3 * ctxt.staffInterval) / 2;
 
     this.bounds = new Rect(
@@ -1728,6 +1754,8 @@ export class TextSpan {
     this.propertyArray = propertyArray;
     this.activeTags = activeTags || [];
     this.index = index;
+    /** @type {number|undefined} */
+    this.textLength = undefined;
     if (extraProps) {
       if ("xOffset" in extraProps) this.xOffset = extraProps.xOffset;
       if ("newLine" in extraProps) this.newLine = extraProps.newLine;
@@ -1794,6 +1822,15 @@ var __subsForTspans = {
 };
 
 export class TextElement extends ChantLayoutElement {
+  /**
+   * @param {ChantContext} ctxt
+   * @param {string} text
+   * @param {any} fontFamily
+   * @param {any} fontSize
+   * @param {string} textAnchor
+   * @param {number} [sourceIndex]
+   * @param {string} [sourceGabc]
+   */
   constructor(
     ctxt,
     text,
@@ -1819,6 +1856,11 @@ export class TextElement extends ChantLayoutElement {
     this.sourceIndex = sourceIndex;
     this.sourceGabc = sourceGabc;
     this.dominantBaseline = "baseline"; // default placement
+
+    /** @type {TextTypeEntry|undefined} */
+    this.textType = undefined;
+    /** @type {any} */
+    this.dropCap = undefined;
 
     this.generateSpansFromText(ctxt, text);
 
@@ -2093,9 +2135,9 @@ export class TextElement extends ChantLayoutElement {
    * if length is undefined and this.rightAligned === true, then offsets will be marked for each newLine span
    *
    * @param {ChantContext} ctxt
-   * @param {number} length
-   * @param {boolean} returnBBox
-   * @returns measured substring, as a simple width unless returnBBox == true
+   * @param {number} [length]
+   * @param {boolean} [returnBBox]
+   * @returns {number | { width: number, height: number, x: number, y: number }}
    */
   measureSubstring(ctxt, length, returnBBox = false) {
     if (length === 0) return 0;
@@ -2130,7 +2172,9 @@ export class TextElement extends ChantLayoutElement {
           ctxt,
           span.properties
         );
-        let metrics = canvasCtxt.measureText(
+        // Some browsers accept x/y after the string; the DOM lib only types the
+        // one-argument form, so widen the call for the optional extras.
+        let metrics = /** @type {any} */ (canvasCtxt).measureText(
           myText,
           width,
           fontSize * (numLines - 1)
@@ -2272,7 +2316,10 @@ export class TextElement extends ChantLayoutElement {
       this.origin.y = -bbox.y; // offset to baseline from top
       this.origin.x = -bbox.x;
     } else {
-      let bbox = this.measureSubstringBBox(ctxt);
+      let bbox =
+        /** @type {{ width: number, height: number, x: number, y: number }} */ (
+          this.measureSubstringBBox(ctxt)
+        );
       this.bounds.width = bbox.width;
       this.bounds.height = bbox.height;
       this.origin.y = -bbox.y;
@@ -2672,6 +2719,10 @@ export class Lyric extends TextElement {
 
     this.notation = notation;
     this.notations = notations;
+    /** @type {number|undefined} */
+    this.lyricIndex = undefined;
+    /** @type {boolean|undefined} */
+    this.elidesToNext = undefined;
 
     if (
       typeof lyricType === "undefined" ||
@@ -3018,7 +3069,14 @@ export class Lyric extends TextElement {
 }
 
 export class ChoralSign extends TextElement {
-  constructor(ctxt, text, note, sourceIndex) {
+  /**
+   * @param {ChantContext} ctxt
+   * @param {string} text
+   * @param {any} note
+   * @param {number} [sourceIndex]
+   * @param {number} [sourceLength]
+   */
+  constructor(ctxt, text, note, sourceIndex, sourceLength) {
     super(
       ctxt,
       (ctxt.textStyles.choralSign.prefix || "") + text,
@@ -3031,6 +3089,8 @@ export class ChoralSign extends TextElement {
     this.positionHint = MarkingPositionHint.Default;
     this.note = note;
     this.textType = TextTypes.choralSign;
+    /** @type {number|undefined} */
+    this.sourceLength = sourceLength;
   }
 
   recalculateMetrics(ctxt) {
@@ -3061,9 +3121,13 @@ export class ChoralSign extends TextElement {
 
 export class AboveLinesText extends TextElement {
   /**
+   * @param {ChantContext} ctxt
    * @param {String} text
+   * @param {any} notation
+   * @param {number} [sourceIndex]
+   * @param {number} [sourceLength]
    */
-  constructor(ctxt, text, notation, sourceIndex) {
+  constructor(ctxt, text, notation, sourceIndex, sourceLength) {
     super(
       ctxt,
       (ctxt.textStyles.al.prefix || "") + text,
@@ -3075,6 +3139,10 @@ export class AboveLinesText extends TextElement {
     );
     this.notation = notation;
     this.textType = TextTypes.al;
+    /** @type {number|undefined} */
+    this.alIndex = undefined;
+    /** @type {number|undefined} */
+    this.sourceLength = sourceLength;
 
     this.padding = ctxt.staffInterval / 2;
   }
@@ -3104,6 +3172,8 @@ export class TranslationText extends TextElement {
     );
     this.notation = notation;
     this.textType = TextTypes.translation;
+    /** @type {number|undefined} */
+    this.translationIndex = undefined;
 
     this.padding = ctxt.staffInterval / 2;
   }
@@ -3238,7 +3308,9 @@ export class TextLeftRight extends TitleTextElement {
 
 export class Annotation extends TextElement {
   /**
+   * @param {ChantContext} ctxt
    * @param {String} text
+   * @param {number} [elementIndex]
    */
   constructor(ctxt, text, elementIndex) {
     super(
@@ -3249,6 +3321,8 @@ export class Annotation extends TextElement {
       "middle"
     );
     this.sourceGabc = text;
+    /** @type {string} */
+    this.unsanitizedText = text;
     if (typeof elementIndex === "number") this.elementIndex = elementIndex;
     this.textType = TextTypes.annotation;
     this.padding = ctxt.staffInterval * ctxt.textStyles.annotation.padding;
@@ -3258,7 +3332,8 @@ export class Annotation extends TextElement {
 
 export class Annotations extends ChantLayoutElement {
   /**
-   * @param {String} text
+   * @param {ChantContext} ctxt
+   * @param {...String} texts
    */
   constructor(ctxt, ...texts) {
     super();
@@ -3350,11 +3425,44 @@ export class ChantNotationElement extends ChantLayoutElement {
 
     //double
     this.leadingSpace = 0.0;
+    /**
+     * Trailing space after this notation. Number, or a function of ctxt;
+     * the default carries `isDefault` so Gabc can detect overrides.
+     * @type {TrailingSpace}
+     */
     this.trailingSpace = DefaultTrailingSpace;
     this.keepWithNext = false;
     this.needsLayout = true;
 
     this.lyrics = [];
+
+    /**
+     * Above-lines and translation text attached during gabc parsing.
+     * @type {AboveLinesText[]|undefined}
+     */
+    this.alText = undefined;
+    /**
+     * @type {TranslationText[]|undefined}
+     */
+    this.translationText = undefined;
+    /** @type {string|undefined} */
+    this.cssClass = undefined;
+    /** @type {number|undefined} */
+    this.sourceIndex = undefined;
+    /** @type {number|undefined} */
+    this.sourceLength = undefined;
+    /** @type {string|undefined} */
+    this.sourceGabc = undefined;
+    /** @type {number|undefined} */
+    this.elementIndex = undefined;
+    /** @type {number|undefined} */
+    this.notationIndex = undefined;
+    /** @type {boolean|undefined} */
+    this.isRecitationContinuation = undefined;
+    /** @type {boolean|undefined} */
+    this.firstOfSyllable = undefined;
+    /** @type {any} */
+    this.mapping = undefined;
 
     /**
      * @type {import("./Exsurge.Chant.js").ChantScore}

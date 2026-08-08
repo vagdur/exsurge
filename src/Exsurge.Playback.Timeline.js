@@ -409,7 +409,7 @@ function makeRecitedSlot(note, durations, velocities) {
  *
  * @typedef {object} PlaybackEvent
  * @property {"note"|"rest"} kind
- * @property {object|null} note the source note, or null for a rest
+ * @property {any} note the source note, or null for a rest
  * @property {number|null} noteIndex index into score.notes, null for a rest
  * @property {number|null} elementIndex
  * @property {number|null} pitchInt absolute semitone, null when unpitched
@@ -427,8 +427,8 @@ function makeRecitedSlot(note, durations, velocities) {
  */
 
 /**
- * @param {import("./Exsurge.Chant.js").ChantScore} score
- * @param {{durations?: {beforeDivider?: object}, restWeights?: object, velocities?: object, classifyDivider?: Function, language?: import("./Exsurge.Text.js").Language}} [options] `language` overrides the syllabifier used for reciting tones; by default it is the one on the score's context
+ * @param {{notations: any[], notes?: any[], ctxt?: any}|import("./Exsurge.Chant.js").ChantScore} score
+ * @param {{durations?: Record<string, any>, restWeights?: object, velocities?: object, classifyDivider?: Function, language?: import("./Exsurge.Text.js").Language}} [options] `language` overrides the syllabifier used for reciting tones; by default it is the one on the score's context
  * @return {PlaybackTimeline}
  */
 export function createPlaybackEvents(score, options) {

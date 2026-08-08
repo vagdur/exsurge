@@ -33,9 +33,6 @@
 // expected to build their own controls on top of the setters.
 //
 
-// @ts-nocheck -- 6 findings: options bags typed as object, window.webkitAudioContext, and two
-// places where SVG node arrays meet DOM signatures.
-
 import { Gabc } from "./Exsurge.Gabc.js";
 import { ChantScore } from "./Exsurge.Chant.js";
 import {
@@ -51,6 +48,39 @@ var SVG_NS = "http://www.w3.org/2000/svg";
 // distinguishes one player's injected css from another's on the same page
 var __playerSerial = 0;
 
+/**
+ * @typedef {object} PlaybackOptions
+ * @property {number} [speed]
+ * @property {number} [basePulseSeconds]
+ * @property {number} [tuning]
+ * @property {number} [transpose]
+ * @property {any} [temperament]
+ * @property {any} [instrument]
+ * @property {number} [volume]
+ * @property {boolean} [loop]
+ * @property {number} [maxVoices]
+ * @property {string} [highlightClass]
+ * @property {string} [highlightColor]
+ * @property {boolean} [injectStyle]
+ * @property {boolean} [clearHighlightOnRest]
+ * @property {boolean} [playOnBackgroundClick]
+ * @property {AudioContext|null} [audioContext]
+ * @property {number} [lookaheadSeconds]
+ * @property {number} [tickIntervalMs]
+ * @property {object|null} [durations]
+ * @property {object|null} [restWeights]
+ * @property {object|null} [velocities]
+ * @property {any} [language]
+ * @property {Function|null} [onStart]
+ * @property {Function|null} [onStop]
+ * @property {Function|null} [onEnd]
+ * @property {Function|null} [onNoteChange]
+ * @property {Function|null} [onError]
+ * @property {boolean} [useDropCap]
+ * @property {boolean} [autoResize]
+ */
+
+/** @type {PlaybackOptions} */
 export var PlaybackDefaults = {
   // tempo. secondsPerPulse = basePulseSeconds * 100 / speed, so a higher
   // percentage is faster. 0.4s per pulse is 150 pulses a minute.
@@ -171,10 +201,11 @@ export class ChantPlayer {
   /**
    * @param {ChantScore} score a score whose updateNotations has run
    * @param {SVGElement|SVGElement[]} [svgNode] output of score.createSvgNode
-   * @param {object} [options] see PlaybackDefaults
+   * @param {PlaybackOptions} [options] see PlaybackDefaults
    */
   constructor(score, svgNode, options) {
     this.score = score;
+    /** @type {PlaybackOptions} */
     this.options = Object.assign({}, PlaybackDefaults, options || {});
 
     this.timeline = createPlaybackEvents(score, this.options);
@@ -183,6 +214,7 @@ export class ChantPlayer {
     this.__ownsContext = false;
     this.__masterGain = null;
     this.__compressor = null;
+    /** @type {{name?: string, createVoice: Function}} */
     this.__instrument = resolveInstrument(this.options.instrument);
 
     // resolved once here rather than per note, since it is consulted twice for
@@ -546,7 +578,8 @@ export class ChantPlayer {
       var Ctor =
         typeof window === "undefined"
           ? null
-          : window.AudioContext || window.webkitAudioContext;
+          : window.AudioContext ||
+            /** @type {any} */ (window).webkitAudioContext;
 
       if (!Ctor) {
         this.__fail(new Error("exsurge: Web Audio is not available here"));
@@ -1046,7 +1079,7 @@ export class ChantPlayer {
  * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
  * @param {string|import("./Exsurge.Chant.js").ChantScore} gabcSourceOrScore
  * @param {HTMLElement} container emptied and filled with the rendered score
- * @param {object} [options] see PlaybackDefaults, plus useDropCap and autoResize.
+ * @param {PlaybackOptions} [options] see PlaybackDefaults, plus useDropCap and autoResize.
  *   autoResize (default true) installs a window resize listener; call
  *   player.destroy() to release it, especially before replacing the container.
  * @param {function} [onReady] receives (player, score)
@@ -1058,6 +1091,7 @@ export function createPlayableChant(
   options,
   onReady
 ) {
+  /** @type {PlaybackOptions} */
   var opts = options || {};
 
   var score;
@@ -1126,7 +1160,7 @@ export function createPlayableChant(
       // note order nor pitch -- so playback carries on across a resize
       try {
         render(function () {
-          player.attach(container.firstChild);
+          player.attach(/** @type {SVGElement} */ (container.firstChild));
         });
       } catch (error) {
         reportError(error);
@@ -1140,7 +1174,11 @@ export function createPlayableChant(
       try {
         render(function () {
           try {
-            player = new ChantPlayer(score, container.firstChild, opts);
+            player = new ChantPlayer(
+              score,
+              /** @type {SVGElement} */ (container.firstChild),
+              opts
+            );
 
             if (opts.autoResize !== false && typeof window !== "undefined") {
               window.addEventListener("resize", onResize);

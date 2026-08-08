@@ -213,8 +213,8 @@ export var Instruments = {
  * Resolves an instrument option, which may be a key into Instruments or an
  * object implementing the instrument interface directly.
  *
- * @param {string|{createVoice: Function}} spec
- * @return {object} an instrument
+ * @param {string|{name?: string, createVoice: Function}} [spec]
+ * @return {{name?: string, createVoice: Function}} an instrument
  */
 export function resolveInstrument(spec) {
   if (!spec) return Instruments.piano;
