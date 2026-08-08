@@ -75,7 +75,7 @@ var __playerSerial = 0;
  * @property {Function|null} [onStop]
  * @property {Function|null} [onEnd]
  * @property {Function|null} [onNoteChange]
- * @property {Function|null} [onError]
+ * @property {((error: unknown, player: ChantPlayer|null) => void)|null} [onError]
  * @property {boolean} [useDropCap]
  * @property {boolean} [autoResize]
  */
@@ -1042,6 +1042,9 @@ export class ChantPlayer {
     }
   }
 
+  /**
+   * @param {unknown} error
+   */
   __fail(error) {
     if (typeof this.options.onError === "function") {
       this.options.onError(error, this);
@@ -1109,6 +1112,9 @@ export function createPlayableChant(
   var player = null;
   var resizeTimer = null;
 
+  /**
+   * @param {unknown} error
+   */
   function reportError(error) {
     if (typeof opts.onError === "function") {
       opts.onError(error, player);

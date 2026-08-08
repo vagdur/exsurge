@@ -54,7 +54,7 @@ Toolchain: Rollup, ESLint 10 (flat config in `eslint.config.mjs`), Prettier, Typ
 
 The whole tree is Prettier-formatted and `npm run format:check` runs in CI; markdown is excluded in `.prettierignore` because Prettier reflows fenced code blocks. A whole-tree reformat sits in history and is listed in `.git-blame-ignore-revs` — run `git config blame.ignoreRevsFile .git-blame-ignore-revs` once locally.
 
-`npm run typecheck` must stay green. Instance fields that are assigned outside constructors are declared in the constructor with a JSDoc `@type` and a `null`/`undefined` initialiser (see `Note`, `ChantNotationElement`, `ChantLine`), or narrowed at the use site with `/** @type {any} */` for one-off DOM/expando cases. `tsconfig.json` lists the strictness flags still switched off, in the order they are worth enabling.
+`npm run typecheck` must stay green. `noImplicitThis` and `useUnknownInCatchVariables` are on; the next ratchet step is `noImplicitAny`. Instance fields assigned outside constructors are declared in the constructor with a real JSDoc `@type` and a `null`/`undefined` initialiser (see `Note`, `ChantNotationElement`, `ChantLine`) — the own-property cost is accepted so the fields carry useful types rather than `any`. Prefer use-site `/** @type {any} */` only for true one-off DOM/expando cases. `tsconfig.json` lists the remaining strictness flags in the order they are worth enabling.
 
 ## Architecture
 

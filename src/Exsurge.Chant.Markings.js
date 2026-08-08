@@ -428,6 +428,8 @@ export class BracePoint extends ChantLayoutElement {
     this.isAbove = isAbove;
     this.shape = shape;
     this.attachment = attachment;
+    /** @type {boolean|undefined} */
+    this.automatic = undefined;
   }
 
   getAttachmentX(note) {

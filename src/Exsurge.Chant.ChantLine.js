@@ -83,7 +83,7 @@ export class ChantLine extends ChantLayoutElement {
 
     this.lastLyrics = [];
 
-    /** @type {any} */
+    /** @type {import("./Exsurge.Chant.Signs.js").InsertionCursor|null} */
     this.insertionCursor = null;
     /** @type {number|undefined} */
     this.elementIndex = undefined;

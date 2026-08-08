@@ -179,7 +179,9 @@ describe("createPlayableChant: onError for layout failure", function () {
     };
 
     var ready = false;
+    /** @type {unknown} */
     var error = null;
+    /** @type {unknown} */
     var playerArg = "unset";
 
     Exsurge.createPlayableChant(
@@ -202,7 +204,9 @@ describe("createPlayableChant: onError for layout failure", function () {
 
     ready.should.equal(false);
     should.exist(error);
-    error.message.should.match(/hyphen width/);
+    (error instanceof Error ? error.message : String(error)).should.match(
+      /hyphen width/
+    );
     should.equal(playerArg, null);
   });
 });

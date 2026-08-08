@@ -28,6 +28,7 @@ import { InsertionCursor } from "./Exsurge.Chant.Signs.js";
 import { Pitch, Rect, Step } from "./Exsurge.Core.js";
 import {
   Annotation,
+  Annotations,
   ChantLayoutElement,
   ChantNotationElement,
   GlyphCode,
@@ -112,19 +113,21 @@ export class Note extends ChantLayoutElement {
 
     // Optional markings / parse metadata. Declared here so checkJs sees them;
     // they stay null until assigned (truthiness checks elsewhere are unchanged).
-    /** @type {any} */
+    // Own-property cost of null is accepted so the fields carry real types
+    // rather than `any` — see the typecheck notes in CLAUDE.md.
+    /** @type {import("./Exsurge.Chant.Markings.js").Ictus|null} */
     this.ictus = null;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Chant.Markings.js").Accent|null} */
     this.accuteAccent = null;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Chant.Markings.js").BracePoint|null} */
     this.braceStart = null;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Chant.Markings.js").BracePoint|null} */
     this.braceEnd = null;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Chant.Markings.js").Accent|null} */
     this.accent = null;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Drawing.js").ChoralSign|null} */
     this.choralSign = null;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Drawing.js").AboveLinesText|null} */
     this.alText = null;
     /** @type {number|undefined} */
     this.sourceIndex = undefined;
@@ -528,9 +531,13 @@ export class ChantScore {
     this.startingClef = null;
 
     this.useDropCap = useDropCap;
+    /** @type {import("./Exsurge.Drawing.js").DropCap|null} */
     this.dropCap = null;
 
-    /** @type {any} */
+    /**
+     * Single annotation or a multi-line Annotations block.
+     * @type {import("./Exsurge.Drawing.js").Annotation|import("./Exsurge.Drawing.js").Annotations|null}
+     */
     this.annotation = null;
 
     this.compiled = false;
@@ -544,18 +551,24 @@ export class ChantScore {
 
     /** @type {ChantScore[]} */
     this.pages = [this];
-    /** @type {any} */
+    /**
+     * Editor selection. Shape consumed by updateSelection:
+     * `{ element?: { indices: number[], insertion?: { chantLine?: number, afterElementIndex?: number } } }`
+     * @type {{ element?: { indices: number[], insertion?: { chantLine?: number, afterElementIndex?: number } } }|null}
+     */
     this.selection = null;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Drawing.js").TextLeftRight|null} */
     this.overrideTextLeft = null;
-    /** @type {boolean|undefined} */
-    this.hasAboveLinesText = undefined;
-    /** @type {boolean|undefined} */
-    this.hasLyrics = undefined;
-    /** @type {boolean|undefined} */
-    this.hasTranslations = undefined;
-    /** @type {any} */
+    /** @type {boolean} */
+    this.hasAboveLinesText = false;
+    /** @type {boolean} */
+    this.hasLyrics = false;
+    /** @type {boolean} */
+    this.hasTranslations = false;
+    /** @type {Element|null} */
     this.svg = null;
+    /** @type {Note|import("./Exsurge.Drawing.js").ChantNotationElement|null} */
+    this.insertionElement = null;
 
     if (ctxt) this.updateNotations(ctxt);
   }
@@ -621,12 +634,17 @@ export class ChantScore {
         if (!this.insertionElement) {
           insertionLine = this.lines[0];
           this.insertionElement = insertionLine.startingClef;
-        } else if (this.insertionElement.neume) {
+        } else if (
+          this.insertionElement instanceof Note &&
+          this.insertionElement.neume
+        ) {
           this.insertionElement = this.insertionElement.neume;
         }
         if (!insertionLine) {
+          let elem = this.insertionElement;
           insertionLine =
-            this.insertionElement.line || this.lines[this.lines.length - 1];
+            (elem instanceof Note ? null : elem.line) ||
+            this.lines[this.lines.length - 1];
         }
         insertionLine.insertionCursor = new InsertionCursor();
       }
@@ -863,6 +881,10 @@ export class ChantScore {
     );
   }
 
+  /**
+   * @param {unknown} error
+   * @param {(error: unknown) => void} [errorCallback]
+   */
   _reportLayoutError(error, errorCallback) {
     if (typeof errorCallback === "function") {
       errorCallback(error);
@@ -972,9 +994,11 @@ export class ChantScore {
     this.resetRecitationContinuations(ctxt);
 
     if (ctxt.mergeAnnotationWithTextLeft && this.annotation && !this.dropCap) {
-      let annotation = this.annotation,
-        annotationSpans = annotation.annotations
-          ? annotation.annotations.map((annotation) => annotation.spans)
+      let annotation = this.annotation;
+      /** @type {import("./Exsurge.Drawing.js").TextSpan[][]} */
+      let annotationSpans =
+        annotation instanceof Annotations
+          ? annotation.annotations.map((a) => a.spans)
           : [annotation.spans];
       this.overrideTextLeft = new TextLeftRight(ctxt, "", "textLeft");
       if (ctxt.mapAnnotationSpansToTextLeft) {
@@ -1237,7 +1261,7 @@ export class ChantScore {
     data["type"] = "score";
     data["auto-coloring"] = true;
 
-    if (this.annotation !== null)
+    if (this.annotation instanceof Annotation)
       data.annotation = this.annotation.unsanitizedText;
     else data.annotation = "";
 

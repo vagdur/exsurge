@@ -82,6 +82,17 @@ const TrailingSpaceForAccidental = (ctxt) =>
 const TrailingSpaceMultiple = (multiplier) => (ctxt) =>
   ctxt.intraNeumeSpacing * multiplier;
 
+/**
+ * @param {import("./Exsurge.Drawing.js").TrailingSpace} space
+ * @returns {boolean}
+ */
+function trailingSpaceIsDefault(space) {
+  return (
+    typeof space === "function" &&
+    /** @type {{isDefault?: boolean}} */ (space).isDefault === true
+  );
+}
+
 const regexHeaderEnd = /(?:^|\n)%%\s?\n/;
 const regexHeaderLine = /^([\w-_.]+):\s*((?:[^;\r\n]|;[ \t])*)(?:;|$)/i;
 const regexHeaderComment = /^%.*/;
@@ -920,7 +931,7 @@ export class Gabc {
           ctxt.activeClef = notation;
           if (
             prevNotation &&
-            /** @type {any} */ (prevNotation.trailingSpace).isDefault &&
+            trailingSpaceIsDefault(prevNotation.trailingSpace) &&
             prevNotation.isDivider
           ) {
             prevNotation.trailingSpace = TrailingSpaceForAccidental;
@@ -928,7 +939,7 @@ export class Gabc {
         } else if (notation.isAccidental) {
           ctxt.activeClef.activeAccidental = notation;
         } else if (
-          /** @type {any} */ (notation.trailingSpace).isDefault &&
+          trailingSpaceIsDefault(notation.trailingSpace) &&
           notation instanceof Signs.Custos
         ) {
           notation.trailingSpace = TrailingSpaceForAccidental;
@@ -1596,11 +1607,11 @@ export class Gabc {
     }
 
     if (neumes.length > 0) {
-      if (!(/** @type {any} */ (finalTrailingSpace).isDefault)) {
+      if (!trailingSpaceIsDefault(finalTrailingSpace)) {
         neumes[neumes.length - 1].trailingSpace = finalTrailingSpace;
         neumes[neumes.length - 1].keepWithNext = true;
 
-        if (/** @type {any} */ (finalTrailingSpace) > 0)
+        if (typeof finalTrailingSpace === "number" && finalTrailingSpace > 0)
           neumes[neumes.length - 1].allowLineBreakBeforeNext = neumes[
             neumes.length - 1
           ].keepWithNext = true;

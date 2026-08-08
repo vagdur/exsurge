@@ -884,7 +884,11 @@ export class ChantLayoutElement {
   }
 
   // draws the element on an html5 canvas
-  draw(_ctxt) {
+  /**
+   * @param {ChantContext} _ctxt
+   * @param {number} [_scale]
+   */
+  draw(_ctxt, _scale) {
     throw "ChantLayout Elements must implement draw(ctxt)";
   }
 
@@ -1457,7 +1461,7 @@ export class RoundBraceVisualizer extends ChantLayoutElement {
     }
 
     this.isAbove = isAbove;
-    /** @type {any} */
+    /** @type {GlyphVisualizer|null} */
     this.accent = null;
     this.braceHeight = (3 * ctxt.staffInterval) / 2;
 
@@ -1859,7 +1863,7 @@ export class TextElement extends ChantLayoutElement {
 
     /** @type {TextTypeEntry|undefined} */
     this.textType = undefined;
-    /** @type {any} */
+    /** @type {DropCap|undefined} */
     this.dropCap = undefined;
 
     this.generateSpansFromText(ctxt, text);
@@ -2425,7 +2429,11 @@ export class TextElement extends ChantLayoutElement {
     });
   }
 
-  draw(ctxt) {
+  /**
+   * @param {ChantContext} ctxt
+   * @param {number} [_scale] accepted for ChantLayoutElement parity; unused
+   */
+  draw(ctxt, _scale) {
     var canvasCtxt = ctxt.canvasCtxt;
 
     if (this.textAnchor === "middle") canvasCtxt.textAlign = "center";
@@ -2461,7 +2469,7 @@ export class TextElement extends ChantLayoutElement {
         this.bounds.y,
         span.textLength || undefined
       );
-      var metrics = canvasCtxt.measureText(
+      var metrics = /** @type {any} */ (canvasCtxt).measureText(
         span.text,
         this.bounds.x,
         this.bounds.y
@@ -3461,7 +3469,7 @@ export class ChantNotationElement extends ChantLayoutElement {
     this.isRecitationContinuation = undefined;
     /** @type {boolean|undefined} */
     this.firstOfSyllable = undefined;
-    /** @type {any} */
+    /** @type {import("./Exsurge.Chant.js").ChantMapping|undefined} */
     this.mapping = undefined;
 
     /**
