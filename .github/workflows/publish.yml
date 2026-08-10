@@ -133,7 +133,32 @@ jobs:
               const cmp = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
               process.exit(cmp >= 0 ? 0 : 1);
             " "$main_version" "$VERSION"; then
+              # Version is already on master (manual bump, partial earlier run,
+              # etc.) — do not rewrite history. Still resolve a commit to tag:
+              # publish may have succeeded while the tag is missing, and leaving
+              # release_commit empty would fail the tag step for no reason.
               echo "master is already at v$main_version (≥ v$VERSION); not rewriting history"
+              if [ "$main_version" = "$VERSION" ]; then
+                release_commit="$(git rev-parse origin/master)"
+              else
+                release_commit="$(
+                  git log origin/master --format=%H -- package.json \
+                    | while read -r c; do
+                        v="$(
+                          git show "$c:package.json" 2>/dev/null \
+                            | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" \
+                              2>/dev/null
+                        )" || continue
+                        if [ "$v" = "$VERSION" ]; then
+                          echo "$c"
+                          break
+                        fi
+                      done
+                )"
+              fi
+              if [ -n "$release_commit" ]; then
+                echo "Resolved $release_commit as the v$VERSION commit for tagging"
+              fi
             else
               git commit package.json package-lock.json CHANGELOG.md \
                 -m "Release v$VERSION" \
@@ -152,7 +177,7 @@ jobs:
           if git ls-remote --exit-code --tags origin "refs/tags/v$VERSION" >/dev/null 2>&1; then
             echo "Tag v$VERSION already exists on origin"
           elif [ -z "$release_commit" ]; then
-            echo "No release commit for v$VERSION on master; cannot tag" >&2
+            echo "No commit on master with package.json at v$VERSION; cannot tag" >&2
             exit 1
           else
             git tag -a "v$VERSION" -m "v$VERSION" "$release_commit"
