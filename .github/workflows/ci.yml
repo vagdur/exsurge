@@ -3,9 +3,8 @@ name: CI
 # Note: this does not gate the GitHub Pages deploy. Pages publishes master from
 # the branch-and-path setting on the repository, with no workflow involved, so
 # a push to master redeploys the demo whether or not this run is green. The
-# demo pages also load src/ directly as native ES modules rather than the
-# bundle, so nothing here exercises them -- check test/index.html and
-# test/playback.html by hand before merging anything that touches src/.
+# `pages` job below is the check that the demos will actually load once they
+# do — it is advisory relative to the deploy itself, not a Pages build step.
 
 on:
   push:
@@ -65,3 +64,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:pack
+
+  # The public demos at vagdur.github.io/exsurge/ are the repo tree served as
+  # static files (no build). Vitest and rollup do not load those HTML pages, so
+  # this job serves the tree under the /exsurge/ project-pages prefix and opens
+  # the landing page plus both demos in Chromium.
+  pages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      # Pinned. playwright is only needed here — kept out of package.json so a
+      # normal npm ci does not pull Chromium. Bump deliberately when upgrading.
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - run: npm run test:pages
