@@ -1,8 +1,10 @@
-# [1.29.0](https://github.com/vagdur/exsurge/compare/v1.28.0...v1.29.0) (2026-08-08)
+## [1.29.1](https://github.com/vagdur/exsurge/compare/v1.28.0...v1.29.1) (2026-08-10)
 
 
 ### Bug Fixes
 
+* **ci:** Resolve a taggable commit when Release commit is missing ([05bf406](https://github.com/vagdur/exsurge/commit/05bf406af4983abd0d300c861a7e404b30cea239))
+* **ci:** Tag the commit that introduced the version ([a094820](https://github.com/vagdur/exsurge/commit/a09482003ecacf3c1cdcff2da3a53767ee3d873a))
 * **playback:** Anchor the F clef a fifth below its do ([489dad9](https://github.com/vagdur/exsurge/commit/489dad90279d393caaedb96aaac8d994eddc3563))
 * **playback:** Skip render when createPlayableChant container is detached ([e2694f7](https://github.com/vagdur/exsurge/commit/e2694f77af9d359da8e2a812d61a07fb97cfccbb))
 * **playback:** Take the recitation syllabifier from the score's context ([cfd3e52](https://github.com/vagdur/exsurge/commit/cfd3e526e5d42e055ca2ae343229c4a1ab4cd89a))
