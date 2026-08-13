@@ -816,3 +816,192 @@ describe("createPlayableChant: score surface", function () {
     }).should.throw(TypeError, /gabc string or ChantScore/);
   });
 });
+
+describe("Playback: pointer hit testing", function () {
+  /**
+   * @param {number} noteIndex
+   * @param {number} left
+   * @param {number} top
+   * @param {number} right
+   * @param {number} bottom
+   */
+  function box(noteIndex, left, top, right, bottom) {
+    return {
+      noteIndex: noteIndex,
+      left: left,
+      top: top,
+      right: right,
+      bottom: bottom
+    };
+  }
+
+  // two 10×10 notes sitting 20px apart centre-to-centre, like neighbouring
+  // puncta that a fat finger would otherwise miss
+  var leftNote = box(0, 0, 0, 10, 10);
+  var rightNote = box(1, 20, 0, 30, 10);
+  var stackedLow = box(0, 0, 20, 10, 30); // podatus lower
+  var stackedHigh = box(1, 0, 0, 10, 10); // podatus upper
+
+  function scoreWithNotes(/** @type {number} */ n) {
+    var notes = [];
+    for (var i = 0; i < n; i++) notes.push({ noteIndex: i, elementIndex: i });
+    return { notes: notes };
+  }
+
+  function node(/** @type {*} */ spec = undefined) {
+    spec = spec || {};
+    spec.closest = spec.closest || {};
+    spec.attrs = spec.attrs || {};
+    spec.query = spec.query || {};
+    if (spec.className) spec.attrs.class = spec.className;
+    return {
+      spec: spec,
+      getAttribute: function (/** @type {string} */ name) {
+        return spec.attrs[name];
+      },
+      closest: function (/** @type {string} */ selector) {
+        if (Object.prototype.hasOwnProperty.call(spec.closest, selector))
+          return spec.closest[selector];
+        return null;
+      },
+      querySelectorAll: function (/** @type {string} */ selector) {
+        return spec.query[selector] || [];
+      }
+    };
+  }
+
+  it("defaults to a finger-sized slop around each glyph", function () {
+    Exsurge.PlaybackDefaults.hitSlopPx.should.equal(32);
+  });
+
+  it("returns null when nothing is close enough", function () {
+    should.equal(
+      Exsurge.nearestNoteIndexAtPoint(100, 100, [leftNote, rightNote], 32),
+      null
+    );
+  });
+
+  it("hits a note whose glyph contains the point", function () {
+    Exsurge.nearestNoteIndexAtPoint(
+      5,
+      5,
+      [leftNote, rightNote],
+      0
+    ).should.equal(0);
+    Exsurge.nearestNoteIndexAtPoint(
+      25,
+      5,
+      [leftNote, rightNote],
+      0
+    ).should.equal(1);
+  });
+
+  it("counts a near miss within the slop, but not beyond it", function () {
+    // 8px to the left of the left note: inside 32, outside 0
+    Exsurge.nearestNoteIndexAtPoint(-8, 5, [leftNote], 32).should.equal(0);
+    should.equal(Exsurge.nearestNoteIndexAtPoint(-8, 5, [leftNote], 0), null);
+    should.equal(Exsurge.nearestNoteIndexAtPoint(-40, 5, [leftNote], 32), null);
+  });
+
+  it("picks the nearer glyph when expanded boxes overlap", function () {
+    // gap between the notes is 10px; a tap in it is inside both 32px slops
+    Exsurge.nearestNoteIndexAtPoint(
+      14,
+      5,
+      [leftNote, rightNote],
+      32
+    ).should.equal(0);
+    Exsurge.nearestNoteIndexAtPoint(
+      16,
+      5,
+      [leftNote, rightNote],
+      32
+    ).should.equal(1);
+  });
+
+  it("distinguishes stacked notes of a podatus by y", function () {
+    Exsurge.nearestNoteIndexAtPoint(
+      5,
+      5,
+      [stackedLow, stackedHigh],
+      8
+    ).should.equal(1);
+    Exsurge.nearestNoteIndexAtPoint(
+      5,
+      25,
+      [stackedLow, stackedHigh],
+      8
+    ).should.equal(0);
+  });
+
+  it("skips empty boxes so a porrectus-end use is not a target", function () {
+    var empty = box(1, 10, 10, 10, 10);
+    Exsurge.nearestNoteIndexAtPoint(12, 12, [leftNote, empty], 32).should.equal(
+      0
+    );
+  });
+
+  it("plays the exact glyph even when a neighbour is closer in slop", function () {
+    var glyph = node({
+      attrs: { "element-index": "1" }
+    });
+    glyph.spec.closest[".note"] = glyph;
+
+    Exsurge.noteIndexFromPointer(
+      { target: glyph, clientX: 1000, clientY: 1000 },
+      scoreWithNotes(2),
+      [leftNote, rightNote],
+      32
+    ).should.equal(1);
+  });
+
+  it("starts a syllable from its first note when the lyric is tapped", function () {
+    var firstGlyph = node({ attrs: { "element-index": "0" } });
+    var secondGlyph = node({ attrs: { "element-index": "1" } });
+    var group = node({
+      query: { ".note": [firstGlyph, secondGlyph] }
+    });
+    var lyric = node({ className: "lyric" });
+    lyric.spec.closest[".note"] = null;
+    lyric.spec.closest[".lyric, .translation, .aboveLinesText, .dropCap"] =
+      lyric;
+    lyric.spec.closest[".ChantNotationElement"] = group;
+
+    // tap is geometrically closer to note 1, but the lyric belongs to the
+    // syllable, so playback starts at the first note
+    Exsurge.noteIndexFromPointer(
+      { target: lyric, clientX: 25, clientY: 5 },
+      scoreWithNotes(2),
+      [leftNote, rightNote],
+      32
+    ).should.equal(0);
+  });
+
+  it("starts from the beginning when the drop cap is tapped", function () {
+    var drop = node({ className: "dropCap" });
+    drop.spec.closest[".note"] = null;
+    drop.spec.closest[".lyric, .translation, .aboveLinesText, .dropCap"] = drop;
+    drop.spec.closest[".dropCap"] = drop;
+
+    Exsurge.noteIndexFromPointer(
+      { target: drop, clientX: -50, clientY: 5 },
+      scoreWithNotes(3),
+      [leftNote, rightNote],
+      8
+    ).should.equal(0);
+  });
+
+  it("falls back to the nearest note for a tap on the staff", function () {
+    var staff = node();
+    staff.spec.closest[".note"] = null;
+    staff.spec.closest[".lyric, .translation, .aboveLinesText, .dropCap"] =
+      null;
+
+    Exsurge.noteIndexFromPointer(
+      { target: staff, clientX: 25, clientY: 5 },
+      scoreWithNotes(2),
+      [leftNote, rightNote],
+      32
+    ).should.equal(1);
+  });
+});

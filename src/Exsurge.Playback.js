@@ -28,9 +28,12 @@
 //
 // ChantPlayer attaches to the svg node that ChantScore.createSvgNode produced,
 // makes its notes clickable, and plays from whichever note was clicked while
-// highlighting the note currently sounding. It has no user interface of its
-// own: speed, tuning and instrument are constructor options, and hosts are
-// expected to build their own controls on top of the setters.
+// highlighting the note currently sounding. Hits are deliberately forgiving:
+// a tap on a lyric starts that syllable, and a tap near a note (on the staff,
+// or just missing the glyph) still counts -- square notes are only a few
+// pixels on a phone. It has no user interface of its own: speed, tuning and
+// instrument are constructor options, and hosts are expected to build their
+// own controls on top of the setters.
 //
 
 import { Gabc } from "./Exsurge.Gabc.js";
@@ -64,6 +67,7 @@ var __playerSerial = 0;
  * @property {boolean} [injectStyle]
  * @property {boolean} [clearHighlightOnRest]
  * @property {boolean} [playOnBackgroundClick]
+ * @property {number} [hitSlopPx]
  * @property {AudioContext|null} [audioContext]
  * @property {number} [lookaheadSeconds]
  * @property {number} [tickIntervalMs]
@@ -123,8 +127,16 @@ export var PlaybackDefaults = {
   // a blink of nothing
   clearHighlightOnRest: false,
 
-  // clicking somewhere other than a note, while stopped, does nothing
+  // clicking somewhere other than a note, while stopped, does nothing.
+  // Near-misses still count (see hitSlopPx); this flag is for taps on titles
+  // and other empty score chrome.
   playOnBackgroundClick: false,
+
+  // extra CSS pixels around each note glyph that still count as a hit. Square
+  // notes render only a few pixels tall at the default staff size, so without
+  // this a phone user has to pinch in just to start playback. 0 keeps exact
+  // glyph and lyric hits but disables the near-miss fallback.
+  hitSlopPx: 32,
 
   // supply your own context to share it with other audio on the page. If you
   // do, the player will never close it.
@@ -209,6 +221,130 @@ function sameElements(a, b) {
   for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
 
   return true;
+}
+
+// Lyrics, translations and the drop cap are much larger than a punctum, so a
+// tap on the text of a syllable should start that syllable rather than the
+// geometrically nearest note (which, for a clivis, is often the second one).
+var SYLLABLE_TEXT_SELECTOR = ".lyric, .translation, .aboveLinesText, .dropCap";
+
+/**
+ * @typedef {object} NoteHitBox
+ * @property {number} noteIndex
+ * @property {number} left
+ * @property {number} top
+ * @property {number} right
+ * @property {number} bottom
+ */
+
+/**
+ * @param {*} score
+ * @param {*} element
+ * @return {number|null}
+ */
+function noteIndexFromElement(score, element) {
+  if (!element || !score || !score.notes) return null;
+  var note = score.notes[Number(element.getAttribute("element-index"))];
+  if (!note || typeof note.noteIndex !== "number") return null;
+  return note.noteIndex;
+}
+
+/**
+ * @param {*} score
+ * @param {*} group
+ * @return {number|null}
+ */
+function firstNoteIndexInGroup(score, group) {
+  if (!group || typeof group.querySelectorAll !== "function") return null;
+  var notes = group.querySelectorAll(".note");
+  if (!notes.length) return null;
+  return noteIndexFromElement(score, notes[0]);
+}
+
+/**
+ * Picks the note whose glyph-box is closest to (x, y), provided it is within
+ * slopPx of that box. Inside a glyph the distance is 0, so an exact hit always
+ * beats a neighbour; overlapping expanded boxes then lose to the nearer
+ * centre. Empty boxes (porrectus-end `<use>`s that draw nothing) are skipped.
+ *
+ * @param {number} x client X
+ * @param {number} y client Y
+ * @param {NoteHitBox[]} boxes
+ * @param {number} slopPx
+ * @return {number|null}
+ */
+export function nearestNoteIndexAtPoint(x, y, boxes, slopPx) {
+  if (!isFinite(x) || !isFinite(y) || !boxes || !boxes.length) return null;
+
+  var slop = slopPx > 0 ? slopPx : 0;
+  var bestIndex = null;
+  var bestDist = Infinity;
+  var bestCenter = Infinity;
+
+  for (var i = 0; i < boxes.length; i++) {
+    var b = boxes[i];
+    if (typeof b.noteIndex !== "number") continue;
+    if (!(b.right > b.left) || !(b.bottom > b.top)) continue;
+
+    var dx = x < b.left ? b.left - x : x > b.right ? x - b.right : 0;
+    var dy = y < b.top ? b.top - y : y > b.bottom ? y - b.bottom : 0;
+    var dist = dx === 0 && dy === 0 ? 0 : Math.sqrt(dx * dx + dy * dy);
+    if (dist > slop) continue;
+
+    var cx = x - (b.left + b.right) / 2;
+    var cy = y - (b.top + b.bottom) / 2;
+    var center = Math.sqrt(cx * cx + cy * cy);
+
+    if (
+      dist < bestDist ||
+      (dist === bestDist && center < bestCenter) ||
+      (dist === bestDist &&
+        center === bestCenter &&
+        (bestIndex === null || b.noteIndex < bestIndex))
+    ) {
+      bestIndex = b.noteIndex;
+      bestDist = dist;
+      bestCenter = center;
+    }
+  }
+
+  return bestIndex;
+}
+
+/**
+ * Resolves a pointer event on a rendered score to a noteIndex. Exact glyph
+ * hits win, then a tap on the syllable's text (first note of that neume, or
+ * note 0 for a drop cap), then the nearest glyph within slopPx.
+ *
+ * @param {*} evt
+ * @param {*} score
+ * @param {NoteHitBox[]} boxes
+ * @param {number} slopPx
+ * @return {number|null}
+ */
+export function noteIndexFromPointer(evt, score, boxes, slopPx) {
+  var target = evt && evt.target;
+  if (target && typeof target.closest === "function") {
+    var hit = noteIndexFromElement(score, target.closest(".note"));
+    if (hit !== null) return hit;
+
+    var text = target.closest(SYLLABLE_TEXT_SELECTOR);
+    if (text) {
+      if (hasClass(text, "dropCap") || text.closest(".dropCap")) return 0;
+      var fromGroup = firstNoteIndexInGroup(
+        score,
+        text.closest(".ChantNotationElement")
+      );
+      if (fromGroup !== null) return fromGroup;
+    }
+  }
+
+  return nearestNoteIndexAtPoint(
+    evt && evt.clientX,
+    evt && evt.clientY,
+    boxes,
+    slopPx
+  );
 }
 
 /**
@@ -529,6 +665,12 @@ export class ChantPlayer {
 
     if ("volume" in partial && this.__masterGain)
       this.__masterGain.gain.value = this.__gainValue();
+
+    if ("hitSlopPx" in partial) {
+      var slop = Number(this.options.hitSlopPx);
+      if (!isFinite(slop) || slop < 0) slop = 0;
+      this.options.hitSlopPx = slop;
+    }
 
     var tablesChanged =
       "durations" in partial ||
@@ -1014,12 +1156,23 @@ export class ChantPlayer {
   }
 
   __styleText() {
+    var root = "svg." + this.__rootClass;
     return (
-      "svg." +
-      this.__rootClass +
-      " .note{cursor:pointer}" +
-      "svg." +
-      this.__rootClass +
+      root +
+      "{touch-action:manipulation}" +
+      root +
+      " .chantLine{cursor:pointer}" +
+      root +
+      " .note{cursor:pointer;pointer-events:bounding-box}" +
+      root +
+      " .lyric," +
+      root +
+      " .translation," +
+      root +
+      " .aboveLinesText," +
+      root +
+      " .dropCap{cursor:pointer}" +
+      root +
       " .note." +
       this.options.highlightClass +
       "{fill:" +
@@ -1083,6 +1236,34 @@ export class ChantPlayer {
   //
 
   /**
+   * @return {NoteHitBox[]}
+   */
+  __noteBoxes() {
+    /** @type {NoteHitBox[]} */
+    var boxes = [];
+
+    for (var i = 0; i < this.__noteElements.length; i++) {
+      var elements = this.__noteElements[i];
+      if (!elements) continue;
+
+      for (var j = 0; j < elements.length; j++) {
+        var node = elements[j];
+        if (typeof node.getBoundingClientRect !== "function") continue;
+        var r = node.getBoundingClientRect();
+        boxes.push({
+          noteIndex: i,
+          left: r.left,
+          top: r.top,
+          right: r.right,
+          bottom: r.bottom
+        });
+      }
+    }
+
+    return boxes;
+  }
+
+  /**
    * @param {*} evt
    */
   __onClick(evt) {
@@ -1091,18 +1272,19 @@ export class ChantPlayer {
       return;
     }
 
-    var element =
-      evt.target && evt.target.closest ? evt.target.closest(".note") : null;
+    var noteIndex = noteIndexFromPointer(
+      evt,
+      this.score,
+      this.__noteBoxes(),
+      this.options.hitSlopPx
+    );
 
-    if (!element) {
-      if (this.options.playOnBackgroundClick) this.play(0);
+    if (noteIndex !== null) {
+      this.play(noteIndex);
       return;
     }
 
-    var note = this.score.notes[Number(element.getAttribute("element-index"))];
-    if (!note || typeof note.noteIndex !== "number") return;
-
-    this.play(note.noteIndex);
+    if (this.options.playOnBackgroundClick) this.play(0);
   }
 
   //

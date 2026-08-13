@@ -745,6 +745,12 @@ declare module "@vagdur/exsurge" {
     /** false keeps the last note lit through bar rests */
     clearHighlightOnRest: boolean;
     playOnBackgroundClick: boolean;
+    /**
+     * Extra CSS pixels around each note glyph that still count as a hit.
+     * Square notes are only a few pixels on a phone; 0 disables the near-miss
+     * fallback (exact glyph and lyric hits still work).
+     */
+    hitSlopPx: number;
     /** supply your own and the player will never close it */
     audioContext: BaseAudioContext | null;
     lookaheadSeconds: number;
@@ -778,6 +784,37 @@ declare module "@vagdur/exsurge" {
   }
 
   export const PlaybackDefaults: ChantPlayerOptions;
+
+  export interface NoteHitBox {
+    noteIndex: number;
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }
+
+  /**
+   * Picks the note whose glyph-box is closest to (x, y) in client coordinates,
+   * provided it is within slopPx of that box. Empty boxes are skipped.
+   */
+  export function nearestNoteIndexAtPoint(
+    x: number,
+    y: number,
+    boxes: NoteHitBox[],
+    slopPx: number
+  ): number | null;
+
+  /**
+   * Resolves a pointer event on a rendered score to a noteIndex. Exact glyph
+   * hits win, then a tap on the syllable's text, then the nearest glyph within
+   * slopPx.
+   */
+  export function noteIndexFromPointer(
+    evt: { target?: Element | null; clientX?: number; clientY?: number },
+    score: { notes: Array<{ noteIndex?: number } | null> },
+    boxes: NoteHitBox[],
+    slopPx: number
+  ): number | null;
 
   export class ChantPlayer {
     constructor(
