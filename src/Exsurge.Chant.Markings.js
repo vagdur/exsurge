@@ -33,12 +33,20 @@ import {
 } from "./Exsurge.Drawing.js";
 
 export class Accent extends GlyphVisualizer {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} note
+   * @param {string} [glyphCode]
+   */
   constructor(ctxt, note, glyphCode = GlyphCode.AcuteAccent) {
     super(ctxt, glyphCode);
     this.note = note;
     this.positionHint = MarkingPositionHint.Above;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     this.bounds.x = this.note.bounds.x + this.bounds.width / 2; // center on the note itself
 
@@ -65,6 +73,9 @@ export var HorizontalEpisemaAlignment = {
  * A horizontal episema marking is it's own visualizer (that is, it implements createSvgFragment)
  */
 export class HorizontalEpisema extends ChantLayoutElement {
+  /**
+   * @param {*} note
+   */
   constructor(note) {
     super();
 
@@ -75,6 +86,9 @@ export class HorizontalEpisema extends ChantLayoutElement {
     this.alignment = HorizontalEpisemaAlignment.Default;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     // following logic helps to keep the episemata away from staff lines if they get too close
 
@@ -211,8 +225,11 @@ export class HorizontalEpisema extends ChantLayoutElement {
     this.origin.y = 0;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.fillStyle = ctxt.neumeLineColor;
 
@@ -224,6 +241,9 @@ export class HorizontalEpisema extends ChantLayoutElement {
     );
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   getSvgProps(ctxt) {
     return {
       x: this.bounds.x,
@@ -235,13 +255,22 @@ export class HorizontalEpisema extends ChantLayoutElement {
     };
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgNode(ctxt) {
     return QuickSvg.createNode("rect", this.getSvgProps(ctxt));
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgTree(ctxt) {
     return QuickSvg.createSvgTree("rect", this.getSvgProps(ctxt));
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgFragment(ctxt) {
     return QuickSvg.createFragment("rect", this.getSvgProps(ctxt));
   }
@@ -251,12 +280,19 @@ export class HorizontalEpisema extends ChantLayoutElement {
  * Ictus
  */
 export class Ictus extends GlyphVisualizer {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} note
+   */
   constructor(ctxt, note) {
     super(ctxt, GlyphCode.VerticalEpisemaAbove);
     this.note = note;
     this.positionHint = MarkingPositionHint.Default;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     var glyphCode = this.note.glyphVisualizer.glyphCode;
     // we have to place the ictus further from the note in some cases to avoid a collision with an episema on the same note:
@@ -325,6 +361,10 @@ export class Ictus extends GlyphVisualizer {
  * Mora
  */
 export class Mora extends GlyphVisualizer {
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} note
+   */
   constructor(ctxt, note) {
     super(ctxt, GlyphCode.Mora);
     this.note = note;
@@ -332,6 +372,9 @@ export class Mora extends GlyphVisualizer {
     this.horizontalOffset = ctxt.staffInterval / 2 + this.origin.x;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     this.setGlyph(ctxt, this.glyphCode);
     this.horizontalOffset = ctxt.staffInterval / 2 + this.origin.x;
@@ -421,6 +464,12 @@ export var BraceAttachment = {
 };
 
 export class BracePoint extends ChantLayoutElement {
+  /**
+   * @param {*} note
+   * @param {boolean} isAbove
+   * @param {*} shape
+   * @param {*} attachment
+   */
   constructor(note, isAbove, shape, attachment) {
     super();
 
@@ -428,8 +477,13 @@ export class BracePoint extends ChantLayoutElement {
     this.isAbove = isAbove;
     this.shape = shape;
     this.attachment = attachment;
+    /** @type {boolean|undefined} */
+    this.automatic = undefined;
   }
 
+  /**
+   * @param {*} note
+   */
   getAttachmentX(note) {
     if (!note) note = this.note;
     if (this.attachment === BraceAttachment.Left)

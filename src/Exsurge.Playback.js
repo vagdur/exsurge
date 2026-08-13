@@ -33,9 +33,6 @@
 // expected to build their own controls on top of the setters.
 //
 
-// @ts-nocheck -- 6 findings: options bags typed as object, window.webkitAudioContext, and two
-// places where SVG node arrays meet DOM signatures.
-
 import { Gabc } from "./Exsurge.Gabc.js";
 import { ChantScore } from "./Exsurge.Chant.js";
 import {
@@ -51,6 +48,39 @@ var SVG_NS = "http://www.w3.org/2000/svg";
 // distinguishes one player's injected css from another's on the same page
 var __playerSerial = 0;
 
+/**
+ * @typedef {object} PlaybackOptions
+ * @property {number} [speed]
+ * @property {number} [basePulseSeconds]
+ * @property {number} [tuning]
+ * @property {number} [transpose]
+ * @property {any} [temperament]
+ * @property {any} [instrument]
+ * @property {number} [volume]
+ * @property {boolean} [loop]
+ * @property {number} [maxVoices]
+ * @property {string} [highlightClass]
+ * @property {string} [highlightColor]
+ * @property {boolean} [injectStyle]
+ * @property {boolean} [clearHighlightOnRest]
+ * @property {boolean} [playOnBackgroundClick]
+ * @property {AudioContext|null} [audioContext]
+ * @property {number} [lookaheadSeconds]
+ * @property {number} [tickIntervalMs]
+ * @property {object|null} [durations]
+ * @property {object|null} [restWeights]
+ * @property {object|null} [velocities]
+ * @property {any} [language]
+ * @property {Function|null} [onStart]
+ * @property {Function|null} [onStop]
+ * @property {Function|null} [onEnd]
+ * @property {Function|null} [onNoteChange]
+ * @property {((error: unknown, player: ChantPlayer|null) => void)|null} [onError]
+ * @property {boolean} [useDropCap]
+ * @property {boolean} [autoResize]
+ */
+
+/** @type {PlaybackOptions} */
 export var PlaybackDefaults = {
   // tempo. secondsPerPulse = basePulseSeconds * 100 / speed, so a higher
   // percentage is faster. 0.4s per pulse is 150 pulses a minute.
@@ -121,12 +151,19 @@ export var PlaybackDefaults = {
   onError: null // (error, player)
 };
 
+/**
+ * @param {*} value
+ */
 function toArray(value) {
   if (!value) return [];
   if (Object.prototype.toString.call(value) === "[object Array]") return value;
   return [value];
 }
 
+/**
+ * @param {*} element
+ * @param {string} className
+ */
 function addClass(element, className) {
   var existing = element.getAttribute("class") || "";
   if ((" " + existing + " ").indexOf(" " + className + " ") >= 0) return;
@@ -136,6 +173,10 @@ function addClass(element, className) {
   );
 }
 
+/**
+ * @param {*} element
+ * @param {string} className
+ */
 function removeClass(element, className) {
   var existing = element.getAttribute("class") || "";
   var parts = existing.split(/\s+/);
@@ -145,6 +186,10 @@ function removeClass(element, className) {
   element.setAttribute("class", kept.join(" "));
 }
 
+/**
+ * @param {*} element
+ * @param {string} className
+ */
 function hasClass(element, className) {
   var existing = element.getAttribute("class") || "";
   return (" " + existing + " ").indexOf(" " + className + " ") >= 0;
@@ -153,6 +198,10 @@ function hasClass(element, className) {
 // Compares the two glyph lists a note can be drawn as. Highlighting is keyed
 // on identity so that moving between notes that share a glyph -- the two notes
 // of a porrectus -- does not toggle the class off and back on.
+/**
+ * @param {*} a
+ * @param {*} b
+ */
 function sameElements(a, b) {
   if (a === b) return true;
   if (!a || !b || a.length !== b.length) return false;
@@ -169,12 +218,15 @@ function sameElements(a, b) {
  */
 export class ChantPlayer {
   /**
-   * @param {ChantScore} score a score whose updateNotations has run
+   * @param {*} score a score whose updateNotations has run
    * @param {SVGElement|SVGElement[]} [svgNode] output of score.createSvgNode
-   * @param {object} [options] see PlaybackDefaults
+   * @param {PlaybackOptions} [options] see PlaybackDefaults
+   * @param {object} options
+   * @param {*} svgNode
    */
   constructor(score, svgNode, options) {
     this.score = score;
+    /** @type {PlaybackOptions} */
     this.options = Object.assign({}, PlaybackDefaults, options || {});
 
     this.timeline = createPlaybackEvents(score, this.options);
@@ -183,6 +235,7 @@ export class ChantPlayer {
     this.__ownsContext = false;
     this.__masterGain = null;
     this.__compressor = null;
+    /** @type {{name?: string, createVoice: Function}} */
     this.__instrument = resolveInstrument(this.options.instrument);
 
     // resolved once here rather than per note, since it is consulted twice for
@@ -193,9 +246,9 @@ export class ChantPlayer {
     this.__currentNoteIndex = null;
     this.__currentElement = null;
 
-    this.__roots = [];
-    this.__styleNodes = [];
-    this.__noteElements = [];
+    this.__roots = /** @type {any[]} */ ([]);
+    this.__styleNodes = /** @type {any[]} */ ([]);
+    this.__noteElements = /** @type {any[]} */ ([]);
     this.__rootClass = "exsurge-player-" + ++__playerSerial;
 
     this.__secondsPerPulse = secondsPerPulse(
@@ -207,7 +260,7 @@ export class ChantPlayer {
     this.__highlightIndex = 0;
     this.__endPulse = 0;
 
-    this.__voices = [];
+    this.__voices = /** @type {any[]} */ ([]);
     this.__lastVoice = null;
     this.__lastFrequency = 0;
 
@@ -215,7 +268,7 @@ export class ChantPlayer {
     this.__rafId = null;
 
     var self = this;
-    this.__boundClick = function (evt) {
+    this.__boundClick = function (/** @type {*} */ evt) {
       self.__onClick(evt);
     };
     this.__boundTick = function () {
@@ -407,26 +460,44 @@ export class ChantPlayer {
   // settings
   //
 
+  /**
+   * @param {*} percent
+   */
   setSpeed(percent) {
     this.setOptions({ speed: percent });
   }
 
+  /**
+   * @param {*} hz
+   */
   setTuning(hz) {
     this.setOptions({ tuning: hz });
   }
 
+  /**
+   * @param {number} semitones
+   */
   setTranspose(semitones) {
     this.setOptions({ transpose: semitones });
   }
 
+  /**
+   * @param {*} spec
+   */
   setTemperament(spec) {
     this.setOptions({ temperament: spec });
   }
 
+  /**
+   * @param {*} spec
+   */
   setInstrument(spec) {
     this.setOptions({ instrument: spec });
   }
 
+  /**
+   * @param {*} v
+   */
   setVolume(v) {
     this.setOptions({ volume: v });
   }
@@ -546,7 +617,8 @@ export class ChantPlayer {
       var Ctor =
         typeof window === "undefined"
           ? null
-          : window.AudioContext || window.webkitAudioContext;
+          : window.AudioContext ||
+            /** @type {any} */ (window).webkitAudioContext;
 
       if (!Ctor) {
         this.__fail(new Error("exsurge: Web Audio is not available here"));
@@ -591,6 +663,10 @@ export class ChantPlayer {
     this.__compressor.connect(ctx.destination);
   }
 
+  /**
+   * @param {*} event
+   * @param {number} when
+   */
   __startVoice(event, when) {
     var frequency = pitchIntToFrequency(
       event.pitchInt,
@@ -648,6 +724,9 @@ export class ChantPlayer {
     this.__voices = live;
   }
 
+  /**
+   * @param {*} hard
+   */
   __releaseAll(hard) {
     var now = this.audioContext ? this.audioContext.currentTime : 0;
 
@@ -674,6 +753,9 @@ export class ChantPlayer {
     );
   }
 
+  /**
+   * @param {number} noteIndex
+   */
   __eventIndexForNote(noteIndex) {
     var byNote = this.timeline.eventIndexByNoteIndex;
 
@@ -758,6 +840,9 @@ export class ChantPlayer {
     this.__rescheduleFuture(pulse);
   }
 
+  /**
+   * @param {*} fromPulse
+   */
   __rescheduleFuture(fromPulse) {
     var now = this.audioContext.currentTime;
     var events = this.timeline.events;
@@ -833,6 +918,10 @@ export class ChantPlayer {
       this.__rafId = requestAnimationFrame(this.__boundFrame);
   }
 
+  /**
+   * @param {number} noteIndex
+   * @param {*} event
+   */
   __setCurrent(noteIndex, event) {
     if (noteIndex === this.__currentNoteIndex) return;
 
@@ -840,14 +929,20 @@ export class ChantPlayer {
     this.__fire("onNoteChange", [noteIndex, event || null, this]);
   }
 
+  /**
+   * @param {number} noteIndex
+   */
   __applyHighlight(noteIndex) {
     var elements =
       (noteIndex === null ? null : this.__noteElements[noteIndex]) || null;
 
     // the two notes of a porrectus share one drawn glyph, so moving between
     // them must not toggle the class off and back on
+    /**
+     * @param {*} element
+     */
     if (!sameElements(elements, this.__currentElement)) {
-      this.__eachCurrentElement((element) =>
+      this.__eachCurrentElement((/** @type {*} */ element) =>
         removeClass(element, this.options.highlightClass)
       );
       if (elements)
@@ -861,14 +956,19 @@ export class ChantPlayer {
 
   // the glyphs currently lit. Normally one, but a reciting tone that continues
   // onto further chant lines is drawn once per line and lights all at once.
+  /**
+   * @param {*} fn
+   */
   __eachCurrentElement(fn) {
     var elements = this.__currentElement;
     if (!elements) return;
     for (var i = 0; i < elements.length; i++) fn(elements[i]);
   }
 
+  /**
+   */
   __clearHighlight() {
-    this.__eachCurrentElement((element) =>
+    this.__eachCurrentElement((/** @type {*} */ element) =>
       removeClass(element, this.options.highlightClass)
     );
 
@@ -928,6 +1028,9 @@ export class ChantPlayer {
     );
   }
 
+  /**
+   * @param {*} root
+   */
   __injectStyle(root) {
     // css inside inline svg is document global, so these rules are scoped by a
     // per player root class. Without that, two players on one page would fight
@@ -938,12 +1041,18 @@ export class ChantPlayer {
     this.__styleNodes.push(style);
   }
 
+  /**
+   * @param {*} previousHighlightClass
+   */
   __refreshStyle(previousHighlightClass) {
+    /**
+     * @param {*} element
+     */
     if (
       previousHighlightClass &&
       previousHighlightClass !== this.options.highlightClass
     ) {
-      this.__eachCurrentElement((element) => {
+      this.__eachCurrentElement((/** @type {*} */ element) => {
         removeClass(element, previousHighlightClass);
         addClass(element, this.options.highlightClass);
       });
@@ -973,6 +1082,9 @@ export class ChantPlayer {
   // internals: input
   //
 
+  /**
+   * @param {*} evt
+   */
   __onClick(evt) {
     if (this.__state === "playing") {
       this.stop();
@@ -997,8 +1109,12 @@ export class ChantPlayer {
   // internals: callbacks
   //
 
+  /**
+   * @param {string} name
+   * @param {*} args
+   */
   __fire(name, args) {
-    var callback = this.options[name];
+    var callback = /** @type {any} */ (this.options)[name];
     if (typeof callback !== "function") return;
 
     try {
@@ -1009,6 +1125,9 @@ export class ChantPlayer {
     }
   }
 
+  /**
+   * @param {unknown} error
+   */
   __fail(error) {
     if (typeof this.options.onError === "function") {
       this.options.onError(error, this);
@@ -1046,7 +1165,7 @@ export class ChantPlayer {
  * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
  * @param {string|import("./Exsurge.Chant.js").ChantScore} gabcSourceOrScore
  * @param {HTMLElement} container emptied and filled with the rendered score
- * @param {object} [options] see PlaybackDefaults, plus useDropCap and autoResize.
+ * @param {PlaybackOptions} [options] see PlaybackDefaults, plus useDropCap and autoResize.
  *   autoResize (default true) installs a window resize listener; call
  *   player.destroy() to release it, especially before replacing the container.
  * @param {function} [onReady] receives (player, score)
@@ -1058,8 +1177,10 @@ export function createPlayableChant(
   options,
   onReady
 ) {
+  /** @type {PlaybackOptions} */
   var opts = options || {};
 
+  /** @type {any} */
   var score;
   if (gabcSourceOrScore instanceof ChantScore) {
     score = gabcSourceOrScore;
@@ -1072,11 +1193,15 @@ export function createPlayableChant(
     );
   }
 
-  var player = null;
-  var resizeTimer = null;
+  var /** @type {any} */ player = null;
+  var /** @type {any} */ resizeTimer = null;
 
+  /**
+   * @param {unknown} error
+   */
   function reportError(error) {
     if (typeof opts.onError === "function") {
+      /** @type {any} */
       opts.onError(error, player);
       return;
     }
@@ -1089,6 +1214,9 @@ export function createPlayableChant(
     throw error;
   }
 
+  /**
+   * @param {*|undefined} callback
+   */
   function render(callback) {
     // performLayoutAsync (and the resize debounce) can finish after the host
     // has replaced the container. Appending into a detached node looks like a
@@ -1119,6 +1247,7 @@ export function createPlayableChant(
     // gone there is nothing useful to do, and clientWidth is 0.
     if (container.isConnected === false) return;
 
+    /** @type {any} */
     if (resizeTimer !== null) clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       resizeTimer = null;
@@ -1126,7 +1255,7 @@ export function createPlayableChant(
       // note order nor pitch -- so playback carries on across a resize
       try {
         render(function () {
-          player.attach(container.firstChild);
+          player.attach(/** @type {SVGElement} */ (container.firstChild));
         });
       } catch (error) {
         reportError(error);
@@ -1140,7 +1269,11 @@ export function createPlayableChant(
       try {
         render(function () {
           try {
-            player = new ChantPlayer(score, container.firstChild, opts);
+            player = new ChantPlayer(
+              score,
+              /** @type {SVGElement} */ (container.firstChild),
+              opts
+            );
 
             if (opts.autoResize !== false && typeof window !== "undefined") {
               window.addEventListener("resize", onResize);
@@ -1148,7 +1281,9 @@ export function createPlayableChant(
               var innerDestroy = player.destroy;
               player.destroy = function () {
                 window.removeEventListener("resize", onResize);
+                /** @type {any} */
                 if (resizeTimer !== null) clearTimeout(resizeTimer);
+                /** @type {any} */
                 innerDestroy.call(player);
               };
             }

@@ -23,10 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 20 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { describe, it, chai } from "vitest";
 import * as Exsurge from "../src/index.js";
 
@@ -38,13 +34,18 @@ var MIDDLE_C = 261.6255653;
 
 // The extractor reads duck typed flags off notations and notes, so these fakes
 // are enough to exercise every rule without building real neumes.
-function fakeNote(noteIndex, pitchInt, extra) {
+function fakeNote(
+  /** @type {*} */ noteIndex,
+  /** @type {*} */ pitchInt,
+  /** @type {*} */ extra = undefined
+) {
+  /** @type {Record<string, any>} */
   var note = {
     noteIndex: noteIndex,
     elementIndex: noteIndex,
     pitch: pitchInt === null ? null : new Exsurge.Pitch(pitchInt),
-    morae: [],
-    episemata: [],
+    /** @type {any[]} */ morae: [],
+    /** @type {any[]} */ episemata: [],
     shape: Exsurge.NoteShape.Default,
     liquescent: Exsurge.LiquescentType.None
   };
@@ -54,18 +55,18 @@ function fakeNote(noteIndex, pitchInt, extra) {
   return note;
 }
 
-function fakeNeume(notes) {
+function fakeNeume(/** @type {*} */ notes) {
   return { isNeume: true, notes: notes };
 }
 
 // n plain notes in a single neume, numbered from 0
-function plainNotes(n) {
+function plainNotes(/** @type {*} */ n) {
   var notes = [];
   for (var i = 0; i < n; i++) notes.push(fakeNote(i, 17));
   return notes;
 }
 
-function scoreOf(notations) {
+function scoreOf(/** @type {*} */ notations) {
   var notes = [];
 
   for (var i = 0; i < notations.length; i++) {
@@ -77,11 +78,12 @@ function scoreOf(notations) {
     }
   }
 
-  return { notations: notations, notes: notes };
+  // Duck-typed score: createPlaybackEvents only reads notations/notes.
+  return /** @type {any} */ ({ notations: notations, notes: notes });
 }
 
-function pulsesOf(timeline) {
-  return timeline.events.map(function (e) {
+function pulsesOf(/** @type {*} */ timeline) {
+  return timeline.events.map(function (/** @type {*} */ e) {
     return e.pulses;
   });
 }
@@ -162,7 +164,7 @@ describe("Playback: pitch and tempo", function () {
   });
 
   it("tunes fifths and fourths pure in Pythagorean", function () {
-    var hz = function (step) {
+    var hz = function (/** @type {*} */ step) {
       return Exsurge.pitchIntToFrequency(
         new Exsurge.Pitch(step, 2).toInt(),
         MIDDLE_C,
@@ -255,7 +257,7 @@ describe("Playback: pitch and tempo", function () {
 
   it("accepts a temperament function of its own", function () {
     // quarter tones, to make it obvious the function is being consulted
-    var quarterTones = function (semitones) {
+    var quarterTones = function (/** @type {*} */ semitones) {
       return Math.pow(2, semitones / 24);
     };
 
@@ -516,6 +518,7 @@ describe("Playback: instruments", function () {
   it("accepts a duck typed instrument", function () {
     var custom = {
       name: "kazoo",
+      /** @returns {any} */
       createVoice: function () {
         return null;
       }
@@ -528,7 +531,7 @@ describe("Playback: instruments", function () {
       Exsurge.resolveInstrument("sackbut");
     }).should.throw(/unknown instrument/);
     (function () {
-      Exsurge.resolveInstrument({ name: "nope" });
+      Exsurge.resolveInstrument(/** @type {any} */ ({ name: "nope" }));
     }).should.throw(/createVoice/);
   });
 });
@@ -543,18 +546,18 @@ describe("Gabc: staff position offsets and pitch", function () {
 
   var SHIFTED = "(c4) a(f) b(g9) c(h0) d(e9) e(d0) f(i9) g(j0) h(f) (::)";
 
-  function parse(gabc) {
+  function parse(/** @type {*} */ gabc) {
     var ctxt = new Exsurge.ChantContext();
     var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
     return { ctxt: ctxt, score: new Exsurge.ChantScore(ctxt, mappings, false) };
   }
 
-  function pitchIntsOf(score) {
+  function pitchIntsOf(/** @type {*} */ score) {
     return score.notes
-      .filter(function (n) {
+      .filter(function (/** @type {*} */ n) {
         return n instanceof Exsurge.Note;
       })
-      .map(function (n) {
+      .map(function (/** @type {*} */ n) {
         return n.pitch.toInt();
       });
   }
@@ -648,7 +651,7 @@ describe("Gabc: C and F clefs describe the same staff", function () {
 
   var NOTES = "(a) (c) (d) (e) (f) (g) (h) (i) (k) (m)";
 
-  function pitchIntsOf(gabc) {
+  function pitchIntsOf(/** @type {*} */ gabc) {
     var ctxt = new Exsurge.ChantContext();
     var mappings = Exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
     var score = new Exsurge.ChantScore(ctxt, mappings, false);
@@ -804,7 +807,12 @@ describe("createPlayableChant: score surface", function () {
   it("rejects a second argument that is neither gabc nor a ChantScore", function () {
     var ctxt = new Exsurge.ChantContext();
     (function () {
-      Exsurge.createPlayableChant(ctxt, 42, {}, {});
+      Exsurge.createPlayableChant(
+        ctxt,
+        /** @type {any} */ (42),
+        /** @type {any} */ ({}),
+        {}
+      );
     }).should.throw(TypeError, /gabc string or ChantScore/);
   });
 });

@@ -23,17 +23,15 @@
     // it behind one word. Turn them on roughly in this order -- each is
     // meaningfully harder than the one above it:
     //
-    //   1. noImplicitThis              cheap
-    //   2. useUnknownInCatchVariables  trivial, 9 catch blocks
-    //   3. noImplicitAny               voluminous but mechanical; every
-    //                                  parameter in 15k lines needs a JSDoc
-    //                                  @param
+    //   1. noImplicitThis              done
+    //   2. useUnknownInCatchVariables  done
+    //   3. noImplicitAny               done
     //   4. strictNullChecks            its own project, touches everything
     //   5. the rest, then "strict": true
     "strict": false,
-    "noImplicitThis": false,
-    "useUnknownInCatchVariables": false,
-    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "useUnknownInCatchVariables": true,
+    "noImplicitAny": true,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
     "strictBindCallApply": false,

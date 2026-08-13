@@ -23,15 +23,12 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 30 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { ChantLine } from "./Exsurge.Chant.ChantLine.js";
 import { InsertionCursor } from "./Exsurge.Chant.Signs.js";
 import { Pitch, Rect, Step } from "./Exsurge.Core.js";
 import {
   Annotation,
+  Annotations,
   ChantLayoutElement,
   ChantNotationElement,
   GlyphCode,
@@ -87,7 +84,7 @@ export var NoteShapeModifiers = {
  */
 export class Note extends ChantLayoutElement {
   /**
-   * @para {Pitch} pitch
+   * @param {import("./Exsurge.Core.js").Pitch} [pitch]
    */
   constructor(pitch) {
     super();
@@ -111,16 +108,46 @@ export class Note extends ChantLayoutElement {
 
     // various markings that can exist on a note, organized by type
     // for faster access and simpler code logic
+    /** @type {any[]} */
     this.episemata = [];
     this.morae = []; // silly to have an array of these, but gabc allows multiple morae per note!
 
-    // these are set on the note when they are needed, otherwise, they're undefined
-    // this.ictus
-    // this.accuteAccent
-    // this.braceStart
-    // this.braceEnd
+    // Optional markings / parse metadata. Declared here so checkJs sees them;
+    // they stay null until assigned (truthiness checks elsewhere are unchanged).
+    // Own-property cost of null is accepted so the fields carry real types
+    // rather than `any` — see the typecheck notes in CLAUDE.md.
+    /** @type {import("./Exsurge.Chant.Markings.js").Ictus|null} */
+    this.ictus = null;
+    /** @type {import("./Exsurge.Chant.Markings.js").Accent|null} */
+    this.accuteAccent = null;
+    /** @type {import("./Exsurge.Chant.Markings.js").BracePoint|null} */
+    this.braceStart = null;
+    /** @type {import("./Exsurge.Chant.Markings.js").BracePoint|null} */
+    this.braceEnd = null;
+    /** @type {import("./Exsurge.Chant.Markings.js").Accent|null} */
+    this.accent = null;
+    /** @type {import("./Exsurge.Drawing.js").ChoralSign|null} */
+    this.choralSign = null;
+    /** @type {import("./Exsurge.Drawing.js").AboveLinesText|null} */
+    this.alText = null;
+    /** @type {number|undefined} */
+    this.sourceIndex = undefined;
+    /** @type {string|undefined} */
+    this.sourceGabc = undefined;
+    /** @type {number|undefined} */
+    this.noteIndex = undefined;
+    /** @type {number|undefined} */
+    this.elementIndex = undefined;
+    /** @type {number|undefined} */
+    this.staffPositionOffset = undefined;
+    /** @type {number|undefined} */
+    this.inclinataFlags = undefined;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} glyphCode
+   */
   setGlyph(ctxt, glyphCode) {
     if (this.glyphVisualizer) this.glyphVisualizer.setGlyph(ctxt, glyphCode);
     else this.glyphVisualizer = new GlyphVisualizer(ctxt, glyphCode);
@@ -128,49 +155,92 @@ export class Note extends ChantLayoutElement {
     this.glyphVisualizer.setStaffPosition(ctxt, this.staffPosition);
 
     // assign glyphvisualizer metrics to this note
-    this.bounds.x = this.glyphVisualizer.bounds.x;
-    this.bounds.y = this.glyphVisualizer.bounds.y;
-    this.bounds.width = this.glyphVisualizer.bounds.width;
-    this.bounds.height = this.glyphVisualizer.bounds.height;
+    this.bounds.x =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.x;
+    this.bounds.y =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.y;
+    this.bounds.width =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.width;
+    this.bounds.height =
+      /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+        this.glyphVisualizer
+      ).bounds.height;
 
     this.origin.x = this.glyphVisualizer.origin.x;
     this.origin.y = this.glyphVisualizer.origin.y;
   }
 
   // a utility function for modifiers
+  /**
+   * @param {*} shapeModifier
+   */
   shapeModifierMatches(shapeModifier) {
     if (shapeModifier === NoteShapeModifiers.None)
-      return this.shapeModifier === NoteShapeModifiers.None;
-    else return this.shapeModifier & (shapeModifier !== 0);
+      return this.shapeModifiers === NoteShapeModifiers.None;
+    else return (this.shapeModifiers & shapeModifier) !== 0;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   draw(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-
-    this.glyphVisualizer.draw(ctxt);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    gv.draw(ctxt);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgNode(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-    this.svgNode = this.glyphVisualizer.createSvgNode(ctxt, this);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    this.svgNode = gv.createSvgNode(ctxt, this);
     return this.svgNode;
   }
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgTree(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-    return this.glyphVisualizer.createSvgTree(ctxt, this);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    return gv.createSvgTree(ctxt, this);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgFragment(ctxt) {
-    this.glyphVisualizer.bounds.x = this.bounds.x;
-    this.glyphVisualizer.bounds.y = this.bounds.y;
-    return this.glyphVisualizer.createSvgFragment(ctxt, this);
+    var gv = /** @type {import("./Exsurge.Drawing.js").GlyphVisualizer} */ (
+      this.glyphVisualizer
+    );
+    gv.bounds.x = this.bounds.x;
+    gv.bounds.y = this.bounds.y;
+    return gv.createSvgFragment(ctxt, this);
   }
 }
 
 export class Clef extends ChantNotationElement {
+  /**
+   * @param {number} staffPosition
+   * @param {number} octave
+   * @param {*} [defaultAccidental]
+   */
   constructor(staffPosition, octave, defaultAccidental = null) {
     super();
 
@@ -180,14 +250,26 @@ export class Clef extends ChantNotationElement {
     this.defaultAccidental = defaultAccidental;
     this.activeAccidental = defaultAccidental;
     this.keepWithNext = true;
+    /** @type {Clef|null} */
+    this.model = null;
+    /** @type {boolean|undefined} */
+    this.small = undefined;
+    /** @type {boolean|undefined} */
+    this.sans = undefined;
   }
 
   resetAccidentals() {
     this.activeAccidental = this.defaultAccidental;
   }
 
+  /**
+   * @param {*} _pitch
+   */
   pitchToStaffPosition(_pitch) {}
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     ctxt.activeClef = this;
 
@@ -196,6 +278,9 @@ export class Clef extends ChantNotationElement {
     super.performLayout(ctxt);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   finishLayout(ctxt) {
     // if we have a default accidental, then add a glyph for it now
     if (this.defaultAccidental) {
@@ -212,9 +297,12 @@ export class Clef extends ChantNotationElement {
     return __defaultDoClef;
   }
 
+  /**
+   * @returns {any}
+   */
   clone() {
     if (this.model) return this.model.clone();
-    let clone = new this.constructor(
+    let clone = new /** @type {any} */ (this.constructor)(
       this.staffPosition,
       this.octave,
       this.defaultAccidental
@@ -230,12 +318,20 @@ export class Clef extends ChantNotationElement {
 }
 
 export class DoClef extends Clef {
+  /**
+   * @param {number} staffPosition
+   * @param {number} octave
+   * @param {*} [defaultAccidental]
+   */
   constructor(staffPosition, octave, defaultAccidental = null) {
     super(staffPosition, octave, defaultAccidental);
 
     this.leadingSpace = 0;
   }
 
+  /**
+   * @param {import("./Exsurge.Core.js").Pitch} pitch
+   */
   pitchToStaffPosition(pitch) {
     return (
       (pitch.octave - this.octave) * 7 +
@@ -245,6 +341,9 @@ export class DoClef extends Clef {
     );
   }
 
+  /**
+   * @param {number} staffPosition
+   */
   staffPositionToPitch(staffPosition) {
     var offset = staffPosition - this.staffPosition;
     var octaveOffset = Math.floor(offset / 7);
@@ -260,6 +359,9 @@ export class DoClef extends Clef {
     return new Pitch(step, this.octave + octaveOffset);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -284,12 +386,20 @@ var __defaultDoClef = new DoClef(7, 2);
 var FaClefStaffOffsetFromDo = Pitch.stepToStaffOffset(Step.Fa) - 7; // === -4
 
 export class FaClef extends Clef {
+  /**
+   * @param {number} staffPosition
+   * @param {number} octave
+   * @param {*} [defaultAccidental]
+   */
   constructor(staffPosition, octave, defaultAccidental = null) {
     super(staffPosition, octave, defaultAccidental);
 
     this.leadingSpace = 0;
   }
 
+  /**
+   * @param {import("./Exsurge.Core.js").Pitch} pitch
+   */
   pitchToStaffPosition(pitch) {
     return (
       (pitch.octave - this.octave) * 7 +
@@ -299,6 +409,9 @@ export class FaClef extends Clef {
     );
   }
 
+  /**
+   * @param {number} staffPosition
+   */
   staffPositionToPitch(staffPosition) {
     var offset = staffPosition - this.staffPosition + FaClefStaffOffsetFromDo;
     var octaveOffset = Math.floor(offset / 7);
@@ -314,6 +427,9 @@ export class FaClef extends Clef {
     return new Pitch(step, this.octave + octaveOffset);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -326,6 +442,11 @@ export class FaClef extends Clef {
 }
 
 export class TrebleClef extends Clef {
+  /**
+   * @param {number} staffPosition
+   * @param {number} octave
+   * @param {*} [defaultAccidental]
+   */
   constructor(staffPosition, octave, defaultAccidental = null, small = false) {
     super(staffPosition, octave, defaultAccidental);
 
@@ -333,6 +454,9 @@ export class TrebleClef extends Clef {
     this.small = small;
   }
 
+  /**
+   * @param {import("./Exsurge.Core.js").Pitch} pitch
+   */
   pitchToStaffPosition(pitch) {
     return (
       (pitch.octave - this.octave) * 7 +
@@ -342,6 +466,9 @@ export class TrebleClef extends Clef {
     );
   }
 
+  /**
+   * @param {number} staffPosition
+   */
   staffPositionToPitch(staffPosition) {
     var offset = staffPosition - this.staffPosition + 4; // + 4 because it's a sol clef (4 == offset from Do)
     var octaveOffset = Math.floor(offset / 7);
@@ -357,6 +484,9 @@ export class TrebleClef extends Clef {
     return new Pitch(step, this.octave + octaveOffset);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -372,6 +502,11 @@ export class TrebleClef extends Clef {
 }
 
 export class ChiRhoClef extends Clef {
+  /**
+   * @param {number} staffPosition
+   * @param {number} octave
+   * @param {*} [defaultAccidental]
+   */
   constructor(staffPosition, octave, defaultAccidental = null, sans = false) {
     super(staffPosition, octave, defaultAccidental);
 
@@ -380,6 +515,9 @@ export class ChiRhoClef extends Clef {
   }
 
   // TODO: actually handle this correctly?
+  /**
+   * @param {import("./Exsurge.Core.js").Pitch} pitch
+   */
   pitchToStaffPosition(pitch) {
     return (
       (pitch.octave - this.octave) * 7 +
@@ -390,6 +528,9 @@ export class ChiRhoClef extends Clef {
   }
 
   // TODO: actually handle this correctly?
+  /**
+   * @param {number} staffPosition
+   */
   staffPositionToPitch(staffPosition) {
     var offset = staffPosition - this.staffPosition;
     var octaveOffset = Math.floor(offset / 7);
@@ -405,6 +546,9 @@ export class ChiRhoClef extends Clef {
     return new Pitch(step, this.octave + octaveOffset);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -423,6 +567,10 @@ export class ChiRhoClef extends Clef {
  * TextOnly
  */
 export class TextOnly extends ChantNotationElement {
+  /**
+   * @param {number} sourceIndex
+   * @param {number} sourceLength
+   */
   constructor(sourceIndex, sourceLength) {
     super();
     this.sourceIndex = sourceIndex;
@@ -431,6 +579,9 @@ export class TextOnly extends ChantNotationElement {
     this.trailingSpace = 0;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     super.performLayout(ctxt);
 
@@ -445,12 +596,18 @@ export class TextOnly extends ChantNotationElement {
 }
 
 export class ChantLineBreak extends ChantNotationElement {
+  /**
+   * @param {boolean} [justify]
+   */
   constructor(justify) {
     super();
     this.calculatedTrailingSpace = this.trailingSpace = 0;
     this.justify = justify;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} _ctxt
+   */
   performLayout(_ctxt) {
     // reset the bounds before doing a layout
     this.bounds = new Rect(0, 0, 0, 0);
@@ -471,6 +628,11 @@ export class ChantMapping {
   // source can be any object type. in the case of gabc, source is a text
   // string that maps to a gabc word (e.g.: "no(g)bis(fg)").
   // notations is an array of ChantNotationElements
+  /**
+   * @param {*} source
+   * @param {*} notations
+   * @param {number} sourceIndex
+   */
   constructor(source, notations, sourceIndex) {
     this.source = source;
     this.notations = notations;
@@ -483,6 +645,11 @@ export class ChantMapping {
  */
 export class ChantScore {
   // mappings is an array of ChantMappings.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} [ctxt]
+   * @param {*} [mappings]
+   * @param {boolean} [useDropCap]
+   */
   constructor(ctxt, mappings = [], useDropCap) {
     this.mappings = mappings;
 
@@ -495,7 +662,10 @@ export class ChantScore {
     // without one.
     this.ctxt = ctxt || null;
 
+    /** @type {any[]} */
+
     this.lines = [];
+    /** @type {any[]} */
     this.notes = [];
     this.staffLineCount = 4;
     if (ctxt) this.titles = new Titles(ctxt, this);
@@ -503,8 +673,13 @@ export class ChantScore {
     this.startingClef = null;
 
     this.useDropCap = useDropCap;
+    /** @type {import("./Exsurge.Drawing.js").DropCap|null} */
     this.dropCap = null;
 
+    /**
+     * Single annotation or a multi-line Annotations block.
+     * @type {import("./Exsurge.Drawing.js").Annotation|import("./Exsurge.Drawing.js").Annotations|null}
+     */
     this.annotation = null;
 
     this.compiled = false;
@@ -515,6 +690,27 @@ export class ChantScore {
 
     // valid after chant lines are created...
     this.bounds = new Rect();
+
+    /** @type {ChantScore[]} */
+    this.pages = [this];
+    /**
+     * Editor selection. Shape consumed by updateSelection:
+     * `{ element?: { indices: number[], insertion?: { chantLine?: number, afterElementIndex?: number } } }`
+     * @type {{ element?: { indices: number[], insertion?: { chantLine?: number, afterElementIndex?: number } } }|null}
+     */
+    this.selection = null;
+    /** @type {import("./Exsurge.Drawing.js").TextLeftRight|null} */
+    this.overrideTextLeft = null;
+    /** @type {boolean} */
+    this.hasAboveLinesText = false;
+    /** @type {boolean} */
+    this.hasLyrics = false;
+    /** @type {boolean} */
+    this.hasTranslations = false;
+    /** @type {Element|null} */
+    this.svg = null;
+    /** @type {Note|import("./Exsurge.Drawing.js").ChantNotationElement|null} */
+    this.insertionElement = null;
 
     if (ctxt) this.updateNotations(ctxt);
   }
@@ -542,6 +738,9 @@ export class ChantScore {
     return result;
   }
 
+  /**
+   * @param {*} selection
+   */
   updateSelection(selection) {
     this.selection = selection;
     const elementSelection = (selection && selection.element) || {
@@ -580,25 +779,35 @@ export class ChantScore {
         if (!this.insertionElement) {
           insertionLine = this.lines[0];
           this.insertionElement = insertionLine.startingClef;
-        } else if (this.insertionElement.neume) {
+        } else if (
+          this.insertionElement instanceof Note &&
+          this.insertionElement.neume
+        ) {
           this.insertionElement = this.insertionElement.neume;
         }
         if (!insertionLine) {
+          let elem = this.insertionElement;
           insertionLine =
-            this.insertionElement.line || this.lines[this.lines.length - 1];
+            (elem instanceof Note ? null : elem.line) ||
+            this.lines[this.lines.length - 1];
         }
         insertionLine.insertionCursor = new InsertionCursor();
       }
     }
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   updateNotations(ctxt) {
     var i, j, mapping, notation;
 
     this.ctxt = ctxt || this.ctxt;
 
     // flatten all mappings into one array for N(0) access to notations
+    /** @type {any[]} */
     this.notations = [];
+    /** @type {any[]} */
     this.notes = [];
     this.hasLyrics = false;
     this.hasAboveLinesText = false;
@@ -664,6 +873,9 @@ export class ChantScore {
     this.needsLayout = true;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   recreateDropCap(ctxt) {
     this.dropCap = null;
 
@@ -708,6 +920,10 @@ export class ChantScore {
   // this is the the synchronous version of performLayout that
   // process everything without yielding to any other workers/threads.
   // good for server side processing or very small chant pieces.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {boolean} [force]
+   */
   performLayout(ctxt, force) {
     if (!force && this.needsLayout === false) return; // nothing to do here!
 
@@ -736,10 +952,21 @@ export class ChantScore {
   // if none was given) instead of spinning forever with a blank score.
   // Throws inside a layout chunk are likewise reported rather than only
   // surfacing as an uncaught setTimeout exception with no finishedCallback.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} [finishedCallback]
+   * @param {*} [errorCallback]
+   */
   performLayoutAsync(ctxt, finishedCallback, errorCallback) {
     this._performLayoutAsync(ctxt, finishedCallback, errorCallback, 0);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} [finishedCallback]
+   * @param {*} [errorCallback]
+   * @param {*} [hyphenRetries]
+   */
   _performLayoutAsync(ctxt, finishedCallback, errorCallback, hyphenRetries) {
     if (this.needsLayout === false) {
       if (finishedCallback) setTimeout(() => finishedCallback(), 0);
@@ -748,13 +975,14 @@ export class ChantScore {
     }
 
     if (ctxt.onFontLoaded) {
-      ctxt.onFontLoaded.push(() =>
-        this._performLayoutAsync(
-          ctxt,
-          finishedCallback,
-          errorCallback,
-          hyphenRetries
-        )
+      /** @type {any[]} */ (/** @type {unknown} */ (ctxt.onFontLoaded)).push(
+        () =>
+          this._performLayoutAsync(
+            ctxt,
+            finishedCallback,
+            errorCallback,
+            hyphenRetries
+          )
       );
       return;
     }
@@ -822,6 +1050,10 @@ export class ChantScore {
     );
   }
 
+  /**
+   * @param {unknown} error
+   * @param {(error: unknown) => void} [errorCallback]
+   */
   _reportLayoutError(error, errorCallback) {
     if (typeof errorCallback === "function") {
       errorCallback(error);
@@ -836,6 +1068,12 @@ export class ChantScore {
     throw error;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} index
+   * @param {*} [finishedCallback]
+   * @param {*} [errorCallback]
+   */
   layoutElementsAsync(ctxt, index, finishedCallback, errorCallback) {
     if (index >= this.notations.length) {
       this.needsLayout = false;
@@ -875,6 +1113,10 @@ export class ChantScore {
   // notation list directly after the notation it continues, so that the next
   // chant line picks it up like any other notation. notationIndex has to be
   // repaired because the editor maps svg nodes back through it.
+  /**
+   * @param {*} continuation
+   * @param {*} after
+   */
   insertRecitationContinuation(continuation, after) {
     var index = this.notations.indexOf(after) + 1;
 
@@ -889,6 +1131,9 @@ export class ChantScore {
   // syllables they were split off from are made whole again before the lines
   // are rebuilt. Without this a narrower relayout would split the already
   // split text a second time.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   resetRecitationContinuations(ctxt) {
     var i,
       j,
@@ -925,20 +1170,29 @@ export class ChantScore {
       this.notations[i].notationIndex = i;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} width
+   * @param {*} [finishedCallback]
+   */
   layoutChantLines(ctxt, width, finishedCallback) {
+    /** @type {any[]} */
     this.lines = [];
-
     this.resetRecitationContinuations(ctxt);
 
     if (ctxt.mergeAnnotationWithTextLeft && this.annotation && !this.dropCap) {
-      let annotation = this.annotation,
-        annotationSpans = annotation.annotations
-          ? annotation.annotations.map((annotation) => annotation.spans)
+      let annotation = this.annotation;
+      /** @type {import("./Exsurge.Drawing.js").TextSpan[][]} */
+      let annotationSpans =
+        annotation instanceof Annotations
+          ? annotation.annotations.map((a) => a.spans)
           : [annotation.spans];
       this.overrideTextLeft = new TextLeftRight(ctxt, "", "textLeft");
       if (ctxt.mapAnnotationSpansToTextLeft) {
         annotationSpans = annotationSpans.map(
-          ctxt.mapAnnotationSpansToTextLeft
+          /** @type {(value: import("./Exsurge.Drawing.js").TextSpan[], index: number, array: import("./Exsurge.Drawing.js").TextSpan[][]) => import("./Exsurge.Drawing.js").TextSpan[]} */ (
+            ctxt.mapAnnotationSpansToTextLeft
+          )
         );
       }
       this.overrideTextLeft.spans = ctxt.mergeAnnotationWithTextLeft(
@@ -985,6 +1239,9 @@ export class ChantScore {
     if (finishedCallback) finishedCallback(this);
   }
 
+  /**
+   * @param {number} height
+   */
   paginate(height) {
     if (!height) return;
     this.pages = [];
@@ -1008,10 +1265,14 @@ export class ChantScore {
     this.pages.push(this.copyLines(startLineIndex, this.lines.length));
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} [scale]
+   */
   draw(ctxt, scale = 1) {
     ctxt.setCanvasSize(this.bounds.width, this.bounds.height, scale);
 
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.clearRect(0, 0, ctxt.canvas.width, ctxt.canvas.height);
 
@@ -1024,6 +1285,10 @@ export class ChantScore {
     canvasCtxt.translate(-this.bounds.x, -this.bounds.y);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} [zoom]
+   */
   getSvgProps(ctxt, zoom) {
     let width =
         typeof zoom === "number"
@@ -1045,6 +1310,9 @@ export class ChantScore {
     };
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgNode(ctxt) {
     // create defs section
     var node = [ctxt.defsNode.cloneNode(true)];
@@ -1055,19 +1323,23 @@ export class ChantScore {
     for (var i = 0; i < this.lines.length; i++)
       node.push(this.lines[i].createSvgNode(ctxt));
 
-    node = QuickSvg.createNode("g", {}, node);
+    var g = QuickSvg.createNode("g", {}, node);
 
-    node = QuickSvg.createNode("svg", this.getSvgProps(ctxt), node);
+    var svg = QuickSvg.createNode("svg", this.getSvgProps(ctxt), g);
 
-    node.source = this;
-    this.svg = node;
+    /** @type {any} */ (svg).source = this;
+    this.svg = svg;
 
-    return node;
+    return svg;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} [zoom]
+   */
   createSvgTree(ctxt, zoom) {
     // create defs section
-    var node = [
+    var children = [
       QuickSvg.createSvgTree(
         "defs",
         {},
@@ -1076,19 +1348,21 @@ export class ChantScore {
       )
     ];
 
-    if (this.titles) node.push(this.titles.createSvgTree(ctxt));
+    if (this.titles) children.push(this.titles.createSvgTree(ctxt));
 
     for (var i = 0; i < this.lines.length; i++)
-      node.push(this.lines[i].createSvgTree(ctxt));
+      children.push(this.lines[i].createSvgTree(ctxt));
 
-    node = QuickSvg.createSvgTree("g", {}, ...node);
+    var g = QuickSvg.createSvgTree("g", {}, ...children);
+    /** @type {Record<string, any>} */
     let svgProps = this.getSvgProps(ctxt, zoom);
     svgProps.source = this;
-    node = QuickSvg.createSvgTree("svg", svgProps, node);
-
-    return node;
+    return QuickSvg.createSvgTree("svg", svgProps, g);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvg(ctxt) {
     var fragment = "";
 
@@ -1112,19 +1386,22 @@ export class ChantScore {
     return fragment;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgNodeForEachLine(ctxt) {
     var node = [];
 
     var top = 0;
     for (var i = 0; i < this.lines.length; i++) {
-      var lineFragment = [
+      var lineChildren = [
         ctxt.defsNode.cloneNode(true),
         this.lines[i].createSvgNode(ctxt, top)
       ];
-      lineFragment[0].appendChild(ctxt.createStyleNode());
+      lineChildren[0].appendChild(ctxt.createStyleNode());
       var height = this.lines[i].bounds.height + ctxt.staffInterval * 1.5;
-      lineFragment = QuickSvg.createNode("g", {}, lineFragment);
-      lineFragment = QuickSvg.createNode(
+      var lineG = QuickSvg.createNode("g", {}, lineChildren);
+      var lineFragment = QuickSvg.createNode(
         "svg",
         {
           xmlns: QuickSvg.ns,
@@ -1134,7 +1411,7 @@ export class ChantScore {
           height: height,
           viewBox: [0, 0, this.bounds.width, height].join(" ")
         },
-        lineFragment
+        lineG
       );
       node.push(lineFragment);
       top += height;
@@ -1142,6 +1419,9 @@ export class ChantScore {
     return node;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   createSvgForEachLine(ctxt) {
     var fragment = "",
       fragmentDefs = "";
@@ -1177,6 +1457,10 @@ export class ChantScore {
     return fragment;
   }
 
+  /**
+   * @param {*} data
+   * @param {import("./Exsurge.Drawing.js").ChantContext} [ctxt]
+   */
   unserializeFromJson(data, ctxt) {
     this.autoColoring = data["auto-coloring"];
 
@@ -1185,9 +1469,14 @@ export class ChantScore {
       this.annotation = new Annotation(ctxt, data.annotation);
     } else this.annotation = null;
 
-    var createDropCap = data["drop-cap"] === "auto" ? true : false;
-
-    Gabc.parseChantNotations(data.notations, this, createDropCap);
+    // Successor of the old parseChantNotations(gabc, score, dropCap) path:
+    // mappings from full gabc, then updateNotations to flatten them and
+    // apply the payload's drop-cap flag.
+    this.useDropCap = data["drop-cap"] === "auto";
+    if (ctxt) {
+      this.mappings = Gabc.createMappingsFromSource(ctxt, data.notations || "");
+      this.updateNotations(ctxt);
+    }
   }
 
   serializeToJson() {
@@ -1196,7 +1485,7 @@ export class ChantScore {
     data["type"] = "score";
     data["auto-coloring"] = true;
 
-    if (this.annotation !== null)
+    if (this.annotation instanceof Annotation)
       data.annotation = this.annotation.unsanitizedText;
     else data.annotation = "";
 
@@ -1229,7 +1518,7 @@ export class ChantDocument {
           "margin-bottom": 0
         }
       },
-      scores: []
+      scores: /** @type {any[]} */ ([])
     };
 
     // default layout
@@ -1238,6 +1527,10 @@ export class ChantDocument {
     this.scores = defaults.scores;
   }
 
+  /**
+   * @param {*} to
+   * @param {*} from
+   */
   copyLayout(to, from) {
     to.layout = {
       units: from.layout.units,
@@ -1256,11 +1549,15 @@ export class ChantDocument {
     };
   }
 
+  /**
+   * @param {*} data
+   */
   unserializeFromJson(data) {
     this.copyLayout(this, data);
 
-    this.scores = [];
+    /** @type {any[]} */
 
+    this.scores = [];
     // read in the scores
     for (var i = 0; i < data.scores.length; i++) {
       var score = new ChantScore();
@@ -1275,6 +1572,7 @@ export class ChantDocument {
 
     this.copyLayout(data, this);
 
+    /** @type {any[]} */
     data.scores = [];
 
     // save scores...

@@ -1,3 +1,7 @@
+/**
+ * @param {string} vowels
+ * @returns {string}
+ */
 export const makeLigature = (vowels) =>
   ({
     AE: "Æ",

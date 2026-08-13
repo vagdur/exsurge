@@ -23,10 +23,6 @@
 // THE SOFTWARE.
 //
 
-// @ts-nocheck -- 31 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
-
 import { ChantLineBreak, Note, NoteShape, TextOnly } from "./Exsurge.Chant.js";
 import { Punctum } from "./Exsurge.Chant.Neumes.js";
 import {
@@ -53,6 +49,9 @@ import { Glyphs } from "./Exsurge.Glyphs.js";
 // a chant line represents one staff line on the page. ChantLines are created by the score
 // and laid out by the page
 export class ChantLine extends ChantLayoutElement {
+  /**
+   * @param {*} score
+   */
   constructor(score) {
     super();
 
@@ -71,9 +70,10 @@ export class ChantLine extends ChantLayoutElement {
     this.justify = true;
 
     // these are markings that exist at the chant line level rather than at the neume level.
+    /** @type {any[]} */
     this.ledgerLines = [];
+    /** @type {any[]} */
     this.braces = [];
-
     this.nextLine = null;
     this.previousLine = null; // for layout assistance
 
@@ -85,13 +85,22 @@ export class ChantLine extends ChantLayoutElement {
     this.spaceAfterNotations = 0; // the space between the notation bounds and the first text track
     this.spaceBetweenTextTracks = 0; // spacing between each text track
 
+    /** @type {any[]} */
+
     this.lastLyrics = [];
+    /** @type {import("./Exsurge.Chant.Signs.js").InsertionCursor|null} */
+    this.insertionCursor = null;
+    /** @type {number|undefined} */
+    this.elementIndex = undefined;
   }
 
   get staffSpaces() {
     return this.score.staffLineCount - 1;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   performLayout(ctxt) {
     // start off with a rectangle that holds at least the four staff lines
     const staffSpaces = this.staffSpaces;
@@ -357,6 +366,9 @@ export class ChantLine extends ChantLayoutElement {
   }
 
   // TODO: remove if not necsessary
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   layoutInsertionCursor(ctxt) {
     if (this.insertionCursor) {
       // we have either a Notation to draw the cursor after, or the ChantLine itself when the cursor is the first thing on the line
@@ -372,8 +384,11 @@ export class ChantLine extends ChantLayoutElement {
     return this.insertionCursor;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   draw(ctxt) {
-    var canvasCtxt = ctxt.canvasCtxt;
+    var canvasCtxt = /** @type {CanvasRenderingContext2D} */ (ctxt.canvasCtxt);
 
     canvasCtxt.translate(this.bounds.x, this.bounds.y);
 
@@ -395,7 +410,9 @@ export class ChantLine extends ChantLayoutElement {
     }
 
     if (this.layoutInsertionCursor(ctxt)) {
-      this.insertionCursor.draw(ctxt);
+      /** @type {import("./Exsurge.Chant.Signs.js").InsertionCursor} */ (
+        this.insertionCursor
+      ).draw(ctxt);
     }
 
     // draw the ledger lines
@@ -437,9 +454,13 @@ export class ChantLine extends ChantLayoutElement {
     canvasCtxt.translate(-this.bounds.x, -this.bounds.y);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   getInnerNodes(
     ctxt,
     _top = 0,
+    /** @type {{quickSvg: string, elements: string}} */
     functionNames = { quickSvg: "createNode", elements: "createSvgNode" }
   ) {
     var inner = [];
@@ -451,7 +472,7 @@ export class ChantLine extends ChantLayoutElement {
     const staffSpaces = this.staffSpaces;
     if (ctxt.editable) {
       inner.push(
-        QuickSvg[functionNames.quickSvg]("rect", {
+        /** @type {any} */ (QuickSvg)[functionNames.quickSvg]("rect", {
           key: "insertion",
           x: x1,
           y: ctxt.staffInterval * this.score.staffLineCount * -2 + 1,
@@ -465,7 +486,7 @@ export class ChantLine extends ChantLayoutElement {
     // create the staff lines
     for (i = this.score.staffLineCount * -2 + 1; i < 0; i += 2) {
       inner.push(
-        QuickSvg[functionNames.quickSvg]("line", {
+        /** @type {any} */ (QuickSvg)[functionNames.quickSvg]("line", {
           key: i,
           x1: x1,
           y1: ctxt.staffInterval * i,
@@ -479,11 +500,17 @@ export class ChantLine extends ChantLayoutElement {
     }
 
     inner = [
-      QuickSvg[functionNames.quickSvg]("g", { class: "staffLines" }, inner)
+      /** @type {any} */ (QuickSvg)[functionNames.quickSvg](
+        "g",
+        { class: "staffLines" },
+        inner
+      )
     ];
 
     if (this.layoutInsertionCursor(ctxt)) {
-      inner.push(this.insertionCursor[functionNames.elements](ctxt));
+      inner.push(
+        /** @type {any} */ (this.insertionCursor)[functionNames.elements](ctxt)
+      );
     }
 
     // create the ledger lines
@@ -492,7 +519,7 @@ export class ChantLine extends ChantLayoutElement {
       var y = ctxt.calculateHeightFromStaffPosition(ledgerLine.staffPosition);
 
       inner.push(
-        QuickSvg[functionNames.quickSvg]("line", {
+        /** @type {any} */ (QuickSvg)[functionNames.quickSvg]("line", {
           x1: ledgerLine.x1,
           y1: y,
           x2: ledgerLine.x2,
@@ -536,6 +563,10 @@ export class ChantLine extends ChantLayoutElement {
     return inner;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} [top]
+   */
   createSvgNode(ctxt, top = 0) {
     let inner = this.getInnerNodes(ctxt, top, {
       quickSvg: "createNode",
@@ -555,6 +586,10 @@ export class ChantLine extends ChantLayoutElement {
     );
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} [top]
+   */
   createSvgTree(ctxt, top = 0) {
     let inner = this.getInnerNodes(ctxt, top, {
       quickSvg: "createSvgTree",
@@ -573,6 +608,10 @@ export class ChantLine extends ChantLayoutElement {
     );
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} [top]
+   */
   createSvgFragment(ctxt, top = 0) {
     var inner = "";
 
@@ -597,7 +636,10 @@ export class ChantLine extends ChantLayoutElement {
     inner = QuickSvg.createFragment("g", { class: "staffLines" }, inner);
 
     if (this.layoutInsertionCursor(ctxt)) {
-      inner += this.insertionCursor.createSvgFragment(ctxt);
+      inner +=
+        /** @type {import("./Exsurge.Chant.Signs.js").InsertionCursor} */ (
+          this.insertionCursor
+        ).createSvgFragment(ctxt);
     }
 
     // create the ledger lines
@@ -660,6 +702,13 @@ export class ChantLine extends ChantLayoutElement {
   //
   // optimized for braces that are only drawn horizontally.
   // returns svg path string ready to insert into svg doc
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} x1
+   * @param {number} x2
+   * @param {number} y
+   * @param {boolean} isAbove
+   */
   generateCurlyBraceDrawable(ctxt, x1, x2, y, isAbove) {
     var h;
 
@@ -724,20 +773,32 @@ export class ChantLine extends ChantLayoutElement {
     });
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {number} newElementStart
+   * @param {number} width
+   */
   buildFromChantNotationIndex(ctxt, newElementStart, width) {
     // todo: reset / clear the children we have in case they have data
     var notations = this.score.notations,
       beginningLyrics = null,
       prev,
       prevNeume = null,
+      /** @type {any[]} */
       prevLyrics = [];
-    var condensableSpaces = [];
+    /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */
+    var condensableSpaces =
+      /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */ (
+        /** @type {unknown} */ ([])
+      );
+    condensableSpaces.sum = 0;
     this.notationsStartIndex = newElementStart;
     this.numNotationsOnLine = 0;
 
     this.staffLeft = 0;
     this.paddingLeft = 0;
 
+    /** @type {number|null} */
     this.extraTextOnlyIndex = null;
     this.extraTextOnlyLyricIndex = 0;
 
@@ -920,7 +981,11 @@ export class ChantLine extends ChantLayoutElement {
           prevNeume,
           curr,
           actualRightBoundary,
-          this.extraTextOnlyIndex ? [] : condensableSpaces // no spaces are condensable once we are on extra text only lyrics
+          this.extraTextOnlyIndex
+            ? /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */ (
+                /** @type {unknown} */ ([])
+              )
+            : condensableSpaces // no spaces are condensable once we are on extra text only lyrics
         );
       var candidateForExtraTextOnlyLine =
         ctxt.useExtraTextOnly &&
@@ -953,6 +1018,9 @@ export class ChantLine extends ChantLayoutElement {
           this.extraTextOnlyIndex === null &&
           notations[textOnlyStartIndex].lyrics.length
         ) {
+          /**
+           * @param {*} notation
+           */
           if (
             textOnlyStartIndex === this.notationsStartIndex ||
             !ctxt.startExtraTextOnlyFromFirst
@@ -961,7 +1029,7 @@ export class ChantLine extends ChantLayoutElement {
             let lastNotationWithLyrics = notations
               .slice(this.notationsStartIndex, i)
               .reverse()
-              .find((notation) => notation.hasLyrics());
+              .find((/** @type {*} */ notation) => notation.hasLyrics());
             lastLyricsBeforeTextOnly =
               (lastNotationWithLyrics &&
                 lastNotationWithLyrics.lyrics.slice()) ||
@@ -971,6 +1039,7 @@ export class ChantLine extends ChantLayoutElement {
           this.extraTextOnlyIndex = textOnlyStartIndex;
           this.extraTextOnlyLyricIndex = LyricArray.indexOfLyric(curr.lyrics);
           this.lastLyricsBeforeTextOnly = lastLyricsBeforeTextOnly;
+          /** @type {any[]} */
           this.lastLyrics = [];
           i = textOnlyStartIndex - 1;
           this.numNotationsOnLine =
@@ -1012,16 +1081,27 @@ export class ChantLine extends ChantLayoutElement {
         this.lastLyrics = prevLyrics;
         break;
       } else if (fitsOnLine === false) {
+        /**
+         * @param {number} i
+         */
         const isTextOnlyBeforeDivider = (i) => {
           const curr = notations[i];
+          /**
+           * @param {*} notation
+           */
           if (curr.constructor !== TextOnly) return false;
           const firstDivider = notations
             .slice(i + 1)
-            .findIndex((notation) => notation.isDivider);
+            .findIndex((/** @type {*} */ notation) => notation.isDivider);
+          /**
+           * @param {*} notation
+           */
           if (firstDivider < 0) return false;
           return notations
             .slice(i + 1, i + 1 + firstDivider)
-            .every((notation) => notation.constructor === TextOnly);
+            .every(
+              (/** @type {*} */ notation) => notation.constructor === TextOnly
+            );
         };
         // first check for elements that cannot begin a system: dividers and custodes
         while (
@@ -1046,13 +1126,17 @@ export class ChantLine extends ChantLayoutElement {
         const notationsAfterBreak = notations.slice(i + 1);
         let countSyllables = 0;
         let countNotes = 0;
+        /**
+         * @param {*} notation
+         * @param {*} note
+         */
         if (ctxt.minSyllablesLastLine && ctxt.minNotesLastLine) {
-          countSyllables = notationsAfterBreak.filter((notation) =>
-            notation.hasLyrics()
+          countSyllables = notationsAfterBreak.filter(
+            (/** @type {*} */ notation) => notation.hasLyrics()
           ).length;
           countNotes = notationsAfterBreak
-            .flatMap((notation) => notation.notes)
-            .filter((note) => !!note).length;
+            .flatMap((/** @type {*} */ notation) => notation.notes)
+            .filter((/** @type {*} */ note) => !!note).length;
         }
 
         // check if the prev elements want to be kept with this one
@@ -1174,8 +1258,12 @@ export class ChantLine extends ChantLayoutElement {
             }
           }
           // remove the custos and divider from the condensable spaces list, before adding the divider back, when repositioning it.
-          condensableSpaces.sum -= condensableSpaces.pop().condensable;
-          condensableSpaces.sum -= condensableSpaces.pop().condensable;
+          condensableSpaces.sum -= /** @type {number} */ (
+            /** @type {any} */ (condensableSpaces.pop()).condensable
+          );
+          condensableSpaces.sum -= /** @type {number} */ (
+            /** @type {any} */ (condensableSpaces.pop()).condensable
+          );
           this.positionNotationElement(
             ctxt,
             prevLyrics,
@@ -1383,6 +1471,9 @@ export class ChantLine extends ChantLayoutElement {
           // it, but text-only notations have no glyph at all and reciting
           // tones carry a whole stretch of recited text off to one side, so
           // for those the text is what the divider has to clear.
+          /**
+           * @param {*} notation
+           */
           var spansItsText = (notation) =>
             (notation instanceof TextOnly || notation.isRecitationTone) &&
             notation.hasLyrics();
@@ -1391,6 +1482,10 @@ export class ChantLine extends ChantLayoutElement {
             : next.bounds.x;
           var leftPoint;
 
+          /**
+           * @param {*} notation
+           * @param {number} [i]
+           */
           if (i === this.notationsStartIndex) {
             // notations[i - 1] is the notation before this one in the score,
             // which is not necessarily on this line: a divider can begin a
@@ -1404,7 +1499,9 @@ export class ChantLine extends ChantLayoutElement {
             let previousNeume = this.score.notations
               .slice(this.notationsStartIndex, i)
               .reverse()
-              .find((notation) => !(notation instanceof TextOnly));
+              .find(
+                (/** @type {*} */ notation) => !(notation instanceof TextOnly)
+              );
             leftPoint = previousNeume ? previousNeume.bounds.right() : 0;
           } else if (spansItsText(prev)) {
             leftPoint = prev.lyrics[0].getRight();
@@ -1432,7 +1529,11 @@ export class ChantLine extends ChantLayoutElement {
     }
   }
 
+  /**
+   * @param {*} prevLyrics
+   */
   findNeumesToJustify(prevLyrics) {
+    /** @type {any[]} */
     this.toJustify = [];
     var prev,
       curr,
@@ -1481,6 +1582,9 @@ export class ChantLine extends ChantLayoutElement {
     return nextOrCurr;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} [ctxt]
+   */
   getWhitespaceOnRight(ctxt) {
     var notations = this.score.notations;
     var lastIndex = this.notationsStartIndex + this.numNotationsOnLine;
@@ -1508,6 +1612,11 @@ export class ChantLine extends ChantLayoutElement {
     return this.staffRight - Math.max(lastRightLyric, lastRightNeume);
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {boolean} doJustify
+   * @param {*} condensableSpaces
+   */
   justifyElements(ctxt, doJustify, condensableSpaces) {
     var i;
     var toJustify = this.toJustify || [];
@@ -1566,8 +1675,13 @@ export class ChantLine extends ChantLayoutElement {
     var increment = extraSpace / toJustify.length;
     var multiplier = 0;
     var toJustifyIndex = 0;
+    /**
+     * @param {string} s
+     */
     if (extraSpace < 0) {
-      toJustify = condensableSpaces.filter((s) => s.condensable > 0);
+      toJustify = condensableSpaces.filter(
+        (/** @type {*} */ s) => s.condensable > 0
+      );
       multiplier = extraSpace / condensableSpaces.sum;
       increment = 0;
     }
@@ -1628,6 +1742,11 @@ export class ChantLine extends ChantLayoutElement {
     }
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} note
+   * @param {number} i
+   */
   handleEndBrace(ctxt, note, i) {
     var startBrace = ctxt.lastStartBrace;
     if (!startBrace) return;
@@ -1686,6 +1805,9 @@ export class ChantLine extends ChantLayoutElement {
     delete ctxt.lastStartBrace;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
   finishLayout(ctxt) {
     this.ledgerLines = []; // clear any existing ledger lines
 
@@ -1696,6 +1818,10 @@ export class ChantLine extends ChantLayoutElement {
     // bounds property. so it could be a note, or it could be a custos
     // offsetX can be used to add to the position info for the element,
     // useful in the case of notes.
+    /**
+     * @param {*} element
+     * @param {number} [staffPosition]
+     */
     var processElementForLedgerLine = (
       element,
       endElem = element,
@@ -1750,6 +1876,11 @@ export class ChantLine extends ChantLayoutElement {
     var minY = Number.MAX_VALUE,
       maxY = Number.MIN_VALUE; // for braces
 
+    /**
+     * @param {*} text
+     * @param {*} neume
+     * @param {*} [rightX]
+     */
     var positionNonLyricText = (text, neume, rightX) => {
       text.setMaxWidth(ctxt, this.staffRight);
       //text.bounds.x = neume.hasLyrics()? Math.min(...neume.lyrics.map(l => l.bounds.x)) : 0;
@@ -1790,10 +1921,17 @@ export class ChantLine extends ChantLayoutElement {
       if (neume.translationText) {
         for (j = 0; j < neume.translationText.length; j++) {
           var text = neume.translationText[j];
+          /**
+           * @param {*} l
+           */
           if (text.endNeume) {
             var rightX = text.endNeume.hasLyrics()
               ? text.endNeume.bounds.x +
-                Math.max(...text.endNeume.lyrics.map((l) => l.bounds.right()))
+                Math.max(
+                  ...text.endNeume.lyrics.map((/** @type {*} */ l) =>
+                    l.bounds.right()
+                  )
+                )
               : text.endNeume.bounds.right();
             rightX -= neume.bounds.x;
             positionNonLyricText(text, neume, rightX);
@@ -1950,6 +2088,13 @@ export class ChantLine extends ChantLayoutElement {
   // Returns the synthesized notation, already spliced into the score's
   // notation list just after `index` so that the next line picks it up in the
   // ordinary way, or null when the syllable cannot usefully be broken.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} notation
+   * @param {*} prevNeume
+   * @param {*} condensableSpaces
+   * @param {number} rightNotationBoundary
+   */
   splitRecitation(
     ctxt,
     notation,
@@ -2031,17 +2176,29 @@ export class ChantLine extends ChantLayoutElement {
   // returns true if positioning was able to fit the neume before rightNotationBoundary.
   // returns false if cannot fit before given right margin.
   // fixme: if this returns false, shouldn't we set the connectors on prev to be activated?!
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} prevLyrics
+   * @param {*} prev
+   * @param {*} curr
+   * @param {number} rightNotationBoundary
+   * @param {*} [condensableSpaces]
+   */
   positionNotationElement(
     ctxt,
     prevLyrics,
     prev,
     curr,
     rightNotationBoundary,
-    condensableSpaces = []
+    /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */
+    condensableSpaces = /** @type {Array<{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}> & {sum: number}} */ (
+      /** @type {unknown} */ ([])
+    )
   ) {
     if (!Object.prototype.hasOwnProperty.call(condensableSpaces, "sum"))
       condensableSpaces.sum = 0;
     var i,
+      /** @type {{notation?: any, condensable?: number, total?: number, fixed?: boolean, widthBefore?: number}} */
       space = { notation: curr },
       fixedX = false;
 
@@ -2191,7 +2348,12 @@ export class ChantLine extends ChantLayoutElement {
       for (i = 0; i < curr.lyrics.length; i++) {
         if (!curr.lyrics[i].originalText) continue;
         var prevLyricRight = 0;
-        let condensableSpacesSincePrevLyric = [];
+        /** @type {Array<{notation?: any, condensable?: number}> & {sum: number}} */
+        let condensableSpacesSincePrevLyric =
+          /** @type {Array<{notation?: any, condensable?: number}> & {sum: number}} */ (
+            /** @type {unknown} */ ([])
+          );
+        condensableSpacesSincePrevLyric.sum = 0;
         let condensableSpaceSincePrevLyric;
         if (i < prevLyrics.length && prevLyrics[i]) {
           prevLyricRight = prevLyrics[i].getRight();
@@ -2199,15 +2361,14 @@ export class ChantLine extends ChantLayoutElement {
             .map((s) => s.notation)
             .lastIndexOf(prevLyrics[i].notation);
           if (notationI >= 0) {
-            condensableSpacesSincePrevLyric = condensableSpaces.slice(
-              notationI + 1
-            );
+            condensableSpacesSincePrevLyric =
+              /** @type {Array<{notation?: any, condensable?: number}> & {sum: number}} */ (
+                condensableSpaces.slice(notationI + 1)
+              );
             condensableSpacesSincePrevLyric.sum =
               condensableSpacesSincePrevLyric
-                .map((s) => s.condensable)
+                .map((s) => /** @type {number} */ (s.condensable || 0))
                 .reduce((a, b) => a + b, 0);
-          } else {
-            condensableSpacesSincePrevLyric.sum = 0;
           }
         }
 

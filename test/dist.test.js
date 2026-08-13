@@ -46,7 +46,7 @@ const require = createRequire(import.meta.url);
 const distBundle = "../dist/exsurge.min.js";
 const Exsurge = require(distBundle);
 
-function sortedKeys(obj) {
+function sortedKeys(/** @type {*} */ obj) {
   return Object.keys(obj).sort();
 }
 

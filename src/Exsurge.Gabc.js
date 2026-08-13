@@ -1,3 +1,6 @@
+/**
+ * @typedef {Record<string, any>} GabcHeaderFields
+ */
 //
 // Author(s):
 // Fr. Matthew Spencer, OSJ <mspencer@osjusa.org>
@@ -22,10 +25,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 //
-
-// @ts-nocheck -- 43 checkJs findings, almost all TS2339 for fields
-// assigned to instances outside the constructor. Declaring them is tracked
-// separately; see the typecheck notes in CLAUDE.md.
 
 import { Step } from "./Exsurge.Core.js";
 import {
@@ -76,23 +75,51 @@ var __bracketedCommandRegex = /^([a-z]+):(.*)/;
 //  5. a float indicating the millimeter length of the brace (not supported yet)
 var __braceSpecRegex = /([ou])(b|cb|cba):([01])(?:([{}])|;(\d*(?:\.\d+)?)mm)/;
 
+/** @type {import("./Exsurge.Drawing.js").TrailingSpace} */
 const TrailingSpaceForAccidental = (ctxt) =>
   ctxt.intraNeumeSpacing * ctxt.accidentalSpaceMultiplier;
-const TrailingSpaceMultiple = (multiplier) => (ctxt) =>
-  ctxt.intraNeumeSpacing * multiplier;
+/**
+ * @param {number} multiplier
+ */
+const TrailingSpaceMultiple =
+  (multiplier) =>
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   */
+  (ctxt) =>
+    ctxt.intraNeumeSpacing * multiplier;
+
+/**
+ * @param {import("./Exsurge.Drawing.js").TrailingSpace} space
+ */
+function trailingSpaceIsDefault(space) {
+  return (
+    typeof space === "function" &&
+    /** @type {{isDefault?: boolean}} */ (space).isDefault === true
+  );
+}
 
 const regexHeaderEnd = /(?:^|\n)%%\s?\n/;
 const regexHeaderLine = /^([\w-_.]+):\s*((?:[^;\r\n]|;[ \t])*)(?:;|$)/i;
 const regexHeaderComment = /^%.*/;
 export class GabcHeader {
+  /** @type {Record<string, any>} */
+  // dynamic header fields
+  /**
+   * @param {string} gabc
+   */
   static getLength(gabc) {
     let match = gabc.match(regexHeaderEnd);
     return match ? match.index + match[0].length : 0;
   }
 
+  /**
+   * @param {string} text
+   */
   constructor(text) {
     if (typeof text !== "string") text = "";
     this.comments = [];
+    /** @type {Record<string, any>} */
     this.cValues = {};
     this.original = "";
     let match = text.match(regexHeaderEnd);
@@ -109,16 +136,21 @@ export class GabcHeader {
           var key = match[1].replace(/-([a-z])/g, function (a, letter) {
             return letter.toUpperCase();
           });
-          if (this[match[1]]) {
+          if (/** @type {any} */ (this)[match[1]]) {
             var arrayName = match[1] + "Array";
-            if (!this[arrayName]) {
-              this[arrayName] = [this[match[1]]];
+            if (!(/** @type {any} */ (this)[arrayName])) {
+              /** @type {any} */ (this)[arrayName] = [
+                /** @type {any} */ (this)[match[1]]
+              ];
             }
-            this[arrayName].push(match[2]);
+            /** @type {any} */ (this)[arrayName].push(match[2]);
           } else {
-            this[match[1]] = match[2];
+            /** @type {any} */ (this)[match[1]] = match[2];
           }
-          if (key !== match[1]) this[key] = this[match[1]];
+          if (key !== match[1])
+            /** @type {any} */ (this)[key] = /** @type {any} */ (this)[
+              match[1]
+            ];
         } else if (regexHeaderComment.exec(line)) {
           if (line !== "%%") {
             match = regexHeaderLine.exec(line.slice(1));
@@ -126,8 +158,9 @@ export class GabcHeader {
               let key = match[1].replace(/-([a-z])/g, function (a, letter) {
                 return letter.toUpperCase();
               });
-              this.cValues[match[1]] = match[2];
-              if (key !== match[1]) this.cValues[key] = match[2];
+              /** @type {any} */ (this.cValues)[match[1]] = match[2];
+              if (key !== /** @type {any} */ (match)[1])
+                this.cValues[key] = match[2];
             } else {
               this.comments[i] = line;
             }
@@ -141,7 +174,7 @@ export class GabcHeader {
     var result = [];
     for (let key in this) {
       if (
-        typeof this[key] !== "string" ||
+        typeof (/** @type {any} */ (this)[key]) !== "string" ||
         /^(length|original|comments|cValues)$/.test(key)
       ) {
         continue;
@@ -150,13 +183,13 @@ export class GabcHeader {
         return "-" + letter.toLowerCase();
       });
       if (alternateKey !== key && alternateKey in this) continue;
-      var array = this[key + "Array"];
+      var array = /** @type {any} */ (this)[key + "Array"];
       if (array) {
         for (var i = 0; i < array.length; ++i) {
           result.push(key + ": " + array[i] + ";");
         }
       } else {
-        result.push(key + ": " + this[key] + ";");
+        result.push(key + ": " + /** @type {any} */ (this)[key] + ";");
       }
     }
     for (let key in this.cValues) {
@@ -165,12 +198,14 @@ export class GabcHeader {
         !Object.prototype.hasOwnProperty.call(this.cValues, key)
       )
         continue;
-      result.push("%" + key + ": " + this.cValues[key] + ";");
+      result.push(
+        "%" + key + ": " + /** @type {any} */ (this.cValues)[key] + ";"
+      );
     }
     for (let i in this.comments) {
       if (!Object.prototype.hasOwnProperty.call(this.comments, i)) continue;
       try {
-        result.splice(i, 0, this.comments[i]);
+        result.splice(Number(i), 0, this.comments[i]);
       } catch (e) {
         console.warn(e);
       }
@@ -179,14 +214,25 @@ export class GabcHeader {
   }
 }
 
+/**
+ * @param {*} items
+ */
 var elementCountForNotations = (items) =>
-  items.reduce((sum, item) => sum + (item.notes ? item.notes.length : 1), 0);
+  items.reduce(
+    (/** @type {*} */ sum, /** @type {*} */ item) =>
+      sum + (item.notes ? item.notes.length : 1),
+    0
+  );
 
 export class Gabc {
   // takes gabc source code (without the header info) and returns an array
   // of ChantMappings describing the chant. A chant score can then be created
   // fron the chant mappings and later updated via updateMappings() if need
   // be...
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} gabcSource
+   */
   static createMappingsFromSource(ctxt, gabcSource) {
     var headerLength = GabcHeader.getLength(gabcSource);
     gabcSource = gabcSource.slice(headerLength);
@@ -195,11 +241,7 @@ export class Gabc {
     // set the default clef
     ctxt.activeClef = Clef.default();
 
-    var mappings = this.createMappingsFromWords(
-      ctxt,
-      words,
-      (clef) => (ctxt.activeClef = clef)
-    );
+    var mappings = this.createMappingsFromWords(ctxt, words);
 
     // always set the last notation to have a trailingSpace of 0. This makes layout for the last chant line simpler
     if (
@@ -229,9 +271,14 @@ export class Gabc {
   //   the original before and/or after lists. The first part of the pair
   //   corresponds to whether the list of values is a deletion, insertion, or
   //   unchanged, respectively.
+  /**
+   * @param {*} before
+   * @param {*} after
+   * @returns {any}
+   */
   static diffDescriptorsAndNewWords(before, after) {
     // Create a map from before values to their indices
-    var oldIndexMap = {},
+    var /** @type {Record<string, any>} */ oldIndexMap = {},
       i;
     for (i = 0; i < before.length; i++) {
       oldIndexMap[before[i].source] = oldIndexMap[before[i].source] || [];
@@ -247,6 +294,7 @@ export class Gabc {
     startOld = startNew = subLength = 0;
 
     for (inew = 0; inew < after.length; inew++) {
+      /** @type {any[]} */
       var _overlap = [];
       oldIndexMap[after[inew]] = oldIndexMap[after[inew]] || [];
       for (i = 0; i < oldIndexMap[after[inew]].length; i++) {
@@ -294,6 +342,13 @@ export class Gabc {
   // previously parsed set of mappings and between a new gabc source text.
   // the mappings array passed in is changed in place to be updated from the
   // new source
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} mappings
+   * @param {string} newGabcSource
+   * @param {number} insertionIndex
+   * @param {*} oldInsertionIndex
+   */
   static updateMappingsFromSource(
     ctxt,
     mappings,
@@ -528,10 +583,15 @@ export class Gabc {
 
   // takes an array of gabc words (like that returned by splitWords below)
   // and returns an array of ChantMapping objects, one for each word.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string[]} words
+   */
   static createMappingsFromWords(ctxt, words) {
     var mappings = [];
     var sourceIndex = 0,
       wordLength = 0,
+      /** @type {any[]} */
       lastTranslationNeumes = [];
 
     for (var i = 0; i < words.length; i++) {
@@ -545,6 +605,7 @@ export class Gabc {
         ctxt,
         word,
         sourceIndex,
+        /** @type {any[]} */
         lastTranslationNeumes
       );
 
@@ -557,6 +618,13 @@ export class Gabc {
   // takes a gabc word (like those returned by splitWords below) and returns
   // a ChantMapping object that contains the gabc word source text as well
   // as the generated notations.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} word
+   * @param {number} sourceIndex
+   * @param {*} lastTranslationNeumes
+   * @param {number} [insertionIndex]
+   */
   static createMappingFromWord(
     ctxt,
     word,
@@ -570,12 +638,23 @@ export class Gabc {
 
     while ((match = __syllablesRegex.exec(word))) matches.push(match);
 
+    /**
+     * @param {*} _
+     * @param {*} pre
+     * @param {*} main
+     * @param {*} post
+     */
     for (var j = 0; j < matches.length; j++) {
-      var match = matches[j];
+      var /** @type {any} */ match = matches[j];
 
       var lyricText = match[1].replace(
         /(^|<\/sp>)([\s\S]*?)($|<sp>)/g,
-        (_, pre, main, post) => `${pre}${main.replace(/~/g, " ")}${post}`
+        (
+          /** @type {*} */ _,
+          /** @type {*} */ pre,
+          /** @type {*} */ main,
+          /** @type {*} */ post
+        ) => `${pre}${main.replace(/~/g, " ")}${post}`
       );
       var alText = [];
       var translationText = [];
@@ -647,7 +726,9 @@ export class Gabc {
           elem.translationIndex = translationText.push(elem) - 1;
         }
         indexOffset += m[0].length;
-        __altTranslationRegex.exec();
+        // Advance the shared regex past a zero-width match so the next
+        // syllable's while-loop does not re-see the same index.
+        __altTranslationRegex.exec("");
       }
       if (lyricText === "" && alText.length === 0) continue;
 
@@ -706,6 +787,14 @@ export class Gabc {
   }
 
   // returns an array of lyrics (an array because each syllable can have multiple lyrics)
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} text
+   * @param {*} proposedLyricType
+   * @param {*} notation
+   * @param {*} notations
+   * @param {number} sourceIndex
+   */
   static createSyllableLyrics(
     ctxt,
     text,
@@ -741,7 +830,7 @@ export class Gabc {
       var lyricTextWithoutVTags = lyricText;
       const vtagRegex = /<v>[\s\S]*?<\/v>/;
       let match;
-      const vtags = [];
+      const /** @type {any[]} */ vtags = [];
       while ((match = vtagRegex.exec(lyricTextWithoutVTags))) {
         let index = match.index;
         let length = match[0].length;
@@ -760,14 +849,20 @@ export class Gabc {
           indexClosingBracket >= 0 &&
           indexClosingBracket > centerStartIndex
         ) {
+          /**
+           * @param {*} indexWithoutVTags
+           */
           const getTrueIndex = (indexWithoutVTags) => {
             // map indices back to the lyricText with the V tags:
             let accum = 0;
+            /** @type {any[]} */
             for (let index in vtags) {
               if (
+                /** @type {any[]} */
                 Object.prototype.hasOwnProperty.call(vtags, index) &&
                 indexWithoutVTags >= index
               ) {
+                /** @type {any[]} */
                 accum += vtags[index];
               } else {
                 break;
@@ -839,6 +934,14 @@ export class Gabc {
     return lyrics;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} text
+   * @param {*} lyricType
+   * @param {*} notation
+   * @param {*} notations
+   * @param {number} sourceIndex
+   */
   static makeLyric(ctxt, text, lyricType, notation, notations, sourceIndex) {
     var elides = false;
     var forceConnector = false;
@@ -882,25 +985,41 @@ export class Gabc {
 
   // takes a string of gabc notations and creates exsurge objects out of them.
   // returns an array of notations.
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} data
+   * @param {number} sourceIndex
+   * @param {number} [insertionIndex]
+   * @returns {any[]}
+   */
   static parseNotations(ctxt, data, sourceIndex, insertionIndex) {
     // if there is no data, then this must be a text only object
     if (!data) return [new TextOnly(sourceIndex, 0)];
 
     var baseSourceIndex = sourceIndex;
     var sourceLength;
-    var notations = [];
-    var notes = [];
+    var /** @type {any[]} */ notations = [];
+    var /** @type {any[]} */ notes = [];
+    /** @type {import("./Exsurge.Drawing.js").TrailingSpace} */
     var trailingSpace = DefaultTrailingSpace;
 
+    /**
+     * @param {string} gabc
+     */
     var addToLastSourceGabc = (gabc) => {
       if (notes.length > 0) {
+        /** @type {any[]} */
         notes[notes.length - 1].sourceGabc += gabc;
       }
     };
+    /**
+     * @param {*} notation
+     */
     var addNotation = (notation) => {
       // first, if we have any notes left over, we create a neume out of them
       if (notes.length > 0) {
         // create neume(s)
+        /** @type {any[]} */
         var neumes = this.createNeumesFromNotes(ctxt, notes, trailingSpace);
         for (var i = 0; i < neumes.length; i++) notations.push(neumes[i]);
 
@@ -913,14 +1032,16 @@ export class Gabc {
       // then, if we're passed a notation, let's add it
       // also, perform chant logic here
       if (notation !== null) {
+        /** @type {any} */
         let prevNotation = notations[notations.length - 1];
         notation.sourceIndex = sourceIndex;
+        /** @type {any} */
         notation.sourceGabc = match[0];
         if (notation.isClef) {
           ctxt.activeClef = notation;
           if (
             prevNotation &&
-            prevNotation.trailingSpace.isDefault &&
+            trailingSpaceIsDefault(prevNotation.trailingSpace) &&
             prevNotation.isDivider
           ) {
             prevNotation.trailingSpace = TrailingSpaceForAccidental;
@@ -928,7 +1049,7 @@ export class Gabc {
         } else if (notation.isAccidental) {
           ctxt.activeClef.activeAccidental = notation;
         } else if (
-          notation.trailingSpace.isDefault &&
+          trailingSpaceIsDefault(notation.trailingSpace) &&
           notation instanceof Signs.Custos
         ) {
           notation.trailingSpace = TrailingSpaceForAccidental;
@@ -940,7 +1061,7 @@ export class Gabc {
     };
 
     var regex = new RegExp(__notationsRegex);
-    var match;
+    var /** @type {any} */ match;
 
     while ((match = regex.exec(data))) {
       sourceIndex = baseSourceIndex + match.index;
@@ -1115,19 +1236,22 @@ export class Gabc {
                 break;
             }
 
-            var noteArray = [];
+            var /** @type {any[]} */ noteArray = [];
             this.createNoteFromData(
               ctxt,
               ctxt.activeClef,
               atom,
+              /** @type {any[]} */
               noteArray,
               sourceIndex
             );
             var accidental = new Signs.Accidental(
+              /** @type {any[]} */
               noteArray[0].staffPosition,
               accidentalType
             );
             accidental.pitch = ctxt.activeClef.staffPositionToPitch(
+              /** @type {any[]} */
               this.getIntegerStaffPosition(noteArray[0])
             );
             accidental.sourceIndex = sourceIndex;
@@ -1139,6 +1263,9 @@ export class Gabc {
             addNotation(accidental);
           } else if (atom.length > 1 && atom[0] === "{") {
             trailingSpace = 0;
+            /**
+             * @param {*} neume
+             */
             addNotation(null);
             let bracketedNotations = this.parseNotations(
               ctxt,
@@ -1161,6 +1288,7 @@ export class Gabc {
               ctxt,
               ctxt.activeClef,
               atom,
+              /** @type {any[]} */
               notes,
               sourceIndex
             );
@@ -1176,8 +1304,13 @@ export class Gabc {
     return notations;
   }
 
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} notes
+   * @param {*} finalTrailingSpace
+   */
   static createNeumesFromNotes(ctxt, notes, finalTrailingSpace) {
-    var neumes = [];
+    var /** @type {any[]} */ neumes = [];
     var firstNoteIndex = 0;
     var currNoteIndex = 0;
 
@@ -1190,8 +1323,8 @@ export class Gabc {
     // continue building the neume of that state. handle() returns the next state
 
     var createNeume = function (
-      neume,
-      includeCurrNote,
+      /** @type {*} */ neume,
+      /** @type {*} */ includeCurrNote,
       includePrevNote = true
     ) {
       // add the notes to the neume
@@ -1220,6 +1353,10 @@ export class Gabc {
         if (includePrevNote === false) currNoteIndex--;
 
         neume.keepWithNext = true;
+        /**
+         * @param {*} currNote
+         * @param {*} _prevNote
+         */
         if (notes[currNoteIndex + 1].shape === NoteShape.Quilisma)
           neume.trailingSpace = 0;
         else {
@@ -1235,7 +1372,12 @@ export class Gabc {
       neume: function () {
         return new Neumes.Punctum();
       },
-      handle: function (currNote, _prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ _prevNote) {
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         * @param {*} _notesRemaining
+         */
         if (currNote.shape === NoteShape.Virga) return virgaState;
         else if (currNote.shape === NoteShape.Stropha) return apostrophaState;
         else if (currNote.shape === NoteShape.Oriscus) return oriscusState;
@@ -1251,7 +1393,11 @@ export class Gabc {
       neume: function () {
         return new Neumes.Punctum();
       },
-      handle: function (currNote, prevNote, _notesRemaining) {
+      handle: function (
+        /** @type {*} */ currNote,
+        /** @type {*} */ prevNote,
+        /** @type {*} */ _notesRemaining
+      ) {
         if (currNote.shape || prevNote.liquescent === LiquescentType.Small) {
           var neume = new Neumes.Punctum();
           var state = createNeume(neume, false);
@@ -1292,6 +1438,10 @@ export class Gabc {
         return new Neumes.PunctaInclinata();
       },
       handle: function () {
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.PunctaInclinata(), false);
         else return punctaInclinataState;
@@ -1302,7 +1452,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.Oriscus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
         if (currNote.shape === NoteShape.Default) {
           if (currNote.staffPosition > prevNote.staffPosition) {
             prevNote.shapeModifiers |= NoteShapeModifiers.Ascending;
@@ -1318,6 +1468,10 @@ export class Gabc {
         // if the current note is on a space within the staff AND the previous note is on the line below AND the previous note has a mora,
         // then we went the trailing space at its default of intraNeumeSpacing to prevent the dot from running up into the current note.
         // Otherwise, we want no trailing space.
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (
           currNote.staffPosition > prevNote.staffPosition &&
           (currNote.staffPosition % 2 === 1 ||
@@ -1334,7 +1488,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.Podatus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
         if (currNote.staffPosition > prevNote.staffPosition) {
           if (currNote.ictus)
             currNote.ictus.positionHint = MarkingPositionHint.Above;
@@ -1344,6 +1498,10 @@ export class Gabc {
           if (prevNote.shape === NoteShape.Oriscus) return salicusState;
           else return scandicusState;
         } else if (currNote.staffPosition < prevNote.staffPosition) {
+          /**
+           * @param {*} currNote
+           * @param {*} prevNote
+           */
           if (currNote.shape === NoteShape.Inclinatum)
             return pesSubpunctisState;
           else return torculusState;
@@ -1355,11 +1513,15 @@ export class Gabc {
       neume: function () {
         return new Neumes.Clivis();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition > prevNote.staffPosition
         ) {
+          /**
+           * @param {*} currNote
+           * @param {*} _prevNote
+           */
           if (currNote.ictus)
             currNote.ictus.positionHint = MarkingPositionHint.Above;
           return porrectusState;
@@ -1378,7 +1540,11 @@ export class Gabc {
       neume: function () {
         return new Neumes.Climacus();
       },
-      handle: function (currNote, _prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ _prevNote) {
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.Climacus(), false);
         else return state;
@@ -1389,7 +1555,11 @@ export class Gabc {
       neume: function () {
         return new Neumes.Porrectus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
+        /**
+         * @param {*} currNote
+         * @param {*} _prevNote
+         */
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition < prevNote.staffPosition
@@ -1403,7 +1573,11 @@ export class Gabc {
       neume: function () {
         return new Neumes.PesSubpunctis();
       },
-      handle: function (currNote, _prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ _prevNote) {
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (currNote.shape !== NoteShape.Inclinatum)
           return createNeume(new Neumes.PesSubpunctis(), false);
         else return state;
@@ -1414,7 +1588,13 @@ export class Gabc {
       neume: function () {
         return new Neumes.Salicus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
+        /**
+         * @param {*} _currNote
+         * @param {*} _prevNote
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (currNote.staffPosition < prevNote.staffPosition)
           return salicusFlexusState;
         else return createNeume(new Neumes.Salicus(), false);
@@ -1425,7 +1605,10 @@ export class Gabc {
       neume: function () {
         return new Neumes.SalicusFlexus();
       },
-      handle: function (_currNote, _prevNote) {
+      handle: function (
+        /** @type {*} */ _currNote,
+        /** @type {*} */ _prevNote
+      ) {
         return createNeume(new Neumes.SalicusFlexus(), false);
       }
     };
@@ -1434,7 +1617,13 @@ export class Gabc {
       neume: function () {
         return new Neumes.Scandicus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
+        /**
+         * @param {*} _currNote
+         * @param {*} _prevNote
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (
           prevNote.shape === NoteShape.Virga &&
           currNote.shape === NoteShape.Inclinatum &&
@@ -1456,7 +1645,10 @@ export class Gabc {
       neume: function () {
         return new Neumes.ScandicusFlexus();
       },
-      handle: function (_currNote, _prevNote) {
+      handle: function (
+        /** @type {*} */ _currNote,
+        /** @type {*} */ _prevNote
+      ) {
         return createNeume(new Neumes.ScandicusFlexus(), false);
       }
     };
@@ -1465,7 +1657,11 @@ export class Gabc {
       neume: function () {
         return new Neumes.Virga();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (
           currNote.shape === NoteShape.Inclinatum &&
           currNote.staffPosition < prevNote.staffPosition
@@ -1484,7 +1680,11 @@ export class Gabc {
       neume: function () {
         return new Neumes.Bivirga();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (
           currNote.shape === NoteShape.Virga &&
           currNote.staffPosition === prevNote.staffPosition
@@ -1498,7 +1698,11 @@ export class Gabc {
       neume: function () {
         return new Neumes.Apostropha();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
+        /**
+         * @param {*} currNote
+         * @param {*} prevNote
+         */
         if (currNote.staffPosition === prevNote.staffPosition)
           return distrophaState;
         else return createNeume(new Neumes.Apostropha(), false);
@@ -1509,8 +1713,14 @@ export class Gabc {
       neume: function () {
         return new Neumes.Distropha();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
         if (currNote.staffPosition === prevNote.staffPosition) {
+          /**
+           * @param {*} _currNote
+           * @param {*} _prevNote
+           * @param {*} currNote
+           * @param {*} prevNote
+           */
           if (prevNote.morae && prevNote.morae.length) {
             return createNeume(new Neumes.Distropha(), false);
           } else {
@@ -1524,7 +1734,10 @@ export class Gabc {
       neume: function () {
         return new Neumes.Tristropha();
       },
-      handle: function (_currNote, _prevNote) {
+      handle: function (
+        /** @type {*} */ _currNote,
+        /** @type {*} */ _prevNote
+      ) {
         // we only create a tristropha when the note run ends after three
         // and the neume() function of this state is called. Otherwise
         // we always interpret the third note to belong to the next sequence
@@ -1543,7 +1756,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.Torculus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition > prevNote.staffPosition
@@ -1553,6 +1766,10 @@ export class Gabc {
             prevNoteButOne &&
             prevNoteButOne.staffPosition - prevNote.staffPosition <= 4
           ) {
+            /**
+             * @param {*} currNote
+             * @param {*} prevNote
+             */
             if (currNote.ictus)
               currNote.ictus.positionHint = MarkingPositionHint.Above;
             return torculusResupinusState;
@@ -1566,7 +1783,7 @@ export class Gabc {
       neume: function () {
         return new Neumes.TorculusResupinus();
       },
-      handle: function (currNote, prevNote) {
+      handle: function (/** @type {*} */ currNote, /** @type {*} */ prevNote) {
         if (
           currNote.shape === NoteShape.Default &&
           currNote.staffPosition < prevNote.staffPosition
@@ -1582,7 +1799,7 @@ export class Gabc {
       var prevNote = currNoteIndex > 0 ? notes[currNoteIndex - 1] : null;
       var currNote = notes[currNoteIndex];
 
-      state = state.handle(
+      state = /** @type {any} */ (state).handle(
         currNote,
         prevNote,
         notes.length - 1 - currNoteIndex
@@ -1596,21 +1813,32 @@ export class Gabc {
     }
 
     if (neumes.length > 0) {
-      if (!finalTrailingSpace.isDefault) {
+      if (!trailingSpaceIsDefault(finalTrailingSpace)) {
+        /** @type {any[]} */
         neumes[neumes.length - 1].trailingSpace = finalTrailingSpace;
+        /** @type {any[]} */
         neumes[neumes.length - 1].keepWithNext = true;
 
-        if (finalTrailingSpace > 0)
+        if (typeof finalTrailingSpace === "number" && finalTrailingSpace > 0)
+          /** @type {any[]} */
           neumes[neumes.length - 1].allowLineBreakBeforeNext = neumes[
             neumes.length - 1
           ].keepWithNext = true;
       }
     }
 
+    /** @type {any[]} */
     return neumes;
   }
 
   // appends any notes created to the notes array argument
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} clef
+   * @param {*} data
+   * @param {*} notes
+   * @param {number} sourceIndex
+   */
   static createNoteFromData(ctxt, clef, data, notes, sourceIndex) {
     var note = new Note();
     note.sourceIndex = sourceIndex;
@@ -1820,7 +2048,7 @@ export class Gabc {
 
         case "V":
           note.shape = NoteShape.Virga;
-          note.shapeModifers |= NoteShapeModifiers.Reverse;
+          note.shapeModifiers |= NoteShapeModifiers.Reverse;
           break;
 
         case "w":
@@ -1868,18 +2096,58 @@ export class Gabc {
 
         // accidentals
         case "x":
-          if (note.pitch.step === Step.Mi) note.pitch.step = Step.Me;
-          else if (note.pitch.step === Step.Ti) note.pitch.step = Step.Te;
+          if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Mi
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Me;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Ti
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Te;
           break;
         case "y":
-          if (note.pitch.step === Step.Te) note.pitch.step = Step.Ti;
-          else if (note.pitch.step === Step.Me) note.pitch.step = Step.Mi;
-          else if (note.pitch.step === Step.Du) note.pitch.step = Step.Do;
-          else if (note.pitch.step === Step.Fu) note.pitch.step = Step.Fa;
+          if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Te
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Ti;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Me
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Mi;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Du
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Do;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Fu
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Fa;
           break;
         case "#":
-          if (note.pitch.step === Step.Do) note.pitch.step = Step.Du;
-          else if (note.pitch.step === Step.Fa) note.pitch.step = Step.Fu;
+          if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Do
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Du;
+          else if (
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch)
+              .step === Step.Fa
+          )
+            /** @type {import("./Exsurge.Core.js").Pitch} */ (note.pitch).step =
+              Step.Fu;
           break;
 
         // gabc special item groups
@@ -1924,6 +2192,12 @@ export class Gabc {
   // category.
   //
   // currently only brace instructions are supported here!
+  /**
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {*} note
+   * @param {string} instruction
+   * @param {number} sourceIndexOffset
+   */
   static processInstructionForNote(ctxt, note, instruction, sourceIndexOffset) {
     var results = instruction.match(__bracketedCommandRegex);
     if (results === null) return;
@@ -2001,6 +2275,9 @@ export class Gabc {
   // takes raw gabc text source and parses it into words. For example, passing
   // in a string of "me(f.) (,) ma(fff)num(d!ewf) tu(fgF'E)am,(f.)" would return
   // an array of four strings: ["me(f.)", "(,)", "ma(fff)num(d!ewf)", "tu(fgF'E)am,(f.)"]
+  /**
+   * @param {*} gabcNotations
+   */
   static splitWords(gabcNotations) {
     // split the notations on whitespace boundaries, as long as the space
     // immediately follows a set of parentheses. Prior to doing that, we replace
@@ -2013,11 +2290,17 @@ export class Gabc {
     return gabcNotations.split(/\n/g);
   }
 
+  /**
+   * @param {string} gabcSource
+   */
   static parseSource(gabcSource) {
     return this.parseWords(this.splitWords(gabcSource));
   }
 
   // gabcWords is an array of strings, e.g., the result of splitWords above
+  /**
+   * @param {string[]} gabcWords
+   */
   static parseWords(gabcWords) {
     var words = [];
 
@@ -2030,7 +2313,11 @@ export class Gabc {
   // returns an array of objects, each of which has the following properties
   //  - notations (string)
   //  - lyrics (array of strings)
+  /**
+   * @param {string} gabcWord
+   */
   static parseWord(gabcWord) {
+    /** @type {Array<{notations: string, lyrics: string[]}> & {wordLength?: number}} */
     var syllables = [];
     var matches = [];
 
@@ -2039,7 +2326,7 @@ export class Gabc {
     while ((match = __syllablesRegex.exec(gabcWord))) matches.push(match);
 
     for (var j = 0; j < matches.length; j++) {
-      var match = matches[j];
+      var /** @type {any} */ match = matches[j];
 
       var lyrics = match[1].trim().split("|");
       var notations = match[2];

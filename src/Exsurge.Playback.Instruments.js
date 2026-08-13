@@ -77,6 +77,12 @@ var PIANO_RELEASE_TAU = 0.03; // time constant used when a voice is cut short
  * @class
  */
 export class Voice {
+  /**
+   * @param {*} audioContext
+   * @param {*} output
+   * @param {*} parts
+   * @param {number} endTime
+   */
   constructor(audioContext, output, parts, endTime) {
     this.audioContext = audioContext;
     this.output = output;
@@ -93,6 +99,9 @@ export class Voice {
     }
   }
 
+  /**
+   * @param {number} when
+   */
   release(when) {
     if (this.released || this.disposed) return;
     this.released = true;
@@ -155,6 +164,13 @@ export class PianoInstrument {
     this.name = "piano";
   }
 
+  /**
+   * @param {*} audioContext
+   * @param {*} destination
+   * @param {number} frequency
+   * @param {number} when
+   * @param {number} velocity
+   */
   createVoice(audioContext, destination, frequency, when, velocity) {
     var output = audioContext.createGain();
     output.gain.setValueAtTime(PIANO_PEAK * (velocity || 1), when);
@@ -205,16 +221,16 @@ export class PianoInstrument {
  *
  *   Exsurge.Instruments.organ = new MyOrganInstrument();
  */
-export var Instruments = {
-  piano: new PianoInstrument()
-};
+export var /** @type {Record<string, any>} */ Instruments = {
+    piano: new PianoInstrument()
+  };
 
 /**
  * Resolves an instrument option, which may be a key into Instruments or an
  * object implementing the instrument interface directly.
  *
- * @param {string|{createVoice: Function}} spec
- * @return {object} an instrument
+ * @param {string|{name?: string, createVoice: Function}} [spec]
+ * @return {{name?: string, createVoice: Function}} an instrument
  */
 export function resolveInstrument(spec) {
   if (!spec) return Instruments.piano;

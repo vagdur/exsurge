@@ -12,12 +12,18 @@ var should = chai.should();
 // Same stub as lyrics.test.js: half-em advance per character so hyphenWidth /
 // lyricSize lands at 0.5, under the 0.6 sanity threshold.
 function stubFontDictionary() {
-  var advanceWidth = (text, fontSize) => text.length * fontSize * 0.5;
+  var advanceWidth = (/** @type {*} */ text, /** @type {*} */ fontSize) =>
+    text.length * fontSize * 0.5;
 
   return {
     Regular: {
       getAdvanceWidth: advanceWidth,
-      getPath: (text, x, y, fontSize) => ({
+      getPath: (
+        /** @type {*} */ text,
+        /** @type {*} */ x,
+        /** @type {*} */ y,
+        /** @type {*} */ fontSize
+      ) => ({
         getBoundingBox: () => ({
           x1: x,
           y1: y - fontSize * 0.75,
@@ -29,7 +35,7 @@ function stubFontDictionary() {
   };
 }
 
-function scoreFromGabc(gabc, withFont) {
+function scoreFromGabc(/** @type {*} */ gabc, /** @type {*} */ withFont) {
   var ctxt = new Exsurge.ChantContext();
   if (withFont) ctxt.fontDictionary = /** @type {any} */ (stubFontDictionary());
 
@@ -53,6 +59,7 @@ describe("performLayoutAsync: hyphen-width retry", function () {
     ctxt.hyphenWidth.should.equal(0);
 
     var finished = false;
+    /** @type {any} */
     var error = null;
 
     score.performLayoutAsync(
@@ -60,7 +67,7 @@ describe("performLayoutAsync: hyphen-width retry", function () {
       function () {
         finished = true;
       },
-      function (err) {
+      function (/** @type {*} */ err) {
         error = err;
       }
     );
@@ -78,12 +85,13 @@ describe("performLayoutAsync: hyphen-width retry", function () {
   it("warns on the third attempt before eventually failing", function () {
     var warn = vi.spyOn(console, "warn").mockImplementation(function () {});
     var { ctxt, score } = scoreFromGabc("(c4) A(g) men.(g.)", false);
+    /** @type {any} */
     var error = null;
 
     score.performLayoutAsync(
       ctxt,
       function () {},
-      function (err) {
+      function (/** @type {*} */ err) {
         error = err;
       }
     );
@@ -136,6 +144,7 @@ describe("performLayoutAsync: layout chunk errors", function () {
     };
 
     var finished = false;
+    /** @type {any} */
     var error = null;
 
     score.performLayoutAsync(
@@ -143,7 +152,7 @@ describe("performLayoutAsync: layout chunk errors", function () {
       function () {
         finished = true;
       },
-      function (err) {
+      function (/** @type {*} */ err) {
         error = err;
       }
     );
@@ -171,6 +180,7 @@ describe("createPlayableChant: onError for layout failure", function () {
   it("calls options.onError with a null player when hyphen metrics never arrive", function () {
     var ctxt = new Exsurge.ChantContext();
     // deliberately no fontDictionary
+    /** @type {Record<string, any>} */
     var container = {
       clientWidth: 400,
       firstChild: null,
@@ -179,7 +189,9 @@ describe("createPlayableChant: onError for layout failure", function () {
     };
 
     var ready = false;
+    /** @type {any} */
     var error = null;
+    /** @type {unknown} */
     var playerArg = "unset";
 
     Exsurge.createPlayableChant(
@@ -202,7 +214,9 @@ describe("createPlayableChant: onError for layout failure", function () {
 
     ready.should.equal(false);
     should.exist(error);
-    error.message.should.match(/hyphen width/);
+    (error instanceof Error ? error.message : String(error)).should.match(
+      /hyphen width/
+    );
     should.equal(playerArg, null);
   });
 });
