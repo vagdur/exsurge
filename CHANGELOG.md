@@ -1,3 +1,18 @@
+## [1.29.2](https://github.com/vagdur/exsurge/compare/v1.29.1...v1.29.2) (2026-08-13)
+
+
+### Bug Fixes
+
+* Keep ChantContext.defsNode after constructing it ([35cee3c](https://github.com/vagdur/exsurge/commit/35cee3cb6899838db893109862f7d18f66b7a053))
+* Restore notations when unserializing a score from JSON ([34782c6](https://github.com/vagdur/exsurge/commit/34782c647cb99746c4869fcb73d6e2ba86230c0f))
+* **types:** Clear noImplicitAny across src ([289e8b4](https://github.com/vagdur/exsurge/commit/289e8b49fecd7f5b7c07dcd61a2cfb6777e7506b))
+* **types:** Clear noImplicitAny in tests and mark ratchet done ([a72b159](https://github.com/vagdur/exsurge/commit/a72b15972dc9a65155ee34eb7130ba34a0242dc3))
+* **types:** Declare definite ChantContext geometry fields ([987f84e](https://github.com/vagdur/exsurge/commit/987f84e79072a4baa8febe4aa22fbd6c8957feeb))
+* **types:** Enable cheap ratchet flags and replace any field types ([e4e010e](https://github.com/vagdur/exsurge/commit/e4e010e80c61561d7d20fbed880a21f1acff252b))
+* **types:** Enable noImplicitAny and type the small modules ([7ebc43c](https://github.com/vagdur/exsurge/commit/7ebc43c8bf97da4825e319d9754fd579b3b865de))
+* **types:** Prep more of the tree for strictNullChecks ([22e1e61](https://github.com/vagdur/exsurge/commit/22e1e61115bd3ff23214038e476eabc428ba1a7c))
+* **types:** Type the eight modules that carried [@ts-nocheck](https://github.com/ts-nocheck) ([4abae89](https://github.com/vagdur/exsurge/commit/4abae89e6ea2dfb1b42eaf870307515ecc68d797))
+
 ## [1.29.1](https://github.com/vagdur/exsurge/compare/v1.28.0...v1.29.1) (2026-08-10)
 
 
