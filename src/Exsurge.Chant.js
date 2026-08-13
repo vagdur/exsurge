@@ -1469,11 +1469,14 @@ export class ChantScore {
       this.annotation = new Annotation(ctxt, data.annotation);
     } else this.annotation = null;
 
-    // Legacy JSON path: parseNotations wants (ctxt, data, sourceIndex). The
-    // old parseChantNotations name never existed on Gabc. Drop-cap from the
-    // serialized payload is applied when mappings are turned into a score,
-    // not here.
-    Gabc.parseNotations(ctxt, data.notations, 0);
+    // Successor of the old parseChantNotations(gabc, score, dropCap) path:
+    // mappings from full gabc, then updateNotations to flatten them and
+    // apply the payload's drop-cap flag.
+    this.useDropCap = data["drop-cap"] === "auto";
+    if (ctxt) {
+      this.mappings = Gabc.createMappingsFromSource(ctxt, data.notations || "");
+      this.updateNotations(ctxt);
+    }
   }
 
   serializeToJson() {
