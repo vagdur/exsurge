@@ -1,3 +1,10 @@
+## [1.29.3](https://github.com/vagdur/exsurge/compare/v1.29.2...v1.29.3) (2026-08-13)
+
+
+### Features
+
+* **playback:** Widen note tap targets for touch ([234d941](https://github.com/vagdur/exsurge/commit/234d9412b1e45b0aee6da2e0b5d67d6ee20c0e7f))
+
 ## [1.29.2](https://github.com/vagdur/exsurge/compare/v1.29.1...v1.29.2) (2026-08-13)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@vagdur/exsurge",
-  "version": "1.29.2",
+  "version": "1.29.3",
   "description": "A JavaScript library for rendering Gregorian Chant in square note notation",
   "main": "dist/exsurge.min.js",
   "types": "src/exsurge.d.ts",
