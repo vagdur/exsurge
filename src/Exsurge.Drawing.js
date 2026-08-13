@@ -584,6 +584,8 @@ export class ChantContext {
     this.defs = {};
     /** @type {any[]} */
     this.makeDefs = [];
+    /** @type {Element|undefined} */
+    this.defsNode = undefined;
     if (QuickSvg.hasDOMAccess()) {
       this.defsNode = QuickSvg.createNode("defs");
     }
@@ -700,8 +702,6 @@ export class ChantContext {
     this.canvas = undefined;
     /** @type {Element|undefined} */
     this.svgTextMeasurer = undefined;
-    /** @type {Element|undefined} */
-    this.defsNode = undefined;
 
     // max space to add between notations when justifying, in multiples of this.staffInterval
     this.maxExtraSpaceInStaffIntervals = 0.5;
