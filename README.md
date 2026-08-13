@@ -161,7 +161,7 @@ exsurge.createPlayableChant(ctxt, score, document.getElementById("chant"), optio
 });
 ```
 
-Clicking a note plays from that note onward, highlighting whichever note is sounding; clicking again stops. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setTemperament`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example, [live here](https://vagdur.github.io/exsurge/test/playback.html).
+Clicking a note — or its lyric, or anywhere close to the glyph — plays from that note onward, highlighting whichever note is sounding; clicking again stops. Hits are padded by `hitSlopPx` (32 CSS pixels by default) so a phone user does not have to pinch in just to start playback. **The player deliberately has no interface of its own** — settings are options, and hosts build their own controls on top of `setSpeed`, `setTuning`, `setTranspose`, `setTemperament`, `setInstrument` and `setVolume`, all of which are safe to call mid-playback. `test/playback.html` is a worked example, [live here](https://vagdur.github.io/exsurge/test/playback.html).
 
 `autoResize` defaults to `true` and installs a `window` resize listener that re-lays out into the same container. Call `player.destroy()` when you are done with the player — or before replacing the container element — so that listener is released. Rendering into a detached container is skipped with a console warning rather than drawing into a node nobody can see.
 
@@ -183,6 +183,7 @@ const player = new exsurge.ChantPlayer(score, score.createSvgNode(ctxt), options
 | `loop` | `false` | restart at the end instead of stopping |
 | `highlightClass` / `highlightColor` | `"playing"` / `"#cc0000"` | how the sounding note is marked |
 | `injectStyle` | `true` | inject scoped css for the highlight; set `false` to supply your own |
+| `hitSlopPx` | `32` | extra CSS pixels around each note that still count as a hit; `0` keeps exact glyph and lyric hits only |
 | `audioContext` | `null` | share an existing context; the player then never closes it |
 | `autoResize` | `true` | (`createPlayableChant` only) re-layout on window resize; call `destroy()` to release the listener |
 | `useDropCap` | `true` | (`createPlayableChant` only) whether the score gets a drop capital |
