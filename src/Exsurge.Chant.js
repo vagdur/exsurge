@@ -713,6 +713,10 @@ export class ChantScore {
     this.insertionElement = null;
 
     if (ctxt) this.updateNotations(ctxt);
+
+    var header = /** @type {any} */ (mappings).header;
+    if (ctxt && header)
+      this.annotation = Gabc.annotationFromHeader(ctxt, header);
   }
 
   /**

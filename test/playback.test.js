@@ -779,8 +779,9 @@ describe("createPlayableChant: score surface", function () {
   // needing score.annotation (or titles, …) to reimplement the whole pipeline.
   // These checks cover the parts that are testable without a DOM: Annotation
   // constructibility, noteIdPrefix, and the prebuilt-score entry point's
-  // argument guard. The layout/SVG path still needs a browser — see
-  // test/playback.html.
+  // argument guard. GABC mode:/annotation: headers populate score.annotation
+  // on construction; see test/gabc-header.test.js. The layout/SVG path still
+  // needs a browser — see test/playback.html.
 
   it("exports Annotation as a constructible class", function () {
     Exsurge.Annotation.should.be.a("function");

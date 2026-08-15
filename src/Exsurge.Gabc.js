@@ -28,6 +28,8 @@
 
 import { Step } from "./Exsurge.Core.js";
 import {
+  Annotation,
+  Annotations,
   MarkingPositionHint,
   LyricType,
   Lyric,
@@ -44,6 +46,7 @@ import {
   NoteShapeModifiers,
   ChantMapping,
   Clef,
+  ChantScore,
   DoClef,
   FaClef,
   TrebleClef,
@@ -214,6 +217,66 @@ export class GabcHeader {
   }
 }
 
+// Gregorio's default `\gresetmodenumbersystem{roman-minuscule}`: a leading
+// 1–8 becomes lowercase roman (`7` → `vii`, `2*` → `ii*`); anything else is
+// kept as written.
+var MODE_ROMAN = ["", "i", "ii", "iii", "iv", "v", "vi", "vii", "viii"];
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function headerFieldString(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * @param {string} mode
+ * @returns {string}
+ */
+function formatModeNumber(mode) {
+  var first = mode.charAt(0);
+  if (first >= "1" && first <= "8") {
+    return MODE_ROMAN[Number(first)] + mode.slice(1);
+  }
+  return mode;
+}
+
+// gregoriotex.mode_part inserts a thin space unless the part starts with
+// punctuation (`*` in `I*` sits flush; `c` in `IVc` is spaced).
+/**
+ * @param {string} part
+ * @returns {string}
+ */
+function modePartSeparator(part) {
+  return /^[\u0021-\u002F\u003A-\u0040\u005B-\u0060\u007B-\u007E]/.test(part)
+    ? ""
+    : " ";
+}
+
+/**
+ * Annotation lines from `annotation:` / `annotationArray`, at most two as
+ * in Gregorio. Empty values are dropped so a blank field does not suppress
+ * `mode:`.
+ * @param {GabcHeader|Record<string, any>} header
+ * @returns {string[]}
+ */
+function annotationLinesFromHeader(header) {
+  /** @type {string[]} */
+  var lines = [];
+  var array = /** @type {any} */ (header).annotationArray;
+  if (Array.isArray(array)) {
+    for (var i = 0; i < array.length && lines.length < 2; i++) {
+      var line = headerFieldString(array[i]);
+      if (line) lines.push(line);
+    }
+    return lines;
+  }
+  var single = headerFieldString(/** @type {any} */ (header).annotation);
+  if (single) lines.push(single);
+  return lines;
+}
+
 /**
  * @param {*} items
  */
@@ -225,15 +288,70 @@ var elementCountForNotations = (items) =>
   );
 
 export class Gabc {
+  /**
+   * Build the drop-cap annotation Gregorio would typeset from a parsed GABC
+   * header. `annotation:` (one or two lines) wins; otherwise `mode:` is
+   * formatted as lowercase roman for 1–8, with `mode-modifier` (italic) and
+   * `mode-differentia` (small caps) appended. Returns null when neither
+   * header is set.
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {GabcHeader|Record<string, any>} header
+   * @returns {Annotation|Annotations|null}
+   */
+  static annotationFromHeader(ctxt, header) {
+    if (!ctxt || !header) return null;
+
+    var lines = annotationLinesFromHeader(header);
+    if (lines.length >= 2) return new Annotations(ctxt, lines[0], lines[1]);
+    if (lines.length === 1) return new Annotation(ctxt, lines[0]);
+
+    var mode = headerFieldString(/** @type {any} */ (header).mode);
+    if (!mode) return null;
+
+    var text = formatModeNumber(mode);
+    var modifier = headerFieldString(
+      /** @type {any} */ (header)["mode-modifier"] ||
+        /** @type {any} */ (header).modeModifier
+    );
+    var differentia = headerFieldString(
+      /** @type {any} */ (header)["mode-differentia"] ||
+        /** @type {any} */ (header).modeDifferentia
+    );
+    if (modifier)
+      text += modePartSeparator(modifier) + "<i>" + modifier + "</i>";
+    if (differentia)
+      text += modePartSeparator(differentia) + "<sc>" + differentia + "</sc>";
+    return new Annotation(ctxt, text);
+  }
+
+  /**
+   * Parse gabc (header included) into a score whose `annotation` is already
+   * populated from `annotation:` / `mode:` the way Gregorio would.
+   * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
+   * @param {string} gabcSource
+   * @param {boolean} [useDropCap]
+   * @returns {ChantScore}
+   */
+  static createScoreFromSource(ctxt, gabcSource, useDropCap) {
+    if (useDropCap === undefined) useDropCap = true;
+    var mappings = this.createMappingsFromSource(ctxt, gabcSource);
+    return new ChantScore(ctxt, mappings, useDropCap);
+  }
+
   // takes gabc source code (without the header info) and returns an array
   // of ChantMappings describing the chant. A chant score can then be created
   // fron the chant mappings and later updated via updateMappings() if need
   // be...
+  //
+  // The parsed header is stored on the array as a non-enumerable `header`
+  // property so ChantScore can populate `score.annotation` without a second
+  // pass over the source.
   /**
    * @param {import("./Exsurge.Drawing.js").ChantContext} ctxt
    * @param {string} gabcSource
    */
   static createMappingsFromSource(ctxt, gabcSource) {
+    var header = new GabcHeader(gabcSource);
     var headerLength = GabcHeader.getLength(gabcSource);
     gabcSource = gabcSource.slice(headerLength);
     var words = this.splitWords(gabcSource);
@@ -251,6 +369,13 @@ export class Gabc {
       mappings[mappings.length - 1].notations[
         mappings[mappings.length - 1].notations.length - 1
       ].trailingSpace = 0;
+
+    Object.defineProperty(mappings, "header", {
+      value: header,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    });
 
     return mappings;
   }
@@ -356,8 +481,15 @@ export class Gabc {
     insertionIndex = null,
     oldInsertionIndex = null
   ) {
+    var header = new GabcHeader(newGabcSource);
     var headerLength = GabcHeader.getLength(newGabcSource);
     newGabcSource = newGabcSource.slice(headerLength);
+    Object.defineProperty(mappings, "header", {
+      value: header,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    });
     // always remove the last old mapping since it's spacing/trailingSpace is handled specially
     mappings.pop();
 
