@@ -1,3 +1,10 @@
+## [1.29.4](https://github.com/vagdur/exsurge/compare/v1.29.3...v1.29.4) (2026-08-15)
+
+
+### Features
+
+* Populate score.annotation from GABC mode and annotation headers ([91abdd3](https://github.com/vagdur/exsurge/commit/91abdd35cbf35f5c87d5e6374fbb5793ddab0a2e))
+
 ## [1.29.3](https://github.com/vagdur/exsurge/compare/v1.29.2...v1.29.3) (2026-08-13)
 
 
