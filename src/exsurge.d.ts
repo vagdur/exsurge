@@ -216,6 +216,25 @@ declare module "@vagdur/exsurge" {
   }
 
   export class Gabc {
+    /**
+     * Build the drop-cap annotation Gregorio would typeset from a parsed GABC
+     * header. `annotation:` (one or two lines) wins; otherwise `mode:` is
+     * formatted as lowercase roman for 1–8, with `mode-modifier` and
+     * `mode-differentia` appended. Null when neither header is set.
+     */
+    static annotationFromHeader(
+      ctxt: ChantContext,
+      header: GabcHeader
+    ): Annotation | Annotations | null;
+    /**
+     * Parse gabc (header included) into a score whose `annotation` is already
+     * populated from `annotation:` / `mode:`.
+     */
+    static createScoreFromSource(
+      ctxt: ChantContext,
+      gabcSource: string,
+      useDropCap?: boolean
+    ): ChantScore;
     static createMappingsFromSource(
       ctxt: ChantContext,
       gabcSource: string

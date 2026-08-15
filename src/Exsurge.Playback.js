@@ -1336,9 +1336,12 @@ export class ChantPlayer {
  *     mySpeedSlider.oninput = function() { player.setSpeed(this.value); };
  *   });
  *
- * Anything that must be set before layout — notably `score.annotation` —
+ * GABC `annotation:` and `mode:` headers populate `score.annotation`
+ * automatically (Gregorio's placement above the drop cap). Anything else
+ * that must be set before layout — a custom annotation, titles, … — still
  * needs a score the caller owns. Pass a prebuilt ChantScore as the second
- * argument instead of a gabc string:
+ * argument instead of a gabc string; a score that already has
+ * `score.annotation` keeps it:
  *
  *   var score = new ChantScore(ctxt, Gabc.createMappingsFromSource(ctxt, gabc), true);
  *   score.annotation = new Annotation(ctxt, "%V%");
@@ -1367,8 +1370,11 @@ export function createPlayableChant(
   if (gabcSourceOrScore instanceof ChantScore) {
     score = gabcSourceOrScore;
   } else if (typeof gabcSourceOrScore === "string") {
-    var mappings = Gabc.createMappingsFromSource(ctxt, gabcSourceOrScore);
-    score = new ChantScore(ctxt, mappings, opts.useDropCap !== false);
+    score = Gabc.createScoreFromSource(
+      ctxt,
+      gabcSourceOrScore,
+      opts.useDropCap !== false
+    );
   } else {
     throw new TypeError(
       "createPlayableChant: expected a gabc string or ChantScore as the second argument"

@@ -80,17 +80,27 @@ npm run build
 Create a `ChantContext` holding your render settings, parse gabc into mappings, build a `ChantScore`, lay it out, then emit SVG. In a browser the bundle exposes a global named `exsurge`; under Node or a bundler, `const exsurge = require("@vagdur/exsurge")`.
 
 ```javascript
-const gabc = "(f3) EC(ce!fg)CE(f) *(,) ad(fe~)vé(f!gwhf)nit(f) (,)";
+const gabc = `mode: 7;
+%%
+(c4) Pó(c)pu(c)lus(d) Si(c)on,(c)`;
 
 const ctxt = new exsurge.ChantContext();
-const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
-const score = new exsurge.ChantScore(ctxt, mappings, /* useDropCap */ true);
+const score = exsurge.Gabc.createScoreFromSource(ctxt, gabc, /* useDropCap */ true);
 
 score.performLayout(ctxt);
 score.layoutChantLines(ctxt, 1000, () => {
   const svg = score.createSvgNode(ctxt); // an <svg> DOM node
   document.body.appendChild(svg);
 });
+```
+
+`createScoreFromSource` is a shorthand for `Gabc.createMappingsFromSource` followed by `new ChantScore`. Either path reads the GABC header: an `annotation:` field (one or two lines) becomes the text above the drop cap, and if that field is absent a `mode:` of 1–8 is typeset as lowercase roman (`7` → `vii`) with `mode-modifier` and `mode-differentia` appended — the same default Gregorio uses. Leave both headers out and `score.annotation` stays null. You can still assign `score.annotation` yourself after construction; that value is what layout draws.
+
+The two-step form is still available when you already have mappings (an editor updating in place, for example):
+
+```javascript
+const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
+const score = new exsurge.ChantScore(ctxt, mappings, true);
 ```
 
 In a browser, prefer the asynchronous layout call, which chunks its work across timeouts instead of blocking the main thread. Pass a third callback if you need to hear about failures (for example, lyric font metrics that never become usable):
@@ -150,7 +160,7 @@ exsurge.createPlayableChant(ctxt, gabc, document.getElementById("chant"), {
 });
 ```
 
-Anything that must be set *before* layout (an annotation above the clef, titles, …) needs a score you own. Pass a prebuilt `ChantScore` instead of a gabc string — `createPlayableChant` still handles layout, SVG, player and resize:
+GABC `annotation:` and `mode:` headers populate `score.annotation` when you pass a gabc string. A custom annotation, titles, or other state that must be set *before* layout still needs a score you own — pass a prebuilt `ChantScore` instead of a string and `createPlayableChant` will not overwrite `score.annotation`:
 
 ```javascript
 const mappings = exsurge.Gabc.createMappingsFromSource(ctxt, gabc);
